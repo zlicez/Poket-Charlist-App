@@ -1,0 +1,199 @@
+import { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Swords, Plus, Trash2, Dices } from "lucide-react";
+import type { Weapon } from "@shared/schema";
+
+interface WeaponsListProps {
+  weapons: Weapon[];
+  onChange: (weapons: Weapon[]) => void;
+  onRollAttack: (weapon: Weapon) => void;
+  onRollDamage: (weapon: Weapon) => void;
+  isEditing: boolean;
+}
+
+function AddWeaponDialog({ onAdd }: { onAdd: (weapon: Omit<Weapon, "id">) => void }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [attackBonus, setAttackBonus] = useState(0);
+  const [damage, setDamage] = useState("1d8");
+  const [damageType, setDamageType] = useState("рубящий");
+  const [properties, setProperties] = useState("");
+
+  const handleSubmit = () => {
+    if (!name.trim()) return;
+    onAdd({ name, attackBonus, damage, damageType, properties });
+    setName("");
+    setAttackBonus(0);
+    setDamage("1d8");
+    setDamageType("рубящий");
+    setProperties("");
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1" data-testid="button-add-weapon">
+          <Plus className="w-4 h-4" />
+          Добавить
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Добавить оружие</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <label className="text-sm text-muted-foreground">Название</label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Длинный меч"
+              data-testid="input-weapon-name"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm text-muted-foreground">Бонус атаки</label>
+              <Input
+                type="number"
+                value={attackBonus}
+                onChange={(e) => setAttackBonus(parseInt(e.target.value) || 0)}
+                data-testid="input-weapon-attack"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground">Урон</label>
+              <Input
+                value={damage}
+                onChange={(e) => setDamage(e.target.value)}
+                placeholder="1d8"
+                data-testid="input-weapon-damage"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm text-muted-foreground">Тип урона</label>
+              <Input
+                value={damageType}
+                onChange={(e) => setDamageType(e.target.value)}
+                placeholder="рубящий"
+                data-testid="input-weapon-damage-type"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground">Свойства</label>
+              <Input
+                value={properties}
+                onChange={(e) => setProperties(e.target.value)}
+                placeholder="универсальное"
+                data-testid="input-weapon-properties"
+              />
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Отмена</Button>
+          <Button onClick={handleSubmit} data-testid="button-save-weapon">Сохранить</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function WeaponsList({ weapons, onChange, onRollAttack, onRollDamage, isEditing }: WeaponsListProps) {
+  const addWeapon = (weapon: Omit<Weapon, "id">) => {
+    onChange([...weapons, { ...weapon, id: crypto.randomUUID() }]);
+  };
+
+  const removeWeapon = (id: string) => {
+    onChange(weapons.filter((w) => w.id !== id));
+  };
+
+  return (
+    <Card className="stat-card p-3">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Swords className="w-4 h-4 text-accent" />
+          <h3 className="font-semibold text-sm">Оружие</h3>
+        </div>
+        {isEditing && <AddWeaponDialog onAdd={addWeapon} />}
+      </div>
+
+      {weapons.length === 0 ? (
+        <div className="text-center py-4 text-muted-foreground text-sm">
+          {isEditing ? "Нажмите \"Добавить\" чтобы добавить оружие" : "Нет оружия"}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {weapons.map((weapon) => (
+            <div 
+              key={weapon.id}
+              className="flex items-center gap-2 p-2 rounded-md bg-muted/30"
+              data-testid={`weapon-${weapon.id}`}
+            >
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-sm truncate">{weapon.name}</div>
+                <div className="text-xs text-muted-foreground">
+                  {weapon.damage} {weapon.damageType}
+                  {weapon.properties && ` • ${weapon.properties}`}
+                </div>
+              </div>
+
+              {!isEditing && (
+                <div className="flex items-center gap-1">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 px-2 gap-1"
+                        onClick={() => onRollAttack(weapon)}
+                        data-testid={`button-attack-${weapon.id}`}
+                      >
+                        <Dices className="w-3 h-3" />
+                        <span className="text-xs">+{weapon.attackBonus}</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Бросок атаки</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 px-2"
+                        onClick={() => onRollDamage(weapon)}
+                        data-testid={`button-damage-${weapon.id}`}
+                      >
+                        <span className="text-xs">{weapon.damage}</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Бросок урона</TooltipContent>
+                  </Tooltip>
+                </div>
+              )}
+
+              {isEditing && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-7 w-7 text-destructive"
+                  onClick={() => removeWeapon(weapon.id)}
+                  data-testid={`button-remove-weapon-${weapon.id}`}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
