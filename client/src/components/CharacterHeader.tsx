@@ -5,8 +5,19 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Progress } from "@/components/ui/progress";
 import { Edit2, Play, User, Sparkles, Scroll, BookOpen } from "lucide-react";
-import { CLASSES, RACES, ALIGNMENTS, getProficiencyBonus, formatModifier } from "@shared/schema";
+import { 
+  CLASSES, 
+  RACES, 
+  ALIGNMENTS, 
+  RACE_DATA,
+  CLASS_DATA,
+  getProficiencyBonus, 
+  formatModifier,
+  getXPProgress,
+  XP_THRESHOLDS
+} from "@shared/schema";
 import type { Character } from "@shared/schema";
 
 interface CharacterHeaderProps {
@@ -18,6 +29,51 @@ interface CharacterHeaderProps {
 
 export function CharacterHeader({ character, onChange, isEditing, onToggleMode }: CharacterHeaderProps) {
   const profBonus = getProficiencyBonus(character.level);
+  const classData = CLASS_DATA[character.class];
+  const raceData = RACE_DATA[character.race];
+  const subraces = raceData?.subraces ? Object.keys(raceData.subraces) : [];
+  const xpProgress = getXPProgress(character.experience, character.level);
+
+  const handleClassChange = (newClass: string) => {
+    const newClassData = CLASS_DATA[newClass];
+    if (newClassData) {
+      const savingThrows = {
+        STR: newClassData.savingThrows.includes("STR"),
+        DEX: newClassData.savingThrows.includes("DEX"),
+        CON: newClassData.savingThrows.includes("CON"),
+        INT: newClassData.savingThrows.includes("INT"),
+        WIS: newClassData.savingThrows.includes("WIS"),
+        CHA: newClassData.savingThrows.includes("CHA"),
+      };
+      onChange({ 
+        class: newClass,
+        hitDice: `${character.level}${newClassData.hitDice}`,
+        savingThrows
+      });
+    } else {
+      onChange({ class: newClass });
+    }
+  };
+
+  const handleRaceChange = (newRace: string) => {
+    const newRaceData = RACE_DATA[newRace];
+    onChange({ 
+      race: newRace, 
+      subrace: undefined,
+      speed: newRaceData?.speed || 30
+    });
+  };
+
+  const handleLevelChange = (newLevel: number) => {
+    const level = Math.min(20, Math.max(1, newLevel));
+    const newProfBonus = getProficiencyBonus(level);
+    onChange({ 
+      level,
+      proficiencyBonus: newProfBonus,
+      hitDice: classData ? `${level}${classData.hitDice}` : `${level}d10`,
+      hitDiceRemaining: level
+    });
+  };
 
   return (
     <Card className="stat-card p-4">
@@ -48,7 +104,7 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
             <div className="flex flex-wrap items-center gap-2">
               {isEditing ? (
                 <>
-                  <Select value={character.race} onValueChange={(value) => onChange({ race: value })}>
+                  <Select value={character.race} onValueChange={handleRaceChange}>
                     <SelectTrigger className="w-32 h-7 text-xs" data-testid="select-race">
                       <SelectValue placeholder="Раса" />
                     </SelectTrigger>
@@ -58,7 +114,20 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
                       ))}
                     </SelectContent>
                   </Select>
-                  <Select value={character.class} onValueChange={(value) => onChange({ class: value })}>
+                  {subraces.length > 0 && (
+                    <Select value={character.subrace || "none"} onValueChange={(value) => onChange({ subrace: value === "none" ? undefined : value })}>
+                      <SelectTrigger className="w-32 h-7 text-xs" data-testid="select-subrace">
+                        <SelectValue placeholder="Подраса" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Нет</SelectItem>
+                        {subraces.map((subrace) => (
+                          <SelectItem key={subrace} value={subrace}>{subrace}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  <Select value={character.class} onValueChange={handleClassChange}>
                     <SelectTrigger className="w-32 h-7 text-xs" data-testid="select-class">
                       <SelectValue placeholder="Класс" />
                     </SelectTrigger>
@@ -71,8 +140,13 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
                 </>
               ) : (
                 <>
-                  <Badge variant="secondary">{character.race}</Badge>
+                  <Badge variant="secondary">{character.race}{character.subrace ? ` (${character.subrace})` : ''}</Badge>
                   <Badge variant="outline">{character.class}</Badge>
+                  {classData && (
+                    <Badge variant="outline" className="text-xs">
+                      Кость хитов: {classData.hitDice}
+                    </Badge>
+                  )}
                 </>
               )}
             </div>
@@ -92,13 +166,7 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
                     min={1}
                     max={20}
                     value={character.level}
-                    onChange={(e) => {
-                      const level = Math.min(20, Math.max(1, parseInt(e.target.value) || 1));
-                      onChange({ 
-                        level,
-                        proficiencyBonus: getProficiencyBonus(level)
-                      });
-                    }}
+                    onChange={(e) => handleLevelChange(parseInt(e.target.value) || 1)}
                     className="w-14 h-8 text-center text-lg font-bold"
                     data-testid="input-level"
                   />
@@ -150,6 +218,31 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
             )}
           </Button>
         </div>
+      </div>
+
+      <div className="mt-4">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="space-y-1" data-testid="stat-xp-progress">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Опыт: {character.experience.toLocaleString()} XP</span>
+                <span>
+                  {character.level < 20 
+                    ? `До ${character.level + 1} уровня: ${(xpProgress.next - character.experience).toLocaleString()} XP`
+                    : 'Максимальный уровень'
+                  }
+                </span>
+              </div>
+              <Progress value={xpProgress.progress} className="h-2" />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Прогресс опыта</p>
+            <p className="text-xs text-muted-foreground">
+              {xpProgress.current.toLocaleString()} / {xpProgress.next.toLocaleString()} XP
+            </p>
+          </TooltipContent>
+        </Tooltip>
       </div>
 
       {isEditing && (

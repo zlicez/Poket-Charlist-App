@@ -5,10 +5,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { CharacterHeader } from "@/components/CharacterHeader";
-import { AbilityScore } from "@/components/AbilityScore";
-import { SkillItem } from "@/components/SkillItem";
+import { AbilityWithSkills } from "@/components/AbilityWithSkills";
 import { CombatStats } from "@/components/CombatStats";
 import { SavingThrowsComponent } from "@/components/SavingThrows";
 import { WeaponsList } from "@/components/WeaponsList";
@@ -20,17 +18,18 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { 
   ABILITY_NAMES, 
-  SKILLS, 
   ABILITY_LABELS,
+  SKILLS_BY_ABILITY,
   calculateModifier, 
   getProficiencyBonus,
   formatModifier,
+  getRacialBonuses,
   type Character, 
   type AbilityName,
   type SkillProficiency,
   type Weapon
 } from "@shared/schema";
-import { ArrowLeft, Moon, Sun, Save, StickyNote } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Save, StickyNote, User, Users, Flag } from "lucide-react";
 
 export default function CharacterSheet() {
   const { id } = useParams<{ id: string }>();
@@ -124,10 +123,18 @@ export default function CharacterSheet() {
     setRollHistory(prev => [roll, ...prev].slice(0, 50));
   }, []);
 
+  const getAbilityModifier = (ability: AbilityName) => {
+    if (!currentCharacter) return 0;
+    const baseScore = currentCharacter.abilityScores[ability];
+    const racialBonuses = getRacialBonuses(currentCharacter.race, currentCharacter.subrace);
+    const racialBonus = racialBonuses[ability] || 0;
+    const customBonus = currentCharacter.customAbilityBonuses?.[ability] || 0;
+    return calculateModifier(baseScore + racialBonus + customBonus);
+  };
+
   const rollAbility = (ability: AbilityName) => {
     if (!currentCharacter) return;
-    const score = currentCharacter.abilityScores[ability];
-    const mod = calculateModifier(score);
+    const mod = getAbilityModifier(ability);
     const roll = rollDice(
       `Проверка ${ABILITY_LABELS[ability].ru}`,
       "1d20",
@@ -140,8 +147,7 @@ export default function CharacterSheet() {
 
   const rollSkill = (skillName: string, ability: AbilityName) => {
     if (!currentCharacter) return;
-    const score = currentCharacter.abilityScores[ability];
-    const abilityMod = calculateModifier(score);
+    const abilityMod = getAbilityModifier(ability);
     const profBonus = getProficiencyBonus(currentCharacter.level);
     const proficiency = currentCharacter.skills[skillName] || { proficient: false, expertise: false };
     
@@ -163,8 +169,7 @@ export default function CharacterSheet() {
 
   const rollSavingThrow = (ability: AbilityName) => {
     if (!currentCharacter) return;
-    const score = currentCharacter.abilityScores[ability];
-    const abilityMod = calculateModifier(score);
+    const abilityMod = getAbilityModifier(ability);
     const profBonus = getProficiencyBonus(currentCharacter.level);
     const isProficient = currentCharacter.savingThrows[ability];
     
@@ -223,9 +228,9 @@ export default function CharacterSheet() {
       <div className="min-h-screen bg-background p-4">
         <div className="max-w-6xl mx-auto space-y-4">
           <Skeleton className="h-32 w-full" />
-          <div className="grid grid-cols-6 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {[...Array(6)].map((_, i) => (
-              <Skeleton key={i} className="h-32" />
+              <Skeleton key={i} className="h-24" />
             ))}
           </div>
           <Skeleton className="h-64 w-full" />
@@ -250,6 +255,8 @@ export default function CharacterSheet() {
       </div>
     );
   }
+
+  const racialBonuses = getRacialBonuses(currentCharacter.race, currentCharacter.subrace);
 
   return (
     <div className="min-h-screen bg-background">
@@ -302,25 +309,48 @@ export default function CharacterSheet() {
             onToggleMode={() => isEditing ? saveChanges() : setIsEditing(true)}
           />
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-            {ABILITY_NAMES.map((ability) => (
-              <AbilityScore
-                key={ability}
-                ability={ability}
-                score={currentCharacter.abilityScores[ability]}
-                onChange={(value) => handleChange({
-                  abilityScores: {
-                    ...currentCharacter.abilityScores,
-                    [ability]: value
-                  }
-                })}
-                onRoll={() => rollAbility(ability)}
-                isEditing={isEditing}
-              />
-            ))}
-          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="space-y-3">
+              {ABILITY_NAMES.map((ability) => (
+                <AbilityWithSkills
+                  key={ability}
+                  ability={ability}
+                  baseScore={currentCharacter.abilityScores[ability]}
+                  customBonus={currentCharacter.customAbilityBonuses?.[ability] || 0}
+                  race={currentCharacter.race}
+                  subrace={currentCharacter.subrace}
+                  level={currentCharacter.level}
+                  skills={currentCharacter.skills}
+                  onScoreChange={(value) => handleChange({
+                    abilityScores: { 
+                      ...currentCharacter.abilityScores,
+                      [ability]: value 
+                    }
+                  })}
+                  onCustomBonusChange={(value) => handleChange({
+                    customAbilityBonuses: { 
+                      STR: currentCharacter.customAbilityBonuses?.STR || 0,
+                      DEX: currentCharacter.customAbilityBonuses?.DEX || 0,
+                      CON: currentCharacter.customAbilityBonuses?.CON || 0,
+                      INT: currentCharacter.customAbilityBonuses?.INT || 0,
+                      WIS: currentCharacter.customAbilityBonuses?.WIS || 0,
+                      CHA: currentCharacter.customAbilityBonuses?.CHA || 0,
+                      [ability]: value 
+                    }
+                  })}
+                  onSkillProficiencyChange={(skillName, proficiency) => handleChange({
+                    skills: { [skillName]: proficiency }
+                  })}
+                  onRollAbility={() => rollAbility(ability)}
+                  onRollSkill={(skillName) => {
+                    const skill = SKILLS_BY_ABILITY[ability].find(s => s.name === skillName);
+                    if (skill) rollSkill(skillName, skill.ability);
+                  }}
+                  isEditing={isEditing}
+                />
+              ))}
+            </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="space-y-4">
               <CombatStats
                 character={currentCharacter}
@@ -335,35 +365,6 @@ export default function CharacterSheet() {
                 onRoll={rollSavingThrow}
                 isEditing={isEditing}
               />
-            </div>
-
-            <Card className="stat-card p-3">
-              <h3 className="font-semibold text-sm mb-3">Навыки</h3>
-              <ScrollArea className="h-[400px] pr-2">
-                <div className="space-y-0.5">
-                  {SKILLS.map((skill) => (
-                    <SkillItem
-                      key={skill.name}
-                      name={skill.name}
-                      ability={skill.ability}
-                      abilityScore={currentCharacter.abilityScores[skill.ability]}
-                      level={currentCharacter.level}
-                      proficiency={currentCharacter.skills[skill.name] || { proficient: false, expertise: false }}
-                      onProficiencyChange={(proficiency: SkillProficiency) => handleChange({
-                        skills: {
-                          ...currentCharacter.skills,
-                          [skill.name]: proficiency
-                        }
-                      })}
-                      onRoll={() => rollSkill(skill.name, skill.ability)}
-                      isEditing={isEditing}
-                    />
-                  ))}
-                </div>
-              </ScrollArea>
-            </Card>
-
-            <div className="space-y-4">
               <WeaponsList
                 weapons={currentCharacter.weapons}
                 onChange={(weapons) => handleChange({ weapons })}
@@ -386,23 +387,90 @@ export default function CharacterSheet() {
               isEditing={isEditing}
             />
 
+            <div className="space-y-3">
+              <Card className="stat-card p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <StickyNote className="w-4 h-4 text-accent" />
+                  <h3 className="font-semibold text-sm">Заметки</h3>
+                </div>
+                {isEditing ? (
+                  <Textarea
+                    value={currentCharacter.notes || ""}
+                    onChange={(e) => handleChange({ notes: e.target.value })}
+                    placeholder="Записи о персонаже, квестах, важных событиях..."
+                    rows={8}
+                    className="resize-none"
+                    data-testid="textarea-notes"
+                  />
+                ) : (
+                  <div className="text-sm text-muted-foreground whitespace-pre-wrap min-h-[120px]">
+                    {currentCharacter.notes || "Нет заметок"}
+                  </div>
+                )}
+              </Card>
+
+              <Card className="stat-card p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <User className="w-4 h-4 text-accent" />
+                  <h3 className="font-semibold text-sm">Внешность</h3>
+                </div>
+                {isEditing ? (
+                  <Textarea
+                    value={currentCharacter.appearance || ""}
+                    onChange={(e) => handleChange({ appearance: e.target.value })}
+                    placeholder="Рост, телосложение, цвет волос и глаз, особые приметы..."
+                    rows={4}
+                    className="resize-none"
+                    data-testid="textarea-appearance"
+                  />
+                ) : (
+                  <div className="text-sm text-muted-foreground whitespace-pre-wrap min-h-[60px]">
+                    {currentCharacter.appearance || "Нет описания"}
+                  </div>
+                )}
+              </Card>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card className="stat-card p-3">
               <div className="flex items-center gap-2 mb-2">
-                <StickyNote className="w-4 h-4 text-accent" />
-                <h3 className="font-semibold text-sm">Заметки</h3>
+                <Users className="w-4 h-4 text-accent" />
+                <h3 className="font-semibold text-sm">Союзники и Организации</h3>
               </div>
               {isEditing ? (
                 <Textarea
-                  value={currentCharacter.notes || ""}
-                  onChange={(e) => handleChange({ notes: e.target.value })}
-                  placeholder="Записи о персонаже, союзниках, квестах..."
-                  rows={6}
+                  value={currentCharacter.allies || ""}
+                  onChange={(e) => handleChange({ allies: e.target.value })}
+                  placeholder="Друзья, союзники, группы с которыми работаете..."
+                  rows={4}
                   className="resize-none"
-                  data-testid="textarea-notes"
+                  data-testid="textarea-allies"
                 />
               ) : (
-                <div className="text-sm text-muted-foreground whitespace-pre-wrap min-h-[100px]">
-                  {currentCharacter.notes || "Нет заметок"}
+                <div className="text-sm text-muted-foreground whitespace-pre-wrap min-h-[60px]">
+                  {currentCharacter.allies || "Нет записей"}
+                </div>
+              )}
+            </Card>
+
+            <Card className="stat-card p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Flag className="w-4 h-4 text-accent" />
+                <h3 className="font-semibold text-sm">Фракции</h3>
+              </div>
+              {isEditing ? (
+                <Textarea
+                  value={currentCharacter.factions || ""}
+                  onChange={(e) => handleChange({ factions: e.target.value })}
+                  placeholder="Членство во фракциях, гильдиях, орденах..."
+                  rows={4}
+                  className="resize-none"
+                  data-testid="textarea-factions"
+                />
+              ) : (
+                <div className="text-sm text-muted-foreground whitespace-pre-wrap min-h-[60px]">
+                  {currentCharacter.factions || "Нет записей"}
                 </div>
               )}
             </Card>

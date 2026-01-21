@@ -3,56 +3,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Zap, Footprints, Heart, Skull, Plus, Minus } from "lucide-react";
-import type { Character, DeathSaves } from "@shared/schema";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Shield, Zap, Footprints, Heart, Skull, Plus, Minus, Dice6 } from "lucide-react";
+import { calculateModifier, formatModifier, ARMOR_LIST, calculateAC, CLASS_DATA } from "@shared/schema";
+import type { Character, DeathSaves, Equipment, ArmorData } from "@shared/schema";
 
 interface CombatStatsProps {
   character: Character;
   onChange: (updates: Partial<Character>) => void;
   isEditing: boolean;
-}
-
-function StatBox({ 
-  icon: Icon, 
-  label, 
-  value, 
-  tooltip, 
-  onChange, 
-  isEditing,
-  testId
-}: { 
-  icon: React.ElementType; 
-  label: string; 
-  value: number; 
-  tooltip: string;
-  onChange?: (value: number) => void;
-  isEditing: boolean;
-  testId: string;
-}) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Card className="stat-card p-3 text-center" data-testid={testId}>
-          <Icon className="w-5 h-5 mx-auto mb-1 text-accent" />
-          <div className="text-xs text-muted-foreground mb-1">{label}</div>
-          {isEditing && onChange ? (
-            <Input
-              type="number"
-              value={value}
-              onChange={(e) => onChange(parseInt(e.target.value) || 0)}
-              className="text-center text-lg font-bold h-8"
-              data-testid={`input-${testId}`}
-            />
-          ) : (
-            <div className="text-2xl font-bold">{value}</div>
-          )}
-        </Card>
-      </TooltipTrigger>
-      <TooltipContent>
-        <p>{tooltip}</p>
-      </TooltipContent>
-    </Tooltip>
-  );
 }
 
 function HpTracker({ 
@@ -254,36 +213,119 @@ function DeathSavesTracker({
 }
 
 export function CombatStats({ character, onChange, isEditing }: CombatStatsProps) {
+  const dexMod = calculateModifier(character.abilityScores.DEX + (character.customAbilityBonuses?.DEX || 0));
+  const classData = CLASS_DATA[character.class];
+  
+  const equippedArmor = character.equipment.find(e => e.equipped && e.isArmor && e.armorType !== "shield");
+  const hasShield = character.equipment.some(e => e.equipped && e.isArmor && e.armorType === "shield");
+  
+  let armorData: ArmorData | null = null;
+  if (equippedArmor && equippedArmor.armorBaseAC !== undefined) {
+    armorData = {
+      name: equippedArmor.name,
+      type: equippedArmor.armorType || "none",
+      baseAC: equippedArmor.armorBaseAC,
+      maxDexBonus: equippedArmor.armorMaxDexBonus ?? null,
+      stealthDisadvantage: false
+    };
+  }
+  
+  const calculatedAC = calculateAC(dexMod, armorData, hasShield, character.customACBonus || 0);
+  const calculatedInitiative = dexMod + (character.customInitiativeBonus || 0);
+
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-3 gap-3">
-        <StatBox
-          icon={Shield}
-          label="Класс Доспеха"
-          value={character.armorClass}
-          tooltip="Класс Доспеха (КД) определяет, насколько сложно попасть по персонажу атакой. Чем выше КД, тем сложнее нанести урон."
-          onChange={(value) => onChange({ armorClass: value })}
-          isEditing={isEditing}
-          testId="stat-ac"
-        />
-        <StatBox
-          icon={Zap}
-          label="Инициатива"
-          value={character.initiative}
-          tooltip="Инициатива определяет порядок действий в бою. Рассчитывается как модификатор Ловкости плюс возможные бонусы."
-          onChange={(value) => onChange({ initiative: value })}
-          isEditing={isEditing}
-          testId="stat-initiative"
-        />
-        <StatBox
-          icon={Footprints}
-          label="Скорость"
-          value={character.speed}
-          tooltip="Скорость показывает, сколько футов персонаж может пройти за один ход. Стандартная скорость человека — 30 футов."
-          onChange={(value) => onChange({ speed: value })}
-          isEditing={isEditing}
-          testId="stat-speed"
-        />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Card className="stat-card p-3 text-center" data-testid="stat-ac">
+              <Shield className="w-5 h-5 mx-auto mb-1 text-accent" />
+              <div className="text-xs text-muted-foreground mb-1">Класс Доспеха</div>
+              <div className="text-2xl font-bold">{calculatedAC}</div>
+              {isEditing && (
+                <div className="mt-1">
+                  <label className="text-xs text-muted-foreground">Бонус</label>
+                  <Input
+                    type="number"
+                    value={character.customACBonus || 0}
+                    onChange={(e) => onChange({ customACBonus: parseInt(e.target.value) || 0 })}
+                    className="text-center text-sm h-7 w-16 mx-auto"
+                    data-testid="input-ac-bonus"
+                  />
+                </div>
+              )}
+              {!isEditing && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  {armorData ? armorData.name : 'Без доспехов'}
+                  {hasShield && ' + Щит'}
+                </div>
+              )}
+            </Card>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Класс Доспеха (КД)</p>
+            <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
+              <p>Базовый КД: {armorData ? armorData.baseAC : 10}</p>
+              <p>Модификатор ЛОВ: {formatModifier(dexMod)}</p>
+              {hasShield && <p>Щит: +2</p>}
+              {(character.customACBonus || 0) !== 0 && <p>Бонус: {formatModifier(character.customACBonus || 0)}</p>}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Card className="stat-card p-3 text-center" data-testid="stat-initiative">
+              <Zap className="w-5 h-5 mx-auto mb-1 text-accent" />
+              <div className="text-xs text-muted-foreground mb-1">Инициатива</div>
+              <div className={`text-2xl font-bold ${calculatedInitiative >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                {formatModifier(calculatedInitiative)}
+              </div>
+              {isEditing && (
+                <div className="mt-1">
+                  <label className="text-xs text-muted-foreground">Бонус</label>
+                  <Input
+                    type="number"
+                    value={character.customInitiativeBonus || 0}
+                    onChange={(e) => onChange({ customInitiativeBonus: parseInt(e.target.value) || 0 })}
+                    className="text-center text-sm h-7 w-16 mx-auto"
+                    data-testid="input-initiative-bonus"
+                  />
+                </div>
+              )}
+            </Card>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Инициатива определяет порядок действий в бою</p>
+            <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
+              <p>Модификатор ЛОВ: {formatModifier(dexMod)}</p>
+              {(character.customInitiativeBonus || 0) !== 0 && <p>Бонус: {formatModifier(character.customInitiativeBonus || 0)}</p>}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Card className="stat-card p-3 text-center" data-testid="stat-speed">
+              <Footprints className="w-5 h-5 mx-auto mb-1 text-accent" />
+              <div className="text-xs text-muted-foreground mb-1">Скорость</div>
+              {isEditing ? (
+                <Input
+                  type="number"
+                  value={character.speed}
+                  onChange={(e) => onChange({ speed: parseInt(e.target.value) || 30 })}
+                  className="text-center text-lg font-bold h-8"
+                  data-testid="input-speed"
+                />
+              ) : (
+                <div className="text-2xl font-bold">{character.speed}</div>
+              )}
+            </Card>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Скорость показывает, сколько футов персонаж может пройти за один ход</p>
+          </TooltipContent>
+        </Tooltip>
       </div>
 
       <HpTracker
@@ -300,35 +342,44 @@ export function CombatStats({ character, onChange, isEditing }: CombatStatsProps
         isEditing={isEditing}
       />
 
-      {isEditing && (
-        <Card className="stat-card p-3" data-testid="stat-hit-dice">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="font-semibold text-sm">Кубики хитов</span>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-xs text-muted-foreground">Тип</label>
-              <Input
-                value={character.hitDice}
-                onChange={(e) => onChange({ hitDice: e.target.value })}
-                className="h-8 text-center"
-                placeholder="1d10"
-                data-testid="input-hit-dice"
-              />
+      <Card className="stat-card p-3" data-testid="stat-hit-dice">
+        <div className="flex items-center gap-2 mb-2">
+          <Dice6 className="w-5 h-5 text-accent" />
+          <span className="font-semibold text-sm">Кубики хитов</span>
+          <Badge variant="secondary" className="ml-auto">
+            {classData ? classData.hitDice : 'd10'}
+          </Badge>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">
+            {character.hitDiceRemaining} / {character.level}
+          </span>
+          {!isEditing && (
+            <div className="flex gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onChange({ hitDiceRemaining: Math.max(0, character.hitDiceRemaining - 1) })}
+                className="h-7 w-7 p-0"
+                disabled={character.hitDiceRemaining <= 0}
+                data-testid="button-hit-dice-minus"
+              >
+                <Minus className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onChange({ hitDiceRemaining: Math.min(character.level, character.hitDiceRemaining + 1) })}
+                className="h-7 w-7 p-0"
+                disabled={character.hitDiceRemaining >= character.level}
+                data-testid="button-hit-dice-plus"
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground">Осталось</label>
-              <Input
-                type="number"
-                value={character.hitDiceRemaining}
-                onChange={(e) => onChange({ hitDiceRemaining: parseInt(e.target.value) || 0 })}
-                className="h-8 text-center"
-                data-testid="input-hit-dice-remaining"
-              />
-            </div>
-          </div>
-        </Card>
-      )}
+          )}
+        </div>
+      </Card>
     </div>
   );
 }

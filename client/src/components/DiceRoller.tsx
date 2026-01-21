@@ -1,9 +1,8 @@
-import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Dices, X, RotateCcw } from "lucide-react";
+import { Dices, RotateCcw } from "lucide-react";
 import { formatModifier } from "@shared/schema";
 
 export interface DiceRoll {
@@ -79,68 +78,90 @@ export function rollDice(
 }
 
 function DiceResult({ roll }: { roll: DiceRoll }) {
-  const [isAnimating, setIsAnimating] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setIsAnimating(false), 500);
-    return () => clearTimeout(timer);
-  }, [roll.id]);
-
-  const isCritical = roll.dice === "1d20" && roll.results.some(r => r === 20);
-  const isFumble = roll.dice === "1d20" && roll.results.some(r => r === 1);
+  const { sides } = parseDice(roll.dice);
+  const isCritSuccess = sides === 20 && roll.results.some(r => r === 20);
+  const isCritFail = sides === 20 && roll.results.some(r => r === 1);
 
   return (
-    <Card className={`p-3 ${isAnimating ? 'rolling' : ''} ${isCritical ? 'ring-2 ring-green-500' : ''} ${isFumble ? 'ring-2 ring-red-500' : ''}`}>
+    <Card className={`p-3 ${isCritSuccess ? 'border-green-500 bg-green-500/10' : isCritFail ? 'border-red-500 bg-red-500/10' : ''}`}>
       <div className="flex items-start justify-between gap-2">
-        <div className="flex-1">
-          <div className="font-semibold text-sm">{roll.label}</div>
-          <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-1 mt-1">
-            <span>{roll.dice}</span>
-            {roll.isAdvantage && <Badge variant="secondary" className="text-xs py-0">Преимущество</Badge>}
-            {roll.isDisadvantage && <Badge variant="secondary" className="text-xs py-0">Помеха</Badge>}
+        <div className="flex-1 min-w-0">
+          <div className="font-medium text-sm truncate">{roll.label}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">
+            {roll.dice}
+            {roll.modifier !== 0 && ` ${formatModifier(roll.modifier)}`}
           </div>
         </div>
-        <div className={`text-2xl font-bold ${isCritical ? 'text-green-500' : isFumble ? 'text-red-500' : ''}`}>
+        <div className={`text-2xl font-bold ${isCritSuccess ? 'text-green-500' : isCritFail ? 'text-red-500' : ''}`}>
           {roll.total}
         </div>
       </div>
-      
-      <div className="mt-2 flex flex-wrap items-center gap-1 text-xs">
-        <span className="text-muted-foreground">Кубы:</span>
-        {roll.results.map((result, i) => (
-          <Badge 
-            key={i} 
-            variant="outline" 
-            className={`${
-              roll.dice === "1d20" && result === 20 ? 'bg-green-500/20 border-green-500' : 
-              roll.dice === "1d20" && result === 1 ? 'bg-red-500/20 border-red-500' : ''
-            } ${
-              (roll.isAdvantage && result === Math.max(...roll.results)) ||
-              (roll.isDisadvantage && result === Math.min(...roll.results))
-                ? 'ring-1 ring-accent'
-                : ''
-            }`}
-          >
-            {result}
-          </Badge>
-        ))}
+
+      <div className="mt-2 flex flex-wrap items-center gap-1">
+        {roll.results.map((result, i) => {
+          const isMax = result === sides;
+          const isMin = result === 1;
+          const isUsed = roll.isAdvantage 
+            ? result === Math.max(...roll.results)
+            : roll.isDisadvantage 
+              ? result === Math.min(...roll.results)
+              : true;
+
+          return (
+            <Badge 
+              key={i} 
+              variant={isMax ? "default" : isMin ? "destructive" : "secondary"}
+              className={`${!isUsed ? 'opacity-50 line-through' : ''}`}
+            >
+              {result}
+            </Badge>
+          );
+        })}
         {roll.modifier !== 0 && (
-          <>
-            <span className="text-muted-foreground">+</span>
-            <Badge variant="secondary">{formatModifier(roll.modifier)}</Badge>
-          </>
+          <span className="text-sm text-muted-foreground">
+            {formatModifier(roll.modifier)}
+          </span>
         )}
       </div>
-      
+
       {roll.modifierSources.length > 0 && (
-        <div className="mt-1 text-xs text-muted-foreground">
+        <div className="mt-2 text-xs text-muted-foreground">
           {roll.modifierSources.join(" + ")}
         </div>
       )}
-      
-      {isCritical && <div className="mt-1 text-xs text-green-500 font-semibold">Критический успех!</div>}
-      {isFumble && <div className="mt-1 text-xs text-red-500 font-semibold">Критический провал!</div>}
+
+      {(roll.isAdvantage || roll.isDisadvantage) && (
+        <Badge variant="outline" className="mt-2 text-xs">
+          {roll.isAdvantage ? "Преимущество" : "Помеха"}
+        </Badge>
+      )}
+
+      {(isCritSuccess || isCritFail) && (
+        <div className={`mt-2 text-xs font-bold ${isCritSuccess ? 'text-green-500' : 'text-red-500'}`}>
+          {isCritSuccess ? "Критический успех!" : "Критический провал!"}
+        </div>
+      )}
     </Card>
+  );
+}
+
+export function DiceRollerTrigger({ onClick, rollCount }: { onClick: () => void; rollCount: number }) {
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={onClick}
+      className="gap-2"
+      data-testid="button-dice-roller"
+    >
+      <Dices className="w-4 h-4" />
+      История
+      {rollCount > 0 && (
+        <Badge variant="secondary" className="text-xs">
+          {rollCount}
+        </Badge>
+      )}
+    </Button>
   );
 }
 
@@ -182,24 +203,5 @@ export function DiceRoller({ isOpen, onClose, rollHistory, onClearHistory }: Dic
         )}
       </DialogContent>
     </Dialog>
-  );
-}
-
-export function DiceRollerTrigger({ onClick, rollCount }: { onClick: () => void; rollCount: number }) {
-  return (
-    <Button 
-      variant="outline" 
-      size="icon" 
-      onClick={onClick}
-      className="relative dice-glow"
-      data-testid="button-dice-roller"
-    >
-      <Dices className="w-5 h-5" />
-      {rollCount > 0 && (
-        <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
-          {rollCount > 99 ? "99+" : rollCount}
-        </Badge>
-      )}
-    </Button>
   );
 }
