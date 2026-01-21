@@ -76,69 +76,92 @@ export function AbilityWithSkills({
   };
 
   return (
-    <Card className="stat-card p-3">
-      <div className="flex gap-3">
+    <Card className="stat-card p-3 overflow-visible">
+      <div className="flex gap-4">
         <Tooltip>
           <TooltipTrigger asChild>
             <div
-              className={`flex flex-col items-center justify-center min-w-[80px] p-2 rounded-md ${
-                !isEditing ? 'cursor-pointer hover-elevate active-elevate-2' : ''
+              className={`relative flex flex-col items-center justify-center min-w-[100px] ${
+                !isEditing ? 'cursor-pointer' : ''
               }`}
               onClick={() => !isEditing && onRollAbility()}
               data-testid={`ability-${ability.toLowerCase()}`}
             >
-              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                {ability}
-              </div>
-              <div className="text-xs text-muted-foreground mb-1">
-                {label.ru}
-              </div>
-              
-              {isEditing ? (
-                <div className="space-y-1">
-                  <Input
-                    type="number"
-                    min={1}
-                    max={30}
-                    value={baseScore}
-                    onChange={(e) => onScoreChange(parseInt(e.target.value) || 10)}
-                    className="text-center text-sm font-bold h-8 w-14"
-                    onClick={(e) => e.stopPropagation()}
-                    data-testid={`input-ability-${ability.toLowerCase()}`}
-                  />
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs text-muted-foreground">+</span>
+              <div className={`
+                relative flex flex-col items-center justify-center
+                w-[90px] h-[110px]
+                bg-gradient-to-b from-amber-50 to-amber-100
+                dark:from-amber-900/30 dark:to-amber-800/20
+                border-2 border-amber-300 dark:border-amber-700
+                rounded-lg shadow-md
+                ${!isEditing ? 'hover:shadow-lg hover:border-amber-400 dark:hover:border-amber-600 transition-all duration-200' : ''}
+              `}>
+                <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-amber-200 dark:bg-amber-800 rounded-full border border-amber-300 dark:border-amber-600">
+                  <span className="text-[10px] font-bold text-amber-800 dark:text-amber-200 uppercase tracking-wider">
+                    {ability}
+                  </span>
+                </div>
+                
+                <div className="text-[11px] text-amber-700 dark:text-amber-300 font-medium mt-2">
+                  {label.ru}
+                </div>
+                
+                {isEditing ? (
+                  <div className="space-y-1 mt-1">
                     <Input
                       type="number"
-                      value={customBonus}
-                      onChange={(e) => onCustomBonusChange(parseInt(e.target.value) || 0)}
-                      className="text-center text-xs h-6 w-10"
+                      min={1}
+                      max={30}
+                      value={baseScore}
+                      onChange={(e) => onScoreChange(parseInt(e.target.value) || 10)}
+                      className="text-center text-sm font-bold h-7 w-12 bg-white dark:bg-gray-900"
                       onClick={(e) => e.stopPropagation()}
-                      data-testid={`input-ability-bonus-${ability.toLowerCase()}`}
+                      data-testid={`input-ability-${ability.toLowerCase()}`}
                     />
+                    <div className="flex items-center gap-0.5">
+                      <span className="text-[10px] text-muted-foreground">+</span>
+                      <Input
+                        type="number"
+                        value={customBonus}
+                        onChange={(e) => onCustomBonusChange(parseInt(e.target.value) || 0)}
+                        className="text-center text-[10px] h-5 w-8 bg-white dark:bg-gray-900"
+                        onClick={(e) => e.stopPropagation()}
+                        data-testid={`input-ability-bonus-${ability.toLowerCase()}`}
+                      />
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div className="text-2xl font-bold">{totalScore}</div>
-              )}
+                ) : (
+                  <div className="text-3xl font-bold text-amber-900 dark:text-amber-100 mt-1">
+                    {totalScore}
+                  </div>
+                )}
 
-              <div 
-                className={`text-lg font-bold rounded-md py-0.5 px-2 mt-1 ${
-                  modifier >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                }`}
-              >
-                {formatModifier(modifier)}
+                <div className={`
+                  absolute -bottom-3 left-1/2 -translate-x-1/2
+                  w-10 h-10 rounded-full
+                  flex items-center justify-center
+                  bg-gradient-to-b from-amber-100 to-amber-200
+                  dark:from-amber-800 dark:to-amber-900
+                  border-2 border-amber-400 dark:border-amber-600
+                  shadow-md
+                `}>
+                  <span className={`text-base font-bold ${
+                    modifier >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'
+                  }`}>
+                    {formatModifier(modifier)}
+                  </span>
+                </div>
               </div>
 
               {(racialBonus > 0 || customBonus !== 0) && !isEditing && (
-                <div className="flex gap-1 mt-1">
+                <div className="flex gap-1 mt-5">
                   {racialBonus > 0 && (
-                    <Badge variant="secondary" className="text-[10px] px-1 py-0">
+                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700">
                       Раса +{racialBonus}
                     </Badge>
                   )}
                   {customBonus !== 0 && (
-                    <Badge variant="outline" className="text-[10px] px-1 py-0">
+                    <Badge variant="outline" className="text-[9px] px-1.5 py-0">
                       {customBonus > 0 ? '+' : ''}{customBonus}
                     </Badge>
                   )}
@@ -149,13 +172,13 @@ export function AbilityWithSkills({
           <TooltipContent side="left" className="max-w-xs">
             <p className="text-sm">{ABILITY_TOOLTIPS[ability]}</p>
             {!isEditing && (
-              <p className="text-xs text-muted-foreground mt-1">Нажмите для проверки характеристики</p>
+              <p className="text-xs text-muted-foreground mt-1">Нажмите для броска d20</p>
             )}
           </TooltipContent>
         </Tooltip>
 
         {relatedSkills.length > 0 && (
-          <div className="flex-1 space-y-1">
+          <div className="flex-1 space-y-0.5 pt-2">
             {relatedSkills.map((skill) => {
               const proficiency = skills[skill.name] || { proficient: false, expertise: false };
               let skillBonus = modifier;
@@ -168,9 +191,12 @@ export function AbilityWithSkills({
               return (
                 <div
                   key={skill.name}
-                  className={`flex items-center gap-2 py-1 px-2 rounded-md ${
-                    !isEditing ? 'cursor-pointer hover-elevate active-elevate-2' : ''
-                  } ${proficiency.proficient ? 'bg-accent/10' : ''}`}
+                  className={`
+                    flex items-center gap-2 py-1.5 px-2 rounded-md
+                    transition-colors duration-150
+                    ${!isEditing ? 'cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20' : ''}
+                    ${proficiency.proficient ? 'bg-amber-50/70 dark:bg-amber-900/30' : ''}
+                  `}
                   onClick={() => !isEditing && onRollSkill(skill.name)}
                   data-testid={`skill-${skill.name.toLowerCase().replace(/\s/g, '-')}`}
                 >
@@ -183,15 +209,19 @@ export function AbilityWithSkills({
                     data-testid={`checkbox-skill-${skill.name.toLowerCase().replace(/\s/g, '-')}`}
                   >
                     {proficiency.expertise ? (
-                      <Star className="w-3.5 h-3.5 text-accent fill-accent" />
+                      <Star className="w-4 h-4 text-amber-600 dark:text-amber-400 fill-amber-500 dark:fill-amber-500" />
                     ) : proficiency.proficient ? (
-                      <div className="w-2.5 h-2.5 rounded-full bg-accent" />
+                      <div className="w-3 h-3 rounded-full bg-amber-500 dark:bg-amber-500 shadow-sm" />
                     ) : (
-                      <div className="w-2.5 h-2.5 rounded-full border-2 border-muted-foreground/30" />
+                      <div className="w-3 h-3 rounded-full border-2 border-gray-300 dark:border-gray-600" />
                     )}
                   </div>
                   
-                  <span className={`text-sm flex-1 ${proficiency.proficient ? 'font-medium' : 'text-muted-foreground'}`}>
+                  <span className={`text-sm flex-1 ${
+                    proficiency.proficient 
+                      ? 'font-medium text-amber-900 dark:text-amber-100' 
+                      : 'text-muted-foreground'
+                  }`}>
                     {skill.name}
                   </span>
                   
