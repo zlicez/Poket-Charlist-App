@@ -14,6 +14,7 @@ A web application for managing Dungeons & Dragons 5th Edition character sheets. 
 - **Play Mode Editing**: Add/remove items in play mode with lock/unlock protection
 - **Currency System**: Track 5 D&D currencies (CP, SP, EP, GP, PP) with +/- buttons
 - **Weapons & Equipment**: Track weapons with attack/damage rolls, inventory management
+- **Weapon Ability Modifiers**: D&D 5e rules: STR for melee, DEX for ranged, finesse weapons can use either
 - **Features & Traits**: Track class features, racial traits, and feats
 - **Multiple Characters**: Create and manage multiple characters
 - **Dark/Light Theme**: Toggle between themes

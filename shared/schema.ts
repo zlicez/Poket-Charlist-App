@@ -253,6 +253,8 @@ export interface BaseEquipmentItem {
   damageType?: string;
   weaponProperties?: string;
   weaponType?: "melee" | "ranged";
+  abilityMod?: "str" | "dex";
+  isFinesse?: boolean;
   // Armor properties
   isArmor?: boolean;
   armorType?: ArmorType;
@@ -261,43 +263,43 @@ export interface BaseEquipmentItem {
 }
 
 export const BASE_WEAPONS: BaseEquipmentItem[] = [
-  // Simple Melee Weapons
-  { name: "Боевой посох", category: "weapon", isWeapon: true, damage: "1d6", damageType: "дробящий", weaponProperties: "универсальное (1d8)", weight: 4, weaponType: "melee", cost: "2 sp" },
-  { name: "Булава", category: "weapon", isWeapon: true, damage: "1d6", damageType: "дробящий", weight: 4, weaponType: "melee", cost: "5 gp" },
-  { name: "Дубинка", category: "weapon", isWeapon: true, damage: "1d4", damageType: "дробящий", weaponProperties: "лёгкое", weight: 2, weaponType: "melee", cost: "1 sp" },
-  { name: "Кинжал", category: "weapon", isWeapon: true, damage: "1d4", damageType: "колющий", weaponProperties: "лёгкое, метательное, фехтовальное", weight: 1, weaponType: "melee", cost: "2 gp" },
-  { name: "Копьё", category: "weapon", isWeapon: true, damage: "1d6", damageType: "колющий", weaponProperties: "метательное, универсальное (1d8)", weight: 3, weaponType: "melee", cost: "1 gp" },
-  { name: "Лёгкий молот", category: "weapon", isWeapon: true, damage: "1d4", damageType: "дробящий", weaponProperties: "лёгкое, метательное", weight: 2, weaponType: "melee", cost: "2 gp" },
-  { name: "Метательное копьё", category: "weapon", isWeapon: true, damage: "1d6", damageType: "колющий", weaponProperties: "метательное", weight: 2, weaponType: "melee", cost: "5 sp" },
-  { name: "Ручной топор", category: "weapon", isWeapon: true, damage: "1d6", damageType: "рубящий", weaponProperties: "лёгкое, метательное", weight: 2, weaponType: "melee", cost: "5 gp" },
-  { name: "Серп", category: "weapon", isWeapon: true, damage: "1d4", damageType: "рубящий", weaponProperties: "лёгкое", weight: 2, weaponType: "melee", cost: "1 gp" },
-  { name: "Палица", category: "weapon", isWeapon: true, damage: "1d8", damageType: "дробящий", weaponProperties: "двуручное", weight: 10, weaponType: "melee", cost: "2 sp" },
-  // Simple Ranged Weapons
-  { name: "Лёгкий арбалет", category: "weapon", isWeapon: true, damage: "1d8", damageType: "колющий", weaponProperties: "боеприпасы, двуручное, перезарядка", weight: 5, weaponType: "ranged", cost: "25 gp" },
-  { name: "Дротик", category: "weapon", isWeapon: true, damage: "1d4", damageType: "колющий", weaponProperties: "метательное, фехтовальное", weight: 0.25, weaponType: "ranged", cost: "5 cp" },
-  { name: "Короткий лук", category: "weapon", isWeapon: true, damage: "1d6", damageType: "колющий", weaponProperties: "боеприпасы, двуручное", weight: 2, weaponType: "ranged", cost: "25 gp" },
-  { name: "Праща", category: "weapon", isWeapon: true, damage: "1d4", damageType: "дробящий", weaponProperties: "боеприпасы", weight: 0, weaponType: "ranged", cost: "1 sp" },
-  // Martial Melee Weapons
-  { name: "Длинный меч", category: "weapon", isWeapon: true, damage: "1d8", damageType: "рубящий", weaponProperties: "универсальное (1d10)", weight: 3, weaponType: "melee", cost: "15 gp" },
-  { name: "Короткий меч", category: "weapon", isWeapon: true, damage: "1d6", damageType: "колющий", weaponProperties: "лёгкое, фехтовальное", weight: 2, weaponType: "melee", cost: "10 gp" },
-  { name: "Рапира", category: "weapon", isWeapon: true, damage: "1d8", damageType: "колющий", weaponProperties: "фехтовальное", weight: 2, weaponType: "melee", cost: "25 gp" },
-  { name: "Скимитар", category: "weapon", isWeapon: true, damage: "1d6", damageType: "рубящий", weaponProperties: "лёгкое, фехтовальное", weight: 3, weaponType: "melee", cost: "25 gp" },
-  { name: "Боевой топор", category: "weapon", isWeapon: true, damage: "1d8", damageType: "рубящий", weaponProperties: "универсальное (1d10)", weight: 4, weaponType: "melee", cost: "10 gp" },
-  { name: "Боевой молот", category: "weapon", isWeapon: true, damage: "1d8", damageType: "дробящий", weaponProperties: "универсальное (1d10)", weight: 2, weaponType: "melee", cost: "15 gp" },
-  { name: "Моргенштерн", category: "weapon", isWeapon: true, damage: "1d8", damageType: "колющий", weight: 4, weaponType: "melee", cost: "15 gp" },
-  { name: "Цеп", category: "weapon", isWeapon: true, damage: "1d8", damageType: "дробящий", weight: 2, weaponType: "melee", cost: "10 gp" },
-  { name: "Секира", category: "weapon", isWeapon: true, damage: "1d12", damageType: "рубящий", weaponProperties: "тяжёлое, двуручное", weight: 7, weaponType: "melee", cost: "30 gp" },
-  { name: "Двуручный меч", category: "weapon", isWeapon: true, damage: "2d6", damageType: "рубящий", weaponProperties: "тяжёлое, двуручное", weight: 6, weaponType: "melee", cost: "50 gp" },
-  { name: "Глефа", category: "weapon", isWeapon: true, damage: "1d10", damageType: "рубящий", weaponProperties: "тяжёлое, двуручное, досягаемость", weight: 6, weaponType: "melee", cost: "20 gp" },
-  { name: "Алебарда", category: "weapon", isWeapon: true, damage: "1d10", damageType: "рубящий", weaponProperties: "тяжёлое, двуручное, досягаемость", weight: 6, weaponType: "melee", cost: "20 gp" },
-  { name: "Пика", category: "weapon", isWeapon: true, damage: "1d10", damageType: "колющий", weaponProperties: "тяжёлое, двуручное, досягаемость", weight: 18, weaponType: "melee", cost: "5 gp" },
-  { name: "Молот", category: "weapon", isWeapon: true, damage: "2d6", damageType: "дробящий", weaponProperties: "тяжёлое, двуручное", weight: 10, weaponType: "melee", cost: "10 gp" },
-  { name: "Кнут", category: "weapon", isWeapon: true, damage: "1d4", damageType: "рубящий", weaponProperties: "фехтовальное, досягаемость", weight: 3, weaponType: "melee", cost: "2 gp" },
-  { name: "Трезубец", category: "weapon", isWeapon: true, damage: "1d6", damageType: "колющий", weaponProperties: "метательное, универсальное (1d8)", weight: 4, weaponType: "melee", cost: "5 gp" },
-  // Martial Ranged Weapons
-  { name: "Длинный лук", category: "weapon", isWeapon: true, damage: "1d8", damageType: "колющий", weaponProperties: "боеприпасы, тяжёлое, двуручное", weight: 2, weaponType: "ranged", cost: "50 gp" },
-  { name: "Ручной арбалет", category: "weapon", isWeapon: true, damage: "1d6", damageType: "колющий", weaponProperties: "боеприпасы, лёгкое, перезарядка", weight: 3, weaponType: "ranged", cost: "75 gp" },
-  { name: "Тяжёлый арбалет", category: "weapon", isWeapon: true, damage: "1d10", damageType: "колющий", weaponProperties: "боеприпасы, тяжёлое, двуручное, перезарядка", weight: 18, weaponType: "ranged", cost: "50 gp" },
+  // Simple Melee Weapons (STR-based)
+  { name: "Боевой посох", category: "weapon", isWeapon: true, damage: "1d6", damageType: "дробящий", weaponProperties: "универсальное (1d8)", weight: 4, weaponType: "melee", abilityMod: "str", cost: "2 sp" },
+  { name: "Булава", category: "weapon", isWeapon: true, damage: "1d6", damageType: "дробящий", weight: 4, weaponType: "melee", abilityMod: "str", cost: "5 gp" },
+  { name: "Дубинка", category: "weapon", isWeapon: true, damage: "1d4", damageType: "дробящий", weaponProperties: "лёгкое", weight: 2, weaponType: "melee", abilityMod: "str", cost: "1 sp" },
+  { name: "Кинжал", category: "weapon", isWeapon: true, damage: "1d4", damageType: "колющий", weaponProperties: "лёгкое, метательное, фехтовальное", weight: 1, weaponType: "melee", abilityMod: "dex", isFinesse: true, cost: "2 gp" },
+  { name: "Копьё", category: "weapon", isWeapon: true, damage: "1d6", damageType: "колющий", weaponProperties: "метательное, универсальное (1d8)", weight: 3, weaponType: "melee", abilityMod: "str", cost: "1 gp" },
+  { name: "Лёгкий молот", category: "weapon", isWeapon: true, damage: "1d4", damageType: "дробящий", weaponProperties: "лёгкое, метательное", weight: 2, weaponType: "melee", abilityMod: "str", cost: "2 gp" },
+  { name: "Метательное копьё", category: "weapon", isWeapon: true, damage: "1d6", damageType: "колющий", weaponProperties: "метательное", weight: 2, weaponType: "melee", abilityMod: "str", cost: "5 sp" },
+  { name: "Ручной топор", category: "weapon", isWeapon: true, damage: "1d6", damageType: "рубящий", weaponProperties: "лёгкое, метательное", weight: 2, weaponType: "melee", abilityMod: "str", cost: "5 gp" },
+  { name: "Серп", category: "weapon", isWeapon: true, damage: "1d4", damageType: "рубящий", weaponProperties: "лёгкое", weight: 2, weaponType: "melee", abilityMod: "str", cost: "1 gp" },
+  { name: "Палица", category: "weapon", isWeapon: true, damage: "1d8", damageType: "дробящий", weaponProperties: "двуручное", weight: 10, weaponType: "melee", abilityMod: "str", cost: "2 sp" },
+  // Simple Ranged Weapons (DEX-based)
+  { name: "Лёгкий арбалет", category: "weapon", isWeapon: true, damage: "1d8", damageType: "колющий", weaponProperties: "боеприпасы, двуручное, перезарядка", weight: 5, weaponType: "ranged", abilityMod: "dex", cost: "25 gp" },
+  { name: "Дротик", category: "weapon", isWeapon: true, damage: "1d4", damageType: "колющий", weaponProperties: "метательное, фехтовальное", weight: 0.25, weaponType: "ranged", abilityMod: "dex", isFinesse: true, cost: "5 cp" },
+  { name: "Короткий лук", category: "weapon", isWeapon: true, damage: "1d6", damageType: "колющий", weaponProperties: "боеприпасы, двуручное", weight: 2, weaponType: "ranged", abilityMod: "dex", cost: "25 gp" },
+  { name: "Праща", category: "weapon", isWeapon: true, damage: "1d4", damageType: "дробящий", weaponProperties: "боеприпасы", weight: 0, weaponType: "ranged", abilityMod: "dex", cost: "1 sp" },
+  // Martial Melee Weapons (STR-based, some Finesse)
+  { name: "Длинный меч", category: "weapon", isWeapon: true, damage: "1d8", damageType: "рубящий", weaponProperties: "универсальное (1d10)", weight: 3, weaponType: "melee", abilityMod: "str", cost: "15 gp" },
+  { name: "Короткий меч", category: "weapon", isWeapon: true, damage: "1d6", damageType: "колющий", weaponProperties: "лёгкое, фехтовальное", weight: 2, weaponType: "melee", abilityMod: "dex", isFinesse: true, cost: "10 gp" },
+  { name: "Рапира", category: "weapon", isWeapon: true, damage: "1d8", damageType: "колющий", weaponProperties: "фехтовальное", weight: 2, weaponType: "melee", abilityMod: "dex", isFinesse: true, cost: "25 gp" },
+  { name: "Скимитар", category: "weapon", isWeapon: true, damage: "1d6", damageType: "рубящий", weaponProperties: "лёгкое, фехтовальное", weight: 3, weaponType: "melee", abilityMod: "dex", isFinesse: true, cost: "25 gp" },
+  { name: "Боевой топор", category: "weapon", isWeapon: true, damage: "1d8", damageType: "рубящий", weaponProperties: "универсальное (1d10)", weight: 4, weaponType: "melee", abilityMod: "str", cost: "10 gp" },
+  { name: "Боевой молот", category: "weapon", isWeapon: true, damage: "1d8", damageType: "дробящий", weaponProperties: "универсальное (1d10)", weight: 2, weaponType: "melee", abilityMod: "str", cost: "15 gp" },
+  { name: "Моргенштерн", category: "weapon", isWeapon: true, damage: "1d8", damageType: "колющий", weight: 4, weaponType: "melee", abilityMod: "str", cost: "15 gp" },
+  { name: "Цеп", category: "weapon", isWeapon: true, damage: "1d8", damageType: "дробящий", weight: 2, weaponType: "melee", abilityMod: "str", cost: "10 gp" },
+  { name: "Секира", category: "weapon", isWeapon: true, damage: "1d12", damageType: "рубящий", weaponProperties: "тяжёлое, двуручное", weight: 7, weaponType: "melee", abilityMod: "str", cost: "30 gp" },
+  { name: "Двуручный меч", category: "weapon", isWeapon: true, damage: "2d6", damageType: "рубящий", weaponProperties: "тяжёлое, двуручное", weight: 6, weaponType: "melee", abilityMod: "str", cost: "50 gp" },
+  { name: "Глефа", category: "weapon", isWeapon: true, damage: "1d10", damageType: "рубящий", weaponProperties: "тяжёлое, двуручное, досягаемость", weight: 6, weaponType: "melee", abilityMod: "str", cost: "20 gp" },
+  { name: "Алебарда", category: "weapon", isWeapon: true, damage: "1d10", damageType: "рубящий", weaponProperties: "тяжёлое, двуручное, досягаемость", weight: 6, weaponType: "melee", abilityMod: "str", cost: "20 gp" },
+  { name: "Пика", category: "weapon", isWeapon: true, damage: "1d10", damageType: "колющий", weaponProperties: "тяжёлое, двуручное, досягаемость", weight: 18, weaponType: "melee", abilityMod: "str", cost: "5 gp" },
+  { name: "Молот", category: "weapon", isWeapon: true, damage: "2d6", damageType: "дробящий", weaponProperties: "тяжёлое, двуручное", weight: 10, weaponType: "melee", abilityMod: "str", cost: "10 gp" },
+  { name: "Кнут", category: "weapon", isWeapon: true, damage: "1d4", damageType: "рубящий", weaponProperties: "фехтовальное, досягаемость", weight: 3, weaponType: "melee", abilityMod: "dex", isFinesse: true, cost: "2 gp" },
+  { name: "Трезубец", category: "weapon", isWeapon: true, damage: "1d6", damageType: "колющий", weaponProperties: "метательное, универсальное (1d8)", weight: 4, weaponType: "melee", abilityMod: "str", cost: "5 gp" },
+  // Martial Ranged Weapons (DEX-based)
+  { name: "Длинный лук", category: "weapon", isWeapon: true, damage: "1d8", damageType: "колющий", weaponProperties: "боеприпасы, тяжёлое, двуручное", weight: 2, weaponType: "ranged", abilityMod: "dex", cost: "50 gp" },
+  { name: "Ручной арбалет", category: "weapon", isWeapon: true, damage: "1d6", damageType: "колющий", weaponProperties: "боеприпасы, лёгкое, перезарядка", weight: 3, weaponType: "ranged", abilityMod: "dex", cost: "75 gp" },
+  { name: "Тяжёлый арбалет", category: "weapon", isWeapon: true, damage: "1d10", damageType: "колющий", weaponProperties: "боеприпасы, тяжёлое, двуручное, перезарядка", weight: 18, weaponType: "ranged", abilityMod: "dex", cost: "50 gp" },
 ];
 
 export const BASE_ARMOR: BaseEquipmentItem[] = ARMOR_LIST.filter(a => a.name !== "Без доспехов").map(armor => ({
@@ -404,6 +406,8 @@ export function createEquipmentFromBase(baseItem: BaseEquipmentItem, quantity: n
     damageType: baseItem.damageType,
     weaponProperties: baseItem.weaponProperties,
     attackBonus: 0,
+    abilityMod: baseItem.abilityMod,
+    isFinesse: baseItem.isFinesse,
     equipped: false,
   };
 }
@@ -475,6 +479,9 @@ export const deathSavesSchema = z.object({
 
 export type DeathSaves = z.infer<typeof deathSavesSchema>;
 
+export const WEAPON_ABILITY_MODS = ["str", "dex"] as const;
+export type WeaponAbilityMod = typeof WEAPON_ABILITY_MODS[number];
+
 export const weaponSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -482,6 +489,8 @@ export const weaponSchema = z.object({
   damage: z.string(),
   damageType: z.string(),
   properties: z.string().optional(),
+  abilityMod: z.enum(["str", "dex"]).default("str"),
+  isFinesse: z.boolean().optional(),
 });
 
 export type Weapon = z.infer<typeof weaponSchema>;
@@ -513,6 +522,8 @@ export const equipmentSchema = z.object({
   damageType: z.string().optional(),
   weaponProperties: z.string().optional(),
   attackBonus: z.number().optional(),
+  abilityMod: z.enum(["str", "dex"]).optional(),
+  isFinesse: z.boolean().optional(),
   // Equipped state
   equipped: z.boolean().optional(),
 });

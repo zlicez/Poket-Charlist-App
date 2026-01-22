@@ -227,23 +227,37 @@ export default function CharacterSheet() {
     setIsDiceRollerOpen(true);
   };
 
-  const rollWeaponAttack = (weapon: Weapon) => {
+  const rollWeaponAttack = (weapon: Weapon, totalAttackBonus: number) => {
+    const profBonus = getProficiencyBonus(currentCharacter.level);
+    const abilityLabel = weapon.abilityMod === "dex" ? "ЛОВ" : "СИЛ";
+    const abilityMod = weapon.abilityMod === "dex" 
+      ? calculateModifier(currentCharacter.abilityScores.dex)
+      : calculateModifier(currentCharacter.abilityScores.str);
+    
     const roll = rollDice(
       `Атака: ${weapon.name}`,
       "1d20",
-      weapon.attackBonus,
-      [`Бонус атаки +${weapon.attackBonus}`]
+      totalAttackBonus,
+      [
+        `${abilityLabel} ${formatModifier(abilityMod)}`,
+        `Мастерство +${profBonus}`,
+        weapon.attackBonus !== 0 ? `Бонус ${formatModifier(weapon.attackBonus)}` : ""
+      ].filter(Boolean)
     );
     addRoll(roll);
     setIsDiceRollerOpen(true);
   };
 
-  const rollWeaponDamage = (weapon: Weapon) => {
+  const rollWeaponDamage = (weapon: Weapon, damageModifier: number) => {
+    const abilityLabel = weapon.abilityMod === "dex" ? "ЛОВ" : "СИЛ";
     const roll = rollDice(
       `Урон: ${weapon.name}`,
       weapon.damage,
-      0,
-      [weapon.damageType]
+      damageModifier,
+      [
+        weapon.damageType,
+        damageModifier !== 0 ? `${abilityLabel} ${formatModifier(damageModifier)}` : ""
+      ].filter(Boolean)
     );
     addRoll(roll);
     setIsDiceRollerOpen(true);
@@ -410,6 +424,9 @@ export default function CharacterSheet() {
                 isLocked={currentCharacter.weaponsLocked ?? false}
                 onToggleLock={() => handleChange({ weaponsLocked: !currentCharacter.weaponsLocked })}
                 equippedFromInventory={currentCharacter.equipment}
+                strMod={calculateModifier(currentCharacter.abilityScores.str)}
+                dexMod={calculateModifier(currentCharacter.abilityScores.dex)}
+                proficiencyBonus={getProficiencyBonus(currentCharacter.level)}
               />
               <FeaturesList
                 features={currentCharacter.features}

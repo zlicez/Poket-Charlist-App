@@ -5,18 +5,23 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Swords, Plus, Trash2, Dices, Lock, Unlock, Backpack } from "lucide-react";
-import type { Weapon, Equipment } from "@shared/schema";
+import type { Weapon, Equipment, WeaponAbilityMod } from "@shared/schema";
+import { formatModifier } from "@shared/schema";
 
 interface WeaponsListProps {
   weapons: Weapon[];
   onChange: (weapons: Weapon[]) => void;
-  onRollAttack: (weapon: Weapon) => void;
-  onRollDamage: (weapon: Weapon) => void;
+  onRollAttack: (weapon: Weapon, totalAttackBonus: number) => void;
+  onRollDamage: (weapon: Weapon, damageModifier: number) => void;
   isEditing: boolean;
   isLocked?: boolean;
   onToggleLock?: () => void;
   equippedFromInventory?: Equipment[];
+  strMod?: number;
+  dexMod?: number;
+  proficiencyBonus?: number;
 }
 
 function AddWeaponDialog({ onAdd }: { onAdd: (weapon: Omit<Weapon, "id">) => void }) {
@@ -26,15 +31,19 @@ function AddWeaponDialog({ onAdd }: { onAdd: (weapon: Omit<Weapon, "id">) => voi
   const [damage, setDamage] = useState("1d8");
   const [damageType, setDamageType] = useState("рубящий");
   const [properties, setProperties] = useState("");
+  const [abilityMod, setAbilityMod] = useState<WeaponAbilityMod>("str");
+  const [isFinesse, setIsFinesse] = useState(false);
 
   const handleSubmit = () => {
     if (!name.trim()) return;
-    onAdd({ name, attackBonus, damage, damageType, properties });
+    onAdd({ name, attackBonus, damage, damageType, properties, abilityMod, isFinesse });
     setName("");
     setAttackBonus(0);
     setDamage("1d8");
     setDamageType("рубящий");
     setProperties("");
+    setAbilityMod("str");
+    setIsFinesse(false);
     setOpen(false);
   };
 
@@ -100,6 +109,32 @@ function AddWeaponDialog({ onAdd }: { onAdd: (weapon: Omit<Weapon, "id">) => voi
               />
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm text-muted-foreground">Модификатор</label>
+              <Select value={abilityMod} onValueChange={(v) => setAbilityMod(v as WeaponAbilityMod)}>
+                <SelectTrigger data-testid="select-weapon-ability">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="str">Сила (СИЛ)</SelectItem>
+                  <SelectItem value="dex">Ловкость (ЛОВ)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <label className="flex items-center gap-2 cursor-pointer h-9">
+                <input
+                  type="checkbox"
+                  checked={isFinesse}
+                  onChange={(e) => setIsFinesse(e.target.checked)}
+                  className="rounded"
+                  data-testid="checkbox-weapon-finesse"
+                />
+                <span className="text-sm">Фехтовальное</span>
+              </label>
+            </div>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Отмена</Button>
@@ -118,9 +153,16 @@ export function WeaponsList({
   isEditing, 
   isLocked = false, 
   onToggleLock,
-  equippedFromInventory = []
+  equippedFromInventory = [],
+  strMod = 0,
+  dexMod = 0,
+  proficiencyBonus = 2
 }: WeaponsListProps) {
   const canModify = isEditing || !isLocked;
+
+  const getAbilityMod = (abilityMod: WeaponAbilityMod | undefined) => {
+    return abilityMod === "dex" ? dexMod : strMod;
+  };
 
   const equippedWeapons = useMemo(() => {
     return equippedFromInventory
@@ -133,6 +175,8 @@ export function WeaponsList({
         damageType: e.damageType || "дробящий",
         properties: e.weaponProperties,
         fromInventory: true,
+        abilityMod: (e.abilityMod || "str") as WeaponAbilityMod,
+        isFinesse: e.isFinesse,
       }));
   }, [equippedFromInventory]);
 
@@ -188,120 +232,140 @@ export function WeaponsList({
         </div>
       ) : (
         <div className="space-y-2">
-          {equippedWeapons.map((weapon) => (
-            <div 
-              key={`inv-${weapon.id}`}
-              className="flex items-center gap-2 p-2 rounded-md bg-accent/10"
-              data-testid={`weapon-inv-${weapon.id}`}
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <Backpack className="w-3 h-3 text-accent shrink-0" />
-                  <span className="font-medium text-sm truncate text-accent">{weapon.name}</span>
+          {equippedWeapons.map((weapon) => {
+            const abilityModValue = getAbilityMod(weapon.abilityMod);
+            const totalAttack = proficiencyBonus + abilityModValue + weapon.attackBonus;
+            const damageModStr = abilityModValue !== 0 ? formatModifier(abilityModValue) : "";
+            const abilityLabel = weapon.abilityMod === "dex" ? "ЛОВ" : "СИЛ";
+            
+            return (
+              <div 
+                key={`inv-${weapon.id}`}
+                className="flex items-center gap-2 p-2 rounded-md bg-accent/10"
+                data-testid={`weapon-inv-${weapon.id}`}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <Backpack className="w-3 h-3 text-accent shrink-0" />
+                    <span className="font-medium text-sm truncate text-accent">{weapon.name}</span>
+                    <Badge variant="outline" className="text-[9px] h-4 px-1">{abilityLabel}</Badge>
+                    {weapon.isFinesse && <Badge variant="secondary" className="text-[9px] h-4 px-1">Фехт.</Badge>}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {weapon.damage}{damageModStr} {weapon.damageType}
+                    {weapon.properties && ` • ${weapon.properties}`}
+                  </div>
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  {weapon.damage} {weapon.damageType}
-                  {weapon.properties && ` • ${weapon.properties}`}
-                </div>
-              </div>
 
-              {!isEditing && (
-                <div className="flex items-center gap-1">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-7 px-2 gap-1"
-                        onClick={() => onRollAttack(weapon)}
-                        data-testid={`button-attack-inv-${weapon.id}`}
-                      >
-                        <Dices className="w-3 h-3" />
-                        <span className="text-xs">+{weapon.attackBonus}</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Бросок атаки</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-7 px-2"
-                        onClick={() => onRollDamage(weapon)}
-                        data-testid={`button-damage-inv-${weapon.id}`}
-                      >
-                        <span className="text-xs">{weapon.damage}</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Бросок урона</TooltipContent>
-                  </Tooltip>
-                </div>
-              )}
-            </div>
-          ))}
+                {!isEditing && (
+                  <div className="flex items-center gap-1">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-7 px-2 gap-1"
+                          onClick={() => onRollAttack(weapon as Weapon, totalAttack)}
+                          data-testid={`button-attack-inv-${weapon.id}`}
+                        >
+                          <Dices className="w-3 h-3" />
+                          <span className="text-xs">{formatModifier(totalAttack)}</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Атака: 1d20{formatModifier(totalAttack)}</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-7 px-2"
+                          onClick={() => onRollDamage(weapon as Weapon, abilityModValue)}
+                          data-testid={`button-damage-inv-${weapon.id}`}
+                        >
+                          <span className="text-xs">{weapon.damage}{damageModStr}</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Урон: {weapon.damage}{damageModStr}</TooltipContent>
+                    </Tooltip>
+                  </div>
+                )}
+              </div>
+            );
+          })}
           
-          {weapons.map((weapon) => (
-            <div 
-              key={weapon.id}
-              className="flex items-center gap-2 p-2 rounded-md bg-muted/30"
-              data-testid={`weapon-${weapon.id}`}
-            >
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-sm truncate">{weapon.name}</div>
-                <div className="text-xs text-muted-foreground">
-                  {weapon.damage} {weapon.damageType}
-                  {weapon.properties && ` • ${weapon.properties}`}
+          {weapons.map((weapon) => {
+            const abilityModValue = getAbilityMod(weapon.abilityMod);
+            const totalAttack = proficiencyBonus + abilityModValue + weapon.attackBonus;
+            const damageModStr = abilityModValue !== 0 ? formatModifier(abilityModValue) : "";
+            const abilityLabel = weapon.abilityMod === "dex" ? "ЛОВ" : "СИЛ";
+            
+            return (
+              <div 
+                key={weapon.id}
+                className="flex items-center gap-2 p-2 rounded-md bg-muted/30"
+                data-testid={`weapon-${weapon.id}`}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="font-medium text-sm truncate">{weapon.name}</span>
+                    <Badge variant="outline" className="text-[9px] h-4 px-1">{abilityLabel}</Badge>
+                    {weapon.isFinesse && <Badge variant="secondary" className="text-[9px] h-4 px-1">Фехт.</Badge>}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {weapon.damage}{damageModStr} {weapon.damageType}
+                    {weapon.properties && ` • ${weapon.properties}`}
+                  </div>
                 </div>
+
+                {!isEditing && (
+                  <div className="flex items-center gap-1">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-7 px-2 gap-1"
+                          onClick={() => onRollAttack(weapon, totalAttack)}
+                          data-testid={`button-attack-${weapon.id}`}
+                        >
+                          <Dices className="w-3 h-3" />
+                          <span className="text-xs">{formatModifier(totalAttack)}</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Атака: 1d20{formatModifier(totalAttack)}</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-7 px-2"
+                          onClick={() => onRollDamage(weapon, abilityModValue)}
+                          data-testid={`button-damage-${weapon.id}`}
+                        >
+                          <span className="text-xs">{weapon.damage}{damageModStr}</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Урон: {weapon.damage}{damageModStr}</TooltipContent>
+                    </Tooltip>
+                  </div>
+                )}
+
+                {canModify && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="text-destructive"
+                    onClick={() => removeWeapon(weapon.id)}
+                    data-testid={`button-remove-weapon-${weapon.id}`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
-
-              {!isEditing && (
-                <div className="flex items-center gap-1">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-7 px-2 gap-1"
-                        onClick={() => onRollAttack(weapon)}
-                        data-testid={`button-attack-${weapon.id}`}
-                      >
-                        <Dices className="w-3 h-3" />
-                        <span className="text-xs">+{weapon.attackBonus}</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Бросок атаки</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-7 px-2"
-                        onClick={() => onRollDamage(weapon)}
-                        data-testid={`button-damage-${weapon.id}`}
-                      >
-                        <span className="text-xs">{weapon.damage}</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Бросок урона</TooltipContent>
-                  </Tooltip>
-                </div>
-              )}
-
-              {canModify && (
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="text-destructive"
-                  onClick={() => removeWeapon(weapon.id)}
-                  data-testid={`button-remove-weapon-${weapon.id}`}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </Card>
