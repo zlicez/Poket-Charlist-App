@@ -8,12 +8,16 @@ A web application for managing Dungeons & Dragons 5th Edition character sheets. 
 - **6 Ability Scores**: STR, DEX, CON, INT, WIS, CHA with auto-calculated modifiers
 - **18 Skills**: With proficiency and expertise tracking
 - **Combat Stats**: AC, Initiative, Speed, HP (current/max/temp), Death Saves
+- **Auto HP Calculation**: Max HP based on class hit dice (Level 1 = max die + CON; Level 2+ = average + CON)
 - **Dice Roller**: Built-in dice rolling for ability checks, skill checks, saving throws, attacks
 - **Edit/Play Modes**: Switch between editing and gameplay modes
+- **Play Mode Editing**: Add/remove items in play mode with lock/unlock protection
+- **Currency System**: Track 5 D&D currencies (CP, SP, EP, GP, PP) with +/- buttons
 - **Weapons & Equipment**: Track weapons with attack/damage rolls, inventory management
 - **Features & Traits**: Track class features, racial traits, and feats
 - **Multiple Characters**: Create and manage multiple characters
 - **Dark/Light Theme**: Toggle between themes
+- **Mobile-First Design**: Optimized for handheld devices
 
 ## Tech Stack
 - **Frontend**: React, TypeScript, TailwindCSS, Shadcn/UI, Wouter, TanStack Query
@@ -30,12 +34,13 @@ client/src/
 │   ├── CharacterHeader.tsx  # Character info header
 │   ├── CombatStats.tsx      # AC, HP, initiative, speed
 │   ├── DiceRoller.tsx       # Dice rolling system
-│   ├── EquipmentList.tsx    # Inventory management
-│   ├── FeaturesList.tsx     # Class/racial features
+│   ├── EquipmentList.tsx    # Inventory with lock feature
+│   ├── FeaturesList.tsx     # Class/racial features with lock
+│   ├── MoneyBlock.tsx       # Currency management (CP/SP/EP/GP/PP)
 │   ├── SavingThrows.tsx     # Saving throw proficiencies
 │   ├── SkillItem.tsx        # Individual skill display
 │   ├── ThemeProvider.tsx    # Dark/light theme context
-│   └── WeaponsList.tsx      # Weapons with attack rolls
+│   └── WeaponsList.tsx      # Weapons with lock feature
 ├── pages/
 │   ├── CharacterSheet.tsx   # Main character sheet page
 │   ├── CharactersList.tsx   # Character selection page
