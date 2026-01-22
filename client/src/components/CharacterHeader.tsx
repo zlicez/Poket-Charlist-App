@@ -6,19 +6,89 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Progress } from "@/components/ui/progress";
-import { Edit2, Play, User, Sparkles, Scroll, BookOpen } from "lucide-react";
+import { Edit2, Play, User, Sparkles, Scroll, BookOpen, Info } from "lucide-react";
 import { 
   CLASSES, 
   RACES, 
   ALIGNMENTS, 
   RACE_DATA,
   CLASS_DATA,
+  ABILITY_LABELS,
   getProficiencyBonus, 
   formatModifier,
   getXPProgress,
   XP_THRESHOLDS
 } from "@shared/schema";
-import type { Character } from "@shared/schema";
+import type { Character, AbilityName } from "@shared/schema";
+
+function formatAbilityBonuses(bonuses: Partial<Record<AbilityName, number>>): string {
+  return Object.entries(bonuses)
+    .map(([ability, bonus]) => `${ABILITY_LABELS[ability as AbilityName].ru} +${bonus}`)
+    .join(", ");
+}
+
+function RaceTooltipContent({ raceName, subraceName }: { raceName: string; subraceName?: string }) {
+  const raceData = RACE_DATA[raceName];
+  if (!raceData) return null;
+  
+  const subraceData = subraceName ? raceData.subraces?.[subraceName] : undefined;
+  const combinedBonuses = { ...raceData.abilityBonuses };
+  if (subraceData && typeof subraceData === 'object') {
+    Object.entries(subraceData.abilityBonuses).forEach(([key, value]) => {
+      combinedBonuses[key as AbilityName] = (combinedBonuses[key as AbilityName] || 0) + value;
+    });
+  }
+  
+  const subraceDescription = subraceData && typeof subraceData === 'object' ? subraceData.description : undefined;
+  
+  return (
+    <div className="space-y-2 max-w-xs">
+      <div className="font-bold text-sm">{raceName}{subraceName ? ` (${subraceName})` : ''}</div>
+      <p className="text-xs text-muted-foreground">{raceData.description}</p>
+      {subraceDescription && (
+        <p className="text-xs italic">{subraceDescription}</p>
+      )}
+      <div className="space-y-1 text-xs">
+        <div><span className="font-medium">Бонусы:</span> {formatAbilityBonuses(combinedBonuses)}</div>
+        <div><span className="font-medium">Скорость:</span> {raceData.speed} фт.</div>
+        <div><span className="font-medium">Языки:</span> {raceData.languages.join(", ")}</div>
+        <div>
+          <span className="font-medium">Особенности:</span>
+          <ul className="list-disc list-inside ml-1">
+            {raceData.traits.map((trait, i) => (
+              <li key={i}>{trait}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ClassTooltipContent({ className }: { className: string }) {
+  const classData = CLASS_DATA[className];
+  if (!classData) return null;
+  
+  return (
+    <div className="space-y-2 max-w-xs">
+      <div className="font-bold text-sm">{classData.name}</div>
+      <p className="text-xs text-muted-foreground">{classData.description}</p>
+      <div className="space-y-1 text-xs">
+        <div><span className="font-medium">Кость хитов:</span> {classData.hitDice}</div>
+        <div><span className="font-medium">Спасброски:</span> {classData.savingThrows.map(s => ABILITY_LABELS[s].ru).join(", ")}</div>
+        {classData.armorProficiencies.length > 0 && (
+          <div><span className="font-medium">Доспехи:</span> {classData.armorProficiencies.join(", ")}</div>
+        )}
+        {classData.weaponProficiencies.length > 0 && (
+          <div><span className="font-medium">Оружие:</span> {classData.weaponProficiencies.join(", ")}</div>
+        )}
+        {classData.toolProficiencies.length > 0 && (
+          <div><span className="font-medium">Инструменты:</span> {classData.toolProficiencies.join(", ")}</div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 interface CharacterHeaderProps {
   character: Character;
@@ -104,16 +174,30 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               {isEditing ? (
                 <div className="flex flex-wrap gap-2 w-full">
-                  <Select value={character.race} onValueChange={handleRaceChange}>
-                    <SelectTrigger className="flex-1 min-w-[100px] h-10 text-sm" data-testid="select-race">
-                      <SelectValue placeholder="Раса" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {RACES.map((race) => (
-                        <SelectItem key={race} value={race}>{race}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center gap-1 flex-1 min-w-[100px]">
+                    <Select value={character.race} onValueChange={handleRaceChange}>
+                      <SelectTrigger className="flex-1 h-10 text-sm" data-testid="select-race">
+                        <SelectValue placeholder="Раса" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {RACES.map((race) => (
+                          <SelectItem key={race} value={race}>{race}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {character.race && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="flex-shrink-0" data-testid="button-race-info">
+                            <Info className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="p-3">
+                          <RaceTooltipContent raceName={character.race} subraceName={character.subrace} />
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
                   {subraces.length > 0 && (
                     <Select value={character.subrace || "none"} onValueChange={(value) => onChange({ subrace: value === "none" ? undefined : value })}>
                       <SelectTrigger className="flex-1 min-w-[100px] h-10 text-sm" data-testid="select-subrace">
@@ -127,21 +211,53 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
                       </SelectContent>
                     </Select>
                   )}
-                  <Select value={character.class} onValueChange={handleClassChange}>
-                    <SelectTrigger className="flex-1 min-w-[100px] h-10 text-sm" data-testid="select-class">
-                      <SelectValue placeholder="Класс" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CLASSES.map((cls) => (
-                        <SelectItem key={cls} value={cls}>{cls}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center gap-1 flex-1 min-w-[100px]">
+                    <Select value={character.class} onValueChange={handleClassChange}>
+                      <SelectTrigger className="flex-1 h-10 text-sm" data-testid="select-class">
+                        <SelectValue placeholder="Класс" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CLASSES.map((cls) => (
+                          <SelectItem key={cls} value={cls}>{cls}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {character.class && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="flex-shrink-0" data-testid="button-class-info">
+                            <Info className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="p-3">
+                          <ClassTooltipContent className={character.class} />
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <>
-                  <Badge variant="secondary" className="text-xs">{character.race}{character.subrace ? ` (${character.subrace})` : ''}</Badge>
-                  <Badge variant="outline" className="text-xs">{character.class}</Badge>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge variant="secondary" className="text-xs cursor-help" data-testid="badge-race">
+                        {character.race}{character.subrace ? ` (${character.subrace})` : ''}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="p-3">
+                      <RaceTooltipContent raceName={character.race} subraceName={character.subrace} />
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge variant="outline" className="text-xs cursor-help" data-testid="badge-class">
+                        {character.class}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="p-3">
+                      <ClassTooltipContent className={character.class} />
+                    </TooltipContent>
+                  </Tooltip>
                   {classData && (
                     <Badge variant="outline" className="text-xs hidden sm:inline-flex">
                       {classData.hitDice}

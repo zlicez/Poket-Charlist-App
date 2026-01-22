@@ -54,22 +54,143 @@ export interface ClassData {
   hitDice: string;
   hitDiceValue: number;
   savingThrows: AbilityName[];
+  description: string;
+  armorProficiencies: string[];
+  weaponProficiencies: string[];
+  toolProficiencies: string[];
 }
 
 export const CLASS_DATA: Record<string, ClassData> = {
-  "Бард": { name: "Бард", hitDice: "d8", hitDiceValue: 8, savingThrows: ["DEX", "CHA"] },
-  "Варвар": { name: "Варвар", hitDice: "d12", hitDiceValue: 12, savingThrows: ["STR", "CON"] },
-  "Воин": { name: "Воин", hitDice: "d10", hitDiceValue: 10, savingThrows: ["STR", "CON"] },
-  "Волшебник": { name: "Волшебник", hitDice: "d6", hitDiceValue: 6, savingThrows: ["INT", "WIS"] },
-  "Друид": { name: "Друид", hitDice: "d8", hitDiceValue: 8, savingThrows: ["INT", "WIS"] },
-  "Жрец": { name: "Жрец", hitDice: "d8", hitDiceValue: 8, savingThrows: ["WIS", "CHA"] },
-  "Изобретатель": { name: "Изобретатель", hitDice: "d8", hitDiceValue: 8, savingThrows: ["CON", "INT"] },
-  "Колдун": { name: "Колдун", hitDice: "d8", hitDiceValue: 8, savingThrows: ["WIS", "CHA"] },
-  "Монах": { name: "Монах", hitDice: "d8", hitDiceValue: 8, savingThrows: ["STR", "DEX"] },
-  "Паладин": { name: "Паладин", hitDice: "d10", hitDiceValue: 10, savingThrows: ["WIS", "CHA"] },
-  "Плут": { name: "Плут", hitDice: "d8", hitDiceValue: 8, savingThrows: ["DEX", "INT"] },
-  "Следопыт": { name: "Следопыт", hitDice: "d10", hitDiceValue: 10, savingThrows: ["STR", "DEX"] },
-  "Чародей": { name: "Чародей", hitDice: "d6", hitDiceValue: 6, savingThrows: ["CON", "CHA"] },
+  "Бард": { 
+    name: "Бард", 
+    hitDice: "d8", 
+    hitDiceValue: 8, 
+    savingThrows: ["DEX", "CHA"],
+    description: "Музыкант и заклинатель, черпающий магию из песен и историй. Мастер вдохновения и поддержки союзников.",
+    armorProficiencies: ["Лёгкие доспехи"],
+    weaponProficiencies: ["Простое оружие", "Ручные арбалеты", "Длинные мечи", "Рапиры", "Короткие мечи"],
+    toolProficiencies: ["Три музыкальных инструмента"]
+  },
+  "Варвар": { 
+    name: "Варвар", 
+    hitDice: "d12", 
+    hitDiceValue: 12, 
+    savingThrows: ["STR", "CON"],
+    description: "Свирепый воин первобытной ярости. Входит в неистовство в бою, получая невероятную силу и выносливость.",
+    armorProficiencies: ["Лёгкие доспехи", "Средние доспехи", "Щиты"],
+    weaponProficiencies: ["Простое оружие", "Воинское оружие"],
+    toolProficiencies: []
+  },
+  "Воин": { 
+    name: "Воин", 
+    hitDice: "d10", 
+    hitDiceValue: 10, 
+    savingThrows: ["STR", "CON"],
+    description: "Мастер боевых искусств, владеющий любым оружием и доспехами. Универсальный и надёжный боец.",
+    armorProficiencies: ["Все доспехи", "Щиты"],
+    weaponProficiencies: ["Простое оружие", "Воинское оружие"],
+    toolProficiencies: []
+  },
+  "Волшебник": { 
+    name: "Волшебник", 
+    hitDice: "d6", 
+    hitDiceValue: 6, 
+    savingThrows: ["INT", "WIS"],
+    description: "Учёный заклинатель, черпающий магию из книг и исследований. Обладает широчайшим арсеналом заклинаний.",
+    armorProficiencies: [],
+    weaponProficiencies: ["Кинжалы", "Дротики", "Пращи", "Боевые посохи", "Лёгкие арбалеты"],
+    toolProficiencies: []
+  },
+  "Друид": { 
+    name: "Друид", 
+    hitDice: "d8", 
+    hitDiceValue: 8, 
+    savingThrows: ["INT", "WIS"],
+    description: "Жрец природы, способный превращаться в зверей и повелевать стихиями. Защитник дикой природы.",
+    armorProficiencies: ["Лёгкие доспехи", "Средние доспехи", "Щиты (не металл)"],
+    weaponProficiencies: ["Дубинки", "Кинжалы", "Дротики", "Метательные копья", "Булавы", "Боевые посохи", "Скимитары", "Серпы", "Пращи", "Копья"],
+    toolProficiencies: ["Набор травника"]
+  },
+  "Жрец": { 
+    name: "Жрец", 
+    hitDice: "d8", 
+    hitDiceValue: 8, 
+    savingThrows: ["WIS", "CHA"],
+    description: "Божественный заклинатель, получающий силу от своего божества. Целитель и защитник веры.",
+    armorProficiencies: ["Лёгкие доспехи", "Средние доспехи", "Щиты"],
+    weaponProficiencies: ["Простое оружие"],
+    toolProficiencies: []
+  },
+  "Изобретатель": { 
+    name: "Изобретатель", 
+    hitDice: "d8", 
+    hitDiceValue: 8, 
+    savingThrows: ["CON", "INT"],
+    description: "Мастер магических устройств и алхимии. Создаёт волшебные предметы и усиливает снаряжение.",
+    armorProficiencies: ["Лёгкие доспехи", "Средние доспехи", "Щиты"],
+    weaponProficiencies: ["Простое оружие"],
+    toolProficiencies: ["Воровские инструменты", "Инструменты ремесленника"]
+  },
+  "Колдун": { 
+    name: "Колдун", 
+    hitDice: "d8", 
+    hitDiceValue: 8, 
+    savingThrows: ["WIS", "CHA"],
+    description: "Заклинатель, заключивший договор с могущественной сущностью. Получает уникальные способности от покровителя.",
+    armorProficiencies: ["Лёгкие доспехи"],
+    weaponProficiencies: ["Простое оружие"],
+    toolProficiencies: []
+  },
+  "Монах": { 
+    name: "Монах", 
+    hitDice: "d8", 
+    hitDiceValue: 8, 
+    savingThrows: ["STR", "DEX"],
+    description: "Мастер боевых искусств, использующий внутреннюю энергию ци. Быстрый и смертоносный без оружия.",
+    armorProficiencies: [],
+    weaponProficiencies: ["Простое оружие", "Короткие мечи"],
+    toolProficiencies: ["Один инструмент или музыкальный инструмент"]
+  },
+  "Паладин": { 
+    name: "Паладин", 
+    hitDice: "d10", 
+    hitDiceValue: 10, 
+    savingThrows: ["WIS", "CHA"],
+    description: "Святой воин, связанный священной клятвой. Сочетает боевое мастерство с божественной магией.",
+    armorProficiencies: ["Все доспехи", "Щиты"],
+    weaponProficiencies: ["Простое оружие", "Воинское оружие"],
+    toolProficiencies: []
+  },
+  "Плут": { 
+    name: "Плут", 
+    hitDice: "d8", 
+    hitDiceValue: 8, 
+    savingThrows: ["DEX", "INT"],
+    description: "Мастер скрытности, ловкости и хитрости. Наносит смертельные удары из засады.",
+    armorProficiencies: ["Лёгкие доспехи"],
+    weaponProficiencies: ["Простое оружие", "Ручные арбалеты", "Длинные мечи", "Рапиры", "Короткие мечи"],
+    toolProficiencies: ["Воровские инструменты"]
+  },
+  "Следопыт": { 
+    name: "Следопыт", 
+    hitDice: "d10", 
+    hitDiceValue: 10, 
+    savingThrows: ["STR", "DEX"],
+    description: "Охотник и следопыт диких земель. Мастер выслеживания и борьбы с избранными врагами.",
+    armorProficiencies: ["Лёгкие доспехи", "Средние доспехи", "Щиты"],
+    weaponProficiencies: ["Простое оружие", "Воинское оружие"],
+    toolProficiencies: []
+  },
+  "Чародей": { 
+    name: "Чародей", 
+    hitDice: "d6", 
+    hitDiceValue: 6, 
+    savingThrows: ["CON", "CHA"],
+    description: "Заклинатель с врождённой магией в крови. Способен изменять заклинания метамагией.",
+    armorProficiencies: [],
+    weaponProficiencies: ["Кинжалы", "Дротики", "Пращи", "Боевые посохи", "Лёгкие арбалеты"],
+    toolProficiencies: []
+  },
 };
 
 export const CLASSES = Object.keys(CLASS_DATA) as (keyof typeof CLASS_DATA)[];
@@ -78,7 +199,10 @@ export interface RaceData {
   name: string;
   abilityBonuses: Partial<Record<AbilityName, number>>;
   speed: number;
-  subraces?: Record<string, { name: string; abilityBonuses: Partial<Record<AbilityName, number>> }>;
+  description: string;
+  traits: string[];
+  languages: string[];
+  subraces?: Record<string, { name: string; abilityBonuses: Partial<Record<AbilityName, number>>; description?: string }>;
 }
 
 export const RACE_DATA: Record<string, RaceData> = {
@@ -86,72 +210,102 @@ export const RACE_DATA: Record<string, RaceData> = {
     name: "Человек",
     abilityBonuses: { STR: 1, DEX: 1, CON: 1, INT: 1, WIS: 1, CHA: 1 },
     speed: 30,
+    description: "Самая распространённая и адаптивная раса. Люди амбициозны и разнообразны во всём.",
+    traits: ["Универсальность (+1 ко всем характеристикам)"],
+    languages: ["Общий", "Один на выбор"],
   },
   "Эльф": {
     name: "Эльф",
     abilityBonuses: { DEX: 2 },
     speed: 30,
+    description: "Изящные и долгоживущие существа с острыми чувствами и врождённой связью с магией.",
+    traits: ["Тёмное зрение (60 фт.)", "Наследие фей", "Транс (4 часа вместо сна)", "Восприятие"],
+    languages: ["Общий", "Эльфийский"],
     subraces: {
-      "Высший эльф": { name: "Высший эльф", abilityBonuses: { INT: 1 } },
-      "Лесной эльф": { name: "Лесной эльф", abilityBonuses: { WIS: 1 } },
-      "Тёмный эльф": { name: "Тёмный эльф", abilityBonuses: { CHA: 1 } },
+      "Высший эльф": { name: "Высший эльф", abilityBonuses: { INT: 1 }, description: "Мастера магии, знают дополнительный заговор." },
+      "Лесной эльф": { name: "Лесной эльф", abilityBonuses: { WIS: 1 }, description: "Быстрые и скрытные, скорость 35 фт." },
+      "Тёмный эльф": { name: "Тёмный эльф", abilityBonuses: { CHA: 1 }, description: "Дроу, владеют тёмной магией." },
     },
   },
   "Дварф": {
     name: "Дварф",
     abilityBonuses: { CON: 2 },
     speed: 25,
+    description: "Крепкие и выносливые подгорные жители, известные мастерством в кузнечном деле.",
+    traits: ["Тёмное зрение (60 фт.)", "Устойчивость к яду", "Владение боевыми топорами и молотами", "Знание камня"],
+    languages: ["Общий", "Дварфский"],
     subraces: {
-      "Горный дварф": { name: "Горный дварф", abilityBonuses: { STR: 2 } },
-      "Холмовой дварф": { name: "Холмовой дварф", abilityBonuses: { WIS: 1 } },
+      "Горный дварф": { name: "Горный дварф", abilityBonuses: { STR: 2 }, description: "Сильные воины, владеют лёгкими и средними доспехами." },
+      "Холмовой дварф": { name: "Холмовой дварф", abilityBonuses: { WIS: 1 }, description: "Мудрые и выносливые, +1 HP за уровень." },
     },
   },
   "Полурослик": {
     name: "Полурослик",
     abilityBonuses: { DEX: 2 },
     speed: 25,
+    description: "Маленький и удачливый народ, известный храбростью и добротой.",
+    traits: ["Везучий (перебрось 1 на d20)", "Храбрый (преимущество против испуга)", "Проворство (проходить через существ крупнее)"],
+    languages: ["Общий", "Полуросликов"],
     subraces: {
-      "Легконогий": { name: "Легконогий", abilityBonuses: { CHA: 1 } },
-      "Коренастый": { name: "Коренастый", abilityBonuses: { CON: 1 } },
+      "Легконогий": { name: "Легконогий", abilityBonuses: { CHA: 1 }, description: "Естественная скрытность, прячутся за существами крупнее." },
+      "Коренастый": { name: "Коренастый", abilityBonuses: { CON: 1 }, description: "Устойчивость к яду, преимущество против отравления." },
     },
   },
   "Драконорождённый": {
     name: "Драконорождённый",
     abilityBonuses: { STR: 2, CHA: 1 },
     speed: 30,
+    description: "Гордые потомки драконов с чешуйчатой кожей и драконьим дыханием.",
+    traits: ["Драконье наследие (выбор типа урона)", "Дыхание дракона (2d6, увеличивается с уровнем)", "Сопротивление урону"],
+    languages: ["Общий", "Драконий"],
   },
   "Гном": {
     name: "Гном",
     abilityBonuses: { INT: 2 },
     speed: 25,
+    description: "Маленькие изобретательные существа с острым умом и любовью к иллюзиям.",
+    traits: ["Тёмное зрение (60 фт.)", "Гномья хитрость (преимущество против магии)"],
+    languages: ["Общий", "Гномий"],
     subraces: {
-      "Лесной гном": { name: "Лесной гном", abilityBonuses: { DEX: 1 } },
-      "Скальный гном": { name: "Скальный гном", abilityBonuses: { CON: 1 } },
+      "Лесной гном": { name: "Лесной гном", abilityBonuses: { DEX: 1 }, description: "Знают Малую иллюзию, говорят с мелкими зверями." },
+      "Скальный гном": { name: "Скальный гном", abilityBonuses: { CON: 1 }, description: "Знание ремёсел, создают механические устройства." },
     },
   },
   "Полуэльф": {
     name: "Полуэльф",
     abilityBonuses: { CHA: 2 },
     speed: 30,
+    description: "Дети двух миров, сочетающие людскую адаптивность с эльфийской грацией.",
+    traits: ["Тёмное зрение (60 фт.)", "Наследие фей", "+1 к двум характеристикам на выбор", "Два навыка на выбор"],
+    languages: ["Общий", "Эльфийский", "Один на выбор"],
   },
   "Полуорк": {
     name: "Полуорк",
     abilityBonuses: { STR: 2, CON: 1 },
     speed: 30,
+    description: "Сильные воины с орочьей кровью, известные выносливостью и свирепостью.",
+    traits: ["Тёмное зрение (60 фт.)", "Неукротимая выносливость (1 HP вместо 0)", "Свирепый критический удар (+1 кубик)"],
+    languages: ["Общий", "Орочий"],
   },
   "Тифлинг": {
     name: "Тифлинг",
     abilityBonuses: { INT: 1, CHA: 2 },
     speed: 30,
+    description: "Потомки демонов с рогами, хвостами и врождённой инфернальной магией.",
+    traits: ["Тёмное зрение (60 фт.)", "Сопротивление огню", "Инфернальное наследие (заклинания)"],
+    languages: ["Общий", "Инфернальный"],
   },
   "Аасимар": {
     name: "Аасимар",
     abilityBonuses: { CHA: 2 },
     speed: 30,
+    description: "Благословлённые небесами существа с ангельской кровью и способностью исцелять.",
+    traits: ["Тёмное зрение (60 фт.)", "Небесное сопротивление (некротика и сияние)", "Исцеляющие руки"],
+    languages: ["Общий", "Небесный"],
     subraces: {
-      "Защитник": { name: "Защитник", abilityBonuses: { WIS: 1 } },
-      "Каратель": { name: "Каратель", abilityBonuses: { STR: 1 } },
-      "Падший": { name: "Падший", abilityBonuses: { STR: 1 } },
+      "Защитник": { name: "Защитник", abilityBonuses: { WIS: 1 }, description: "Небесное сияние, светящиеся крылья." },
+      "Каратель": { name: "Каратель", abilityBonuses: { CON: 1 }, description: "Пылающая душа, сияющие глаза." },
+      "Падший": { name: "Падший", abilityBonuses: { STR: 1 }, description: "Некротическая аура, костяные крылья." },
     },
   },
 };

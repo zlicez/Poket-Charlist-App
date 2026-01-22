@@ -19,6 +19,9 @@ A web application for managing Dungeons & Dragons 5th Edition character sheets. 
 - **Multiple Characters**: Create and manage multiple characters
 - **Dark/Light Theme**: Toggle between themes
 - **Mobile-First Design**: Optimized for handheld devices
+- **Race/Class Tooltips**: Info icons in edit mode and hoverable badges in play mode showing D&D 5e data (ability bonuses, traits, proficiencies, descriptions)
+- **User Authentication**: Login via Google or email with Replit Auth
+- **Persistent Storage**: Characters saved in PostgreSQL database per user
 
 ## Tech Stack
 - **Frontend**: React, TypeScript, TailwindCSS, Shadcn/UI, Wouter, TanStack Query
