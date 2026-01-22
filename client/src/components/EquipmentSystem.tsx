@@ -673,19 +673,24 @@ export function EquipmentSystem({
                 )}
               </div>
             ) : (
-              <div className="space-y-0.5">
-                {categorizedEquipment[cat].map((item, index) => (
-                  <EquipmentItem
-                    key={item.id}
-                    item={item}
-                    index={index}
-                    onToggleEquip={() => toggleEquipped(item.id)}
-                    onUpdateQuantity={(delta) => updateQuantity(item.id, delta)}
-                    onRemove={() => removeEquipment(item.id)}
-                    canModify={canModify}
-                    isEditing={isEditing}
-                  />
-                ))}
+              <div 
+                className="max-h-[300px] overflow-y-auto overscroll-contain"
+                style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+              >
+                <div className="space-y-0.5 pr-1">
+                  {categorizedEquipment[cat].map((item, index) => (
+                    <EquipmentItem
+                      key={item.id}
+                      item={item}
+                      index={index}
+                      onToggleEquip={() => toggleEquipped(item.id)}
+                      onUpdateQuantity={(delta) => updateQuantity(item.id, delta)}
+                      onRemove={() => removeEquipment(item.id)}
+                      canModify={canModify}
+                      isEditing={isEditing}
+                    />
+                  ))}
+                </div>
               </div>
             )}
           </TabsContent>
