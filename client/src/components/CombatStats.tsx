@@ -364,20 +364,6 @@ export function CombatStats({ character, onChange, isEditing }: CombatStatsProps
         </Tooltip>
       </div>
 
-      <HpTracker
-        current={character.currentHp}
-        max={character.maxHp}
-        temp={character.tempHp}
-        onChange={onChange}
-        isEditing={isEditing}
-      />
-
-      <DeathSavesTracker
-        deathSaves={character.deathSaves}
-        onChange={(deathSaves) => onChange({ deathSaves })}
-        isEditing={isEditing}
-      />
-
       <Card className="stat-card p-2 sm:p-3" data-testid="stat-hit-dice">
         <div className="flex items-center gap-2 mb-2">
           <Dice6 className="w-4 h-4 sm:w-5 sm:h-5 text-accent" />
@@ -414,6 +400,20 @@ export function CombatStats({ character, onChange, isEditing }: CombatStatsProps
           )}
         </div>
       </Card>
+
+      <HpTracker
+        current={character.currentHp}
+        max={character.maxHp}
+        temp={character.tempHp}
+        onChange={onChange}
+        isEditing={isEditing}
+      />
+
+      <DeathSavesTracker
+        deathSaves={character.deathSaves}
+        onChange={(deathSaves) => onChange({ deathSaves })}
+        isEditing={isEditing}
+      />
     </div>
   );
 }
