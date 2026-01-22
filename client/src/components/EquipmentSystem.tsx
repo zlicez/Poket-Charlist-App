@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Backpack, Plus, Trash2, Package, Shield, ShieldCheck, Lock, Unlock, 
-  Sword, Apple, FlaskConical, Wrench, HelpCircle, Trash, Search,
+  Sword, Apple, FlaskConical, Wrench, Trash, Search,
   Minus, ChevronDown, ChevronRight, Sparkles
 } from "lucide-react";
 import { 
@@ -43,7 +43,7 @@ const CATEGORY_ICONS: Record<EquipmentCategory, React.ReactNode> = {
   food: <Apple className="w-4 h-4" />,
   potion: <FlaskConical className="w-4 h-4" />,
   tool: <Wrench className="w-4 h-4" />,
-  misc: <HelpCircle className="w-4 h-4" />,
+  misc: <Package className="w-4 h-4" />,
   trash: <Trash className="w-4 h-4" />,
 };
 
@@ -711,11 +711,15 @@ export function EquipmentSystem({
           <TabsContent key={cat} value={cat} className="mt-0">
             {categorizedEquipment[cat].length === 0 ? (
               <div className="text-center py-4 text-muted-foreground text-sm">
-                <Package className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p>Пусто</p>
+                {CATEGORY_ICONS[cat] && (
+                  <div className="w-8 h-8 mx-auto mb-2 opacity-50 flex items-center justify-center [&>svg]:w-8 [&>svg]:h-8">
+                    {CATEGORY_ICONS[cat]}
+                  </div>
+                )}
+                <p>Добавьте {CATEGORY_LABELS[cat].toLowerCase()}</p>
                 {canModify && CATEGORY_ITEMS[cat].length > 0 && (
                   <p className="text-xs mt-1">
-                    Добавьте из каталога или создайте свой
+                    Выберите из каталога или создайте свой
                   </p>
                 )}
               </div>
