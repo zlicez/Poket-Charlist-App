@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Shield, Zap, Footprints, Heart, Skull, Plus, Minus, Dice6, Check, X } from "lucide-react";
+import { Shield, Zap, Footprints, Heart, Skull, Plus, Minus, Dice6, Check, X, RotateCcw } from "lucide-react";
 import { calculateModifier, formatModifier, ARMOR_LIST, calculateAC, CLASS_DATA } from "@shared/schema";
 import type { Character, DeathSaves, Equipment, ArmorData } from "@shared/schema";
 
@@ -167,9 +167,16 @@ function DeathSavesTracker({
           <Skull className={`w-5 h-5 ${isDead ? 'text-red-500' : isStabilized ? 'text-green-500' : 'text-muted-foreground'}`} />
           <span className="font-semibold text-sm">Спасброски от смерти</span>
         </div>
-        {!isEditing && (deathSaves.successes > 0 || deathSaves.failures > 0) && (
-          <Button variant="ghost" size="sm" onClick={reset} className="h-7 text-xs px-2" data-testid="button-reset-death-saves">
-            Сброс
+        {!isEditing && (
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={reset} 
+            className={`h-7 w-7 ${deathSaves.successes === 0 && deathSaves.failures === 0 ? 'invisible' : ''}`}
+            disabled={deathSaves.successes === 0 && deathSaves.failures === 0}
+            data-testid="button-reset-death-saves"
+          >
+            <RotateCcw className="w-4 h-4" />
           </Button>
         )}
       </div>
