@@ -12,6 +12,7 @@ import { SavingThrowsComponent } from "@/components/SavingThrows";
 import { WeaponsList } from "@/components/WeaponsList";
 import { FeaturesList } from "@/components/FeaturesList";
 import { EquipmentList } from "@/components/EquipmentList";
+import { MoneyBlock } from "@/components/MoneyBlock";
 import { DiceRoller, DiceRollerTrigger, rollDice, type DiceRoll } from "@/components/DiceRoller";
 import { useTheme } from "@/components/ThemeProvider";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -27,7 +28,8 @@ import {
   type Character, 
   type AbilityName,
   type SkillProficiency,
-  type Weapon
+  type Weapon,
+  type Money
 } from "@shared/schema";
 import { ArrowLeft, Moon, Sun, Save, StickyNote, User, Users, Flag } from "lucide-react";
 
@@ -371,21 +373,34 @@ export default function CharacterSheet() {
                 onRollAttack={rollWeaponAttack}
                 onRollDamage={rollWeaponDamage}
                 isEditing={isEditing}
+                isLocked={currentCharacter.weaponsLocked ?? false}
+                onToggleLock={() => handleChange({ weaponsLocked: !currentCharacter.weaponsLocked })}
               />
               <FeaturesList
                 features={currentCharacter.features}
                 onChange={(features) => handleChange({ features })}
                 isEditing={isEditing}
+                isLocked={currentCharacter.featuresLocked ?? false}
+                onToggleLock={() => handleChange({ featuresLocked: !currentCharacter.featuresLocked })}
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4">
-            <EquipmentList
-              equipment={currentCharacter.equipment}
-              onChange={(equipment) => handleChange({ equipment })}
-              isEditing={isEditing}
-            />
+            <div className="space-y-2 sm:space-y-3">
+              <MoneyBlock
+                money={currentCharacter.money ?? { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }}
+                onChange={(money) => handleChange({ money })}
+                isEditing={isEditing}
+              />
+              <EquipmentList
+                equipment={currentCharacter.equipment}
+                onChange={(equipment) => handleChange({ equipment })}
+                isEditing={isEditing}
+                isLocked={currentCharacter.equipmentLocked ?? false}
+                onToggleLock={() => handleChange({ equipmentLocked: !currentCharacter.equipmentLocked })}
+              />
+            </div>
 
             <div className="space-y-2 sm:space-y-3">
               <Card className="stat-card p-2 sm:p-3">

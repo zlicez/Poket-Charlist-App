@@ -6,7 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Backpack, Plus, Trash2, Package, Shield, ShieldCheck } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Backpack, Plus, Trash2, Package, Shield, ShieldCheck, Lock, Unlock } from "lucide-react";
 import { ARMOR_LIST } from "@shared/schema";
 import type { Equipment, ArmorType } from "@shared/schema";
 
@@ -14,6 +15,8 @@ interface EquipmentListProps {
   equipment: Equipment[];
   onChange: (equipment: Equipment[]) => void;
   isEditing: boolean;
+  isLocked?: boolean;
+  onToggleLock?: () => void;
 }
 
 function AddEquipmentDialog({ onAdd }: { onAdd: (item: Omit<Equipment, "id">) => void }) {
@@ -165,7 +168,8 @@ function AddEquipmentDialog({ onAdd }: { onAdd: (item: Omit<Equipment, "id">) =>
   );
 }
 
-export function EquipmentList({ equipment, onChange, isEditing }: EquipmentListProps) {
+export function EquipmentList({ equipment, onChange, isEditing, isLocked = false, onToggleLock }: EquipmentListProps) {
+  const canModify = isEditing || !isLocked;
   const addEquipment = (item: Omit<Equipment, "id">) => {
     onChange([...equipment, { ...item, id: crypto.randomUUID() }]);
   };
@@ -217,7 +221,27 @@ export function EquipmentList({ equipment, onChange, isEditing }: EquipmentListP
             </Badge>
           )}
         </div>
-        {isEditing && <AddEquipmentDialog onAdd={addEquipment} />}
+        <div className="flex items-center gap-1">
+          {!isEditing && onToggleLock && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onToggleLock}
+                  className={isLocked ? "text-muted-foreground" : "text-accent"}
+                  data-testid="button-toggle-equipment-lock"
+                >
+                  {isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {isLocked ? "Разблокировать редактирование" : "Заблокировать редактирование"}
+              </TooltipContent>
+            </Tooltip>
+          )}
+          {canModify && <AddEquipmentDialog onAdd={addEquipment} />}
+        </div>
       </div>
 
       {equippedArmor.length > 0 && (
@@ -308,7 +332,7 @@ export function EquipmentList({ equipment, onChange, isEditing }: EquipmentListP
                 </div>
               )}
 
-              {isEditing && (
+              {canModify && (
                 <Button 
                   variant="ghost" 
                   size="icon" 

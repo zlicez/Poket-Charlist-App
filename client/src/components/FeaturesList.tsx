@@ -6,13 +6,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Plus, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Sparkles, Plus, Trash2, ChevronDown, ChevronRight, Lock, Unlock } from "lucide-react";
 import type { Feature } from "@shared/schema";
 
 interface FeaturesListProps {
   features: Feature[];
   onChange: (features: Feature[]) => void;
   isEditing: boolean;
+  isLocked?: boolean;
+  onToggleLock?: () => void;
 }
 
 function AddFeatureDialog({ onAdd }: { onAdd: (feature: Omit<Feature, "id">) => void }) {
@@ -81,7 +84,7 @@ function AddFeatureDialog({ onAdd }: { onAdd: (feature: Omit<Feature, "id">) => 
   );
 }
 
-function FeatureItem({ feature, onRemove, isEditing }: { feature: Feature; onRemove: () => void; isEditing: boolean }) {
+function FeatureItem({ feature, onRemove, canModify }: { feature: Feature; onRemove: () => void; canModify: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -98,11 +101,11 @@ function FeatureItem({ feature, onRemove, isEditing }: { feature: Feature; onRem
             {feature.source && (
               <Badge variant="outline" className="text-xs shrink-0">{feature.source}</Badge>
             )}
-            {isEditing && (
+            {canModify && (
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="h-6 w-6 text-destructive shrink-0"
+                className="text-destructive shrink-0"
                 onClick={(e) => {
                   e.stopPropagation();
                   onRemove();
@@ -126,7 +129,9 @@ function FeatureItem({ feature, onRemove, isEditing }: { feature: Feature; onRem
   );
 }
 
-export function FeaturesList({ features, onChange, isEditing }: FeaturesListProps) {
+export function FeaturesList({ features, onChange, isEditing, isLocked = false, onToggleLock }: FeaturesListProps) {
+  const canModify = isEditing || !isLocked;
+
   const addFeature = (feature: Omit<Feature, "id">) => {
     onChange([...features, { ...feature, id: crypto.randomUUID() }]);
   };
@@ -136,13 +141,33 @@ export function FeaturesList({ features, onChange, isEditing }: FeaturesListProp
   };
 
   return (
-    <Card className="stat-card p-3">
-      <div className="flex items-center justify-between mb-3">
+    <Card className="stat-card p-2 sm:p-3">
+      <div className="flex items-center justify-between mb-2 sm:mb-3">
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-accent" />
-          <h3 className="font-semibold text-sm">Способности и черты</h3>
+          <h3 className="font-semibold text-xs sm:text-sm">Способности и черты</h3>
         </div>
-        {isEditing && <AddFeatureDialog onAdd={addFeature} />}
+        <div className="flex items-center gap-1">
+          {!isEditing && onToggleLock && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onToggleLock}
+                  className={isLocked ? "text-muted-foreground" : "text-accent"}
+                  data-testid="button-toggle-features-lock"
+                >
+                  {isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {isLocked ? "Разблокировать редактирование" : "Заблокировать редактирование"}
+              </TooltipContent>
+            </Tooltip>
+          )}
+          {canModify && <AddFeatureDialog onAdd={addFeature} />}
+        </div>
       </div>
 
       {features.length === 0 ? (
@@ -156,7 +181,7 @@ export function FeaturesList({ features, onChange, isEditing }: FeaturesListProp
               key={feature.id}
               feature={feature}
               onRemove={() => removeFeature(feature.id)}
-              isEditing={isEditing}
+              canModify={canModify}
             />
           ))}
         </div>

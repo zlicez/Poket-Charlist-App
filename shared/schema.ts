@@ -325,6 +325,16 @@ export const equipmentSchema = z.object({
 
 export type Equipment = z.infer<typeof equipmentSchema>;
 
+export const moneySchema = z.object({
+  cp: z.number().min(0).default(0),
+  sp: z.number().min(0).default(0),
+  ep: z.number().min(0).default(0),
+  gp: z.number().min(0).default(0),
+  pp: z.number().min(0).default(0),
+});
+
+export type Money = z.infer<typeof moneySchema>;
+
 export const characterSchema = z.object({
   id: z.string(),
   name: z.string().min(1),
@@ -355,11 +365,15 @@ export const characterSchema = z.object({
   weapons: z.array(weaponSchema).default([]),
   features: z.array(featureSchema).default([]),
   equipment: z.array(equipmentSchema).default([]),
+  money: moneySchema.default({ cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }),
   proficiencyBonus: z.number().default(2),
   notes: z.string().optional(),
   appearance: z.string().optional(),
   allies: z.string().optional(),
   factions: z.string().optional(),
+  equipmentLocked: z.boolean().default(false),
+  weaponsLocked: z.boolean().default(false),
+  featuresLocked: z.boolean().default(false),
 });
 
 export type Character = z.infer<typeof characterSchema>;
@@ -411,6 +425,14 @@ export function getClassHitDice(className: string): { dice: string; value: numbe
   return { dice: classData.hitDice, value: classData.hitDiceValue };
 }
 
+export function calculateMaxHp(className: string, level: number, conModifier: number): number {
+  const hitDice = getClassHitDice(className);
+  const firstLevelHp = hitDice.value + conModifier;
+  const avgRollPerLevel = Math.floor(hitDice.value / 2) + 1;
+  const additionalLevelsHp = (level - 1) * (avgRollPerLevel + conModifier);
+  return Math.max(1, firstLevelHp + additionalLevelsHp);
+}
+
 export function getClassSavingThrows(className: string): AbilityName[] {
   const classData = CLASS_DATA[className];
   if (!classData) return [];
@@ -424,6 +446,8 @@ export const DEFAULT_SKILLS_PROFICIENCY: Record<string, SkillProficiency> = Obje
 export function createDefaultCharacter(): InsertCharacter {
   const defaultClass = "Воин";
   const classData = CLASS_DATA[defaultClass];
+  const defaultConMod = 0;
+  const defaultMaxHp = calculateMaxHp(defaultClass, 1, defaultConMod);
   
   return {
     name: "Новый персонаж",
@@ -449,8 +473,8 @@ export function createDefaultCharacter(): InsertCharacter {
     initiative: 0,
     customInitiativeBonus: 0,
     speed: 30,
-    maxHp: classData.hitDiceValue,
-    currentHp: classData.hitDiceValue,
+    maxHp: defaultMaxHp,
+    currentHp: defaultMaxHp,
     tempHp: 0,
     hitDice: `1${classData.hitDice}`,
     hitDiceRemaining: 1,
@@ -458,10 +482,14 @@ export function createDefaultCharacter(): InsertCharacter {
     weapons: [],
     features: [],
     equipment: [],
+    money: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 },
     proficiencyBonus: 2,
     notes: "",
     appearance: "",
     allies: "",
     factions: "",
+    equipmentLocked: false,
+    weaponsLocked: false,
+    featuresLocked: false,
   };
 }

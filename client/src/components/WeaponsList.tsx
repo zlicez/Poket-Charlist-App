@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Swords, Plus, Trash2, Dices } from "lucide-react";
+import { Swords, Plus, Trash2, Dices, Lock, Unlock } from "lucide-react";
 import type { Weapon } from "@shared/schema";
 
 interface WeaponsListProps {
@@ -13,6 +13,8 @@ interface WeaponsListProps {
   onRollAttack: (weapon: Weapon) => void;
   onRollDamage: (weapon: Weapon) => void;
   isEditing: boolean;
+  isLocked?: boolean;
+  onToggleLock?: () => void;
 }
 
 function AddWeaponDialog({ onAdd }: { onAdd: (weapon: Omit<Weapon, "id">) => void }) {
@@ -106,7 +108,9 @@ function AddWeaponDialog({ onAdd }: { onAdd: (weapon: Omit<Weapon, "id">) => voi
   );
 }
 
-export function WeaponsList({ weapons, onChange, onRollAttack, onRollDamage, isEditing }: WeaponsListProps) {
+export function WeaponsList({ weapons, onChange, onRollAttack, onRollDamage, isEditing, isLocked = false, onToggleLock }: WeaponsListProps) {
+  const canModify = isEditing || !isLocked;
+
   const addWeapon = (weapon: Omit<Weapon, "id">) => {
     onChange([...weapons, { ...weapon, id: crypto.randomUUID() }]);
   };
@@ -116,13 +120,33 @@ export function WeaponsList({ weapons, onChange, onRollAttack, onRollDamage, isE
   };
 
   return (
-    <Card className="stat-card p-3">
-      <div className="flex items-center justify-between mb-3">
+    <Card className="stat-card p-2 sm:p-3">
+      <div className="flex items-center justify-between mb-2 sm:mb-3">
         <div className="flex items-center gap-2">
           <Swords className="w-4 h-4 text-accent" />
-          <h3 className="font-semibold text-sm">Оружие</h3>
+          <h3 className="font-semibold text-xs sm:text-sm">Оружие</h3>
         </div>
-        {isEditing && <AddWeaponDialog onAdd={addWeapon} />}
+        <div className="flex items-center gap-1">
+          {!isEditing && onToggleLock && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onToggleLock}
+                  className={isLocked ? "text-muted-foreground" : "text-accent"}
+                  data-testid="button-toggle-weapons-lock"
+                >
+                  {isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {isLocked ? "Разблокировать редактирование" : "Заблокировать редактирование"}
+              </TooltipContent>
+            </Tooltip>
+          )}
+          {canModify && <AddWeaponDialog onAdd={addWeapon} />}
+        </div>
       </div>
 
       {weapons.length === 0 ? (
@@ -179,11 +203,11 @@ export function WeaponsList({ weapons, onChange, onRollAttack, onRollDamage, isE
                 </div>
               )}
 
-              {isEditing && (
+              {canModify && (
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="h-7 w-7 text-destructive"
+                  className="text-destructive"
                   onClick={() => removeWeapon(weapon.id)}
                   data-testid={`button-remove-weapon-${weapon.id}`}
                 >
