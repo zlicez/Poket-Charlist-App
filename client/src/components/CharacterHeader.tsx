@@ -240,9 +240,11 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
                 <>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Badge variant="secondary" className="text-xs cursor-help" data-testid="badge-race">
-                        {character.race}{character.subrace ? ` (${character.subrace})` : ''}
-                      </Badge>
+                      <span className="cursor-help" data-testid="badge-race">
+                        <Badge variant="secondary" className="text-xs">
+                          {character.race}{character.subrace ? ` (${character.subrace})` : ''}
+                        </Badge>
+                      </span>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="p-3">
                       <RaceTooltipContent raceName={character.race} subraceName={character.subrace} />
@@ -250,9 +252,11 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Badge variant="outline" className="text-xs cursor-help" data-testid="badge-class">
-                        {character.class}
-                      </Badge>
+                      <span className="cursor-help" data-testid="badge-class">
+                        <Badge variant="outline" className="text-xs">
+                          {character.class}
+                        </Badge>
+                      </span>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="p-3">
                       <ClassTooltipContent className={character.class} />
