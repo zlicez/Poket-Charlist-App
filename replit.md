@@ -20,6 +20,9 @@ A web application for managing Dungeons & Dragons 5th Edition character sheets. 
 - **Dark/Light Theme**: Toggle between themes
 - **Mobile-First Design**: Optimized for handheld devices
 - **Race/Class Tooltips**: Info icons in edit mode and hoverable badges in play mode showing D&D 5e data (ability bonuses, traits, proficiencies, descriptions)
+- **Darkvision Display**: Shows darkvision range based on race/subrace (60-120 ft)
+- **Auto-fill Proficiencies**: Weapon, armor, tool, and language proficiencies auto-populated from race/class/subrace
+- **Proficiency Styling**: Auto-filled proficiencies (secondary badges with tooltips) vs user-added (outline badges, removable)
 - **User Authentication**: Login via Google or email with Replit Auth
 - **Persistent Storage**: Characters saved in PostgreSQL database per user
 
