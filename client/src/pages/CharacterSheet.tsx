@@ -465,6 +465,9 @@ export default function CharacterSheet() {
                 proficiencies={currentCharacter.proficiencies ?? { languages: [], weapons: [], armor: [], tools: [] }}
                 onChange={(proficiencies) => handleChange({ proficiencies })}
                 isEditing={isEditing}
+                race={currentCharacter.race}
+                className={currentCharacter.class}
+                subrace={currentCharacter.subrace}
               />
             </div>
           </div>

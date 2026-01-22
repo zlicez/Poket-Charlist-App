@@ -7,20 +7,25 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Languages, Swords, Shield, Wrench, Plus, X, ChevronDown, ChevronRight, BookOpen } from "lucide-react";
+import { Languages, Swords, Shield, Wrench, Plus, X, ChevronDown, ChevronRight, BookOpen, Eye } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Proficiencies, ProficiencyCategory } from "@shared/schema";
 import { 
   PROFICIENCY_CATEGORY_LABELS, 
   LANGUAGES, 
   WEAPON_PROFICIENCIES, 
   ARMOR_PROFICIENCIES, 
-  TOOL_PROFICIENCIES 
+  TOOL_PROFICIENCIES,
+  getRaceAndClassProficiencies
 } from "@shared/schema";
 
 interface ProficienciesSectionProps {
   proficiencies: Proficiencies;
   onChange: (proficiencies: Proficiencies) => void;
   isEditing: boolean;
+  race: string;
+  className: string;
+  subrace?: string;
 }
 
 const CATEGORY_ICONS: Record<ProficiencyCategory, typeof Languages> = {
@@ -214,7 +219,9 @@ function ProficiencyCategory({
   );
 }
 
-export function ProficienciesSection({ proficiencies, onChange, isEditing }: ProficienciesSectionProps) {
+export function ProficienciesSection({ proficiencies, onChange, isEditing, race, className, subrace }: ProficienciesSectionProps) {
+  const autoProfs = getRaceAndClassProficiencies(race, className, subrace);
+  
   const handleAdd = (category: ProficiencyCategory, value: string) => {
     const current = proficiencies[category] || [];
     if (!current.includes(value)) {
@@ -235,44 +242,158 @@ export function ProficienciesSection({ proficiencies, onChange, isEditing }: Pro
 
   return (
     <Card className="p-4" data-testid="proficiencies-section">
-      <div className="flex items-center gap-2 mb-4">
-        <BookOpen className="w-5 h-5 text-primary" />
-        <h3 className="font-semibold text-lg">Владения</h3>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <BookOpen className="w-5 h-5 text-primary" />
+          <h3 className="font-semibold text-lg">Владения</h3>
+        </div>
+        {autoProfs.darkvision && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span data-testid="darkvision-badge">
+                <Badge variant="secondary" className="gap-1">
+                  <Eye className="w-3 h-3" />
+                  Тёмное зрение {autoProfs.darkvision} фт.
+                </Badge>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Вы видите в темноте на расстоянии {autoProfs.darkvision} футов как при тусклом свете</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
       </div>
 
       <div className="space-y-3">
-        <ProficiencyCategory
+        <ProficiencyCategoryWithAuto
           category="languages"
           items={proficiencies.languages || []}
+          autoItems={autoProfs.languages}
           isEditing={isEditing}
           onAdd={(v) => handleAdd("languages", v)}
           onRemove={(v) => handleRemove("languages", v)}
         />
         
-        <ProficiencyCategory
+        <ProficiencyCategoryWithAuto
           category="weapons"
           items={proficiencies.weapons || []}
+          autoItems={autoProfs.weapons}
           isEditing={isEditing}
           onAdd={(v) => handleAdd("weapons", v)}
           onRemove={(v) => handleRemove("weapons", v)}
         />
         
-        <ProficiencyCategory
+        <ProficiencyCategoryWithAuto
           category="armor"
           items={proficiencies.armor || []}
+          autoItems={autoProfs.armor}
           isEditing={isEditing}
           onAdd={(v) => handleAdd("armor", v)}
           onRemove={(v) => handleRemove("armor", v)}
         />
         
-        <ProficiencyCategory
+        <ProficiencyCategoryWithAuto
           category="tools"
           items={proficiencies.tools || []}
+          autoItems={autoProfs.tools}
           isEditing={isEditing}
           onAdd={(v) => handleAdd("tools", v)}
           onRemove={(v) => handleRemove("tools", v)}
         />
       </div>
     </Card>
+  );
+}
+
+function ProficiencyCategoryWithAuto({ 
+  category, 
+  items, 
+  autoItems,
+  isEditing, 
+  onAdd, 
+  onRemove 
+}: { 
+  category: ProficiencyCategory;
+  items: string[];
+  autoItems: string[];
+  isEditing: boolean;
+  onAdd: (value: string) => void;
+  onRemove: (value: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(true);
+  const Icon = CATEGORY_ICONS[category];
+  const label = PROFICIENCY_CATEGORY_LABELS[category];
+  
+  const allItems = Array.from(new Set([...autoItems, ...items]));
+  const totalCount = allItems.length;
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <div className="flex items-center justify-between">
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" size="sm" className="gap-2 p-1 h-auto" data-testid={`toggle-auto-${category}`}>
+            {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            <Icon className="w-4 h-4 text-primary" />
+            <span className="font-medium">{label}</span>
+            <Badge variant="secondary" className="ml-1">{totalCount}</Badge>
+          </Button>
+        </CollapsibleTrigger>
+        {isEditing && (
+          <AddProficiencyDialog 
+            category={category} 
+            existingProficiencies={allItems}
+            onAdd={onAdd} 
+          />
+        )}
+      </div>
+      
+      <CollapsibleContent>
+        <div className="flex flex-wrap gap-1.5 mt-2 pl-6">
+          {totalCount === 0 ? (
+            <p className="text-sm text-muted-foreground italic">Нет владений</p>
+          ) : (
+            <>
+              {autoItems.map((item) => (
+                <Tooltip key={`auto-${item}`}>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Badge 
+                        variant="secondary"
+                        className="gap-1"
+                        data-testid={`proficiency-auto-${category}-${item}`}
+                      >
+                        {item}
+                      </Badge>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>От расы/класса</p>
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+              {items.filter(item => !autoItems.includes(item)).map((item) => (
+                <Badge 
+                  key={item} 
+                  variant="outline" 
+                  className="gap-1"
+                  data-testid={`proficiency-${category}-${item}`}
+                >
+                  {item}
+                  {isEditing && (
+                    <button
+                      onClick={() => onRemove(item)}
+                      className="ml-1 hover:text-destructive"
+                      data-testid={`remove-proficiency-${item}`}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </Badge>
+              ))}
+            </>
+          )}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
