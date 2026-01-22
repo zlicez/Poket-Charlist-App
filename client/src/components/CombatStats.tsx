@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Shield, Zap, Footprints, Heart, Skull, Plus, Minus, Dice6 } from "lucide-react";
+import { Shield, Zap, Footprints, Heart, Skull, Plus, Minus, Dice6, Check, X } from "lucide-react";
 import { calculateModifier, formatModifier, ARMOR_LIST, calculateAC, CLASS_DATA } from "@shared/schema";
 import type { Character, DeathSaves, Equipment, ArmorData } from "@shared/schema";
 
@@ -157,55 +157,81 @@ function DeathSavesTracker({
     onChange({ successes: 0, failures: 0 });
   };
 
+  const isStabilized = deathSaves.successes >= 3;
+  const isDead = deathSaves.failures >= 3;
+
   return (
-    <Card className="stat-card p-3" data-testid="stat-death-saves">
-      <div className="flex items-center justify-between mb-2">
+    <Card className={`stat-card p-3 transition-colors ${isStabilized ? 'ring-2 ring-green-500/50' : ''} ${isDead ? 'ring-2 ring-red-500/50' : ''}`} data-testid="stat-death-saves">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Skull className="w-5 h-5 text-muted-foreground" />
+          <Skull className={`w-5 h-5 ${isDead ? 'text-red-500' : isStabilized ? 'text-green-500' : 'text-muted-foreground'}`} />
           <span className="font-semibold text-sm">Спасброски от смерти</span>
         </div>
         {!isEditing && (deathSaves.successes > 0 || deathSaves.failures > 0) && (
-          <Button variant="ghost" size="sm" onClick={reset} className="h-6 text-xs" data-testid="button-reset-death-saves">
+          <Button variant="ghost" size="sm" onClick={reset} className="h-7 text-xs px-2" data-testid="button-reset-death-saves">
             Сброс
           </Button>
         )}
       </div>
 
-      <div className="space-y-2">
+      {(isStabilized || isDead) && (
+        <div className={`text-center text-sm font-semibold mb-3 py-1.5 rounded-md ${isStabilized ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-red-500/20 text-red-600 dark:text-red-400'}`}>
+          {isStabilized ? 'Стабилизирован!' : 'Мёртв'}
+        </div>
+      )}
+
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Успехи</span>
-          <div className="flex gap-1">
-            {[0, 1, 2].map((i) => (
-              <button
-                key={i}
-                onClick={() => toggleSuccess(i)}
-                className={`w-5 h-5 rounded-full border-2 transition-colors ${
-                  deathSaves.successes > i
-                    ? 'bg-green-500 border-green-500'
-                    : 'border-muted-foreground/30 hover:border-green-500'
-                }`}
-                disabled={isEditing}
-                data-testid={`button-death-success-${i}`}
-              />
-            ))}
+          <div className="flex items-center gap-1.5">
+            <Check className="w-4 h-4 text-green-500" />
+            <span className="text-xs sm:text-sm font-medium">Успехи</span>
+          </div>
+          <div className="flex gap-2">
+            {[0, 1, 2].map((i) => {
+              const isActive = deathSaves.successes > i;
+              return (
+                <button
+                  key={i}
+                  onClick={() => toggleSuccess(i)}
+                  className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg border-2 transition-all flex items-center justify-center ${
+                    isActive
+                      ? 'bg-green-500 border-green-500 text-white shadow-md shadow-green-500/30'
+                      : 'border-green-500/30 hover:border-green-500 hover:bg-green-500/10'
+                  } ${!isEditing ? 'active:scale-95' : 'opacity-50 cursor-not-allowed'}`}
+                  disabled={isEditing}
+                  data-testid={`button-death-success-${i}`}
+                >
+                  {isActive && <Check className="w-5 h-5" />}
+                </button>
+              );
+            })}
           </div>
         </div>
+
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Провалы</span>
-          <div className="flex gap-1">
-            {[0, 1, 2].map((i) => (
-              <button
-                key={i}
-                onClick={() => toggleFailure(i)}
-                className={`w-5 h-5 rounded-full border-2 transition-colors ${
-                  deathSaves.failures > i
-                    ? 'bg-red-500 border-red-500'
-                    : 'border-muted-foreground/30 hover:border-red-500'
-                }`}
-                disabled={isEditing}
-                data-testid={`button-death-failure-${i}`}
-              />
-            ))}
+          <div className="flex items-center gap-1.5">
+            <X className="w-4 h-4 text-red-500" />
+            <span className="text-xs sm:text-sm font-medium">Провалы</span>
+          </div>
+          <div className="flex gap-2">
+            {[0, 1, 2].map((i) => {
+              const isActive = deathSaves.failures > i;
+              return (
+                <button
+                  key={i}
+                  onClick={() => toggleFailure(i)}
+                  className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg border-2 transition-all flex items-center justify-center ${
+                    isActive
+                      ? 'bg-red-500 border-red-500 text-white shadow-md shadow-red-500/30'
+                      : 'border-red-500/30 hover:border-red-500 hover:bg-red-500/10'
+                  } ${!isEditing ? 'active:scale-95' : 'opacity-50 cursor-not-allowed'}`}
+                  disabled={isEditing}
+                  data-testid={`button-death-failure-${i}`}
+                >
+                  {isActive && <X className="w-5 h-5" />}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
