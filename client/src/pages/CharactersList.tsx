@@ -165,7 +165,7 @@ export default function CharactersList() {
       </main>
 
       <footer className="mt-auto py-6 text-center text-sm text-muted-foreground">
-        <p>Pocket Charlist для D&D 5e</p>
+        <p>D&D 5e Character Sheet</p>
         <p className="text-xs mt-1">Dungeons & Dragons is a trademark of Wizards of the Coast LLC</p>
       </footer>
 
