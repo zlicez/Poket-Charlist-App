@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
@@ -17,6 +17,27 @@ import { DiceRoller, DiceRollerTrigger, rollDice, type DiceRoll } from "@/compon
 import { useTheme } from "@/components/ThemeProvider";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+
+function deepMerge(target: any, source: any): any {
+  const result = { ...target };
+  for (const key in source) {
+    const sourceValue = source[key];
+    const targetValue = target[key];
+    if (
+      sourceValue !== null &&
+      typeof sourceValue === 'object' &&
+      !Array.isArray(sourceValue) &&
+      targetValue !== null &&
+      typeof targetValue === 'object' &&
+      !Array.isArray(targetValue)
+    ) {
+      result[key] = deepMerge(targetValue, sourceValue);
+    } else {
+      result[key] = sourceValue;
+    }
+  }
+  return result;
+}
 import { 
   ABILITY_NAMES, 
   ABILITY_LABELS,
@@ -49,69 +70,81 @@ export default function CharacterSheet() {
     enabled: !!id,
   });
 
+  const pendingChangesRef = useRef<Partial<Character>>({});
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isSavingRef = useRef(false);
+
   const updateMutation = useMutation({
     mutationFn: async (updates: Partial<Character>) => {
       return apiRequest('PATCH', `/api/characters/${id}`, updates);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/characters', id] });
-      queryClient.invalidateQueries({ queryKey: ['/api/characters'] });
-      toast({ title: "Сохранено", description: "Изменения персонажа сохранены" });
+    onMutate: async (updates: Partial<Character>) => {
+      await queryClient.cancelQueries({ queryKey: ['/api/characters', id] });
+      const previousCharacter = queryClient.getQueryData<Character>(['/api/characters', id]);
+      if (previousCharacter) {
+        const optimisticCharacter = deepMerge(previousCharacter, updates);
+        queryClient.setQueryData(['/api/characters', id], optimisticCharacter);
+      }
+      return { previousCharacter };
     },
-    onError: () => {
+    onError: (err, updates, context) => {
+      if (context?.previousCharacter) {
+        queryClient.setQueryData(['/api/characters', id], context.previousCharacter);
+      }
       toast({ 
         title: "Ошибка", 
         description: "Не удалось сохранить изменения",
         variant: "destructive"
       });
     },
+    onSettled: () => {
+      isSavingRef.current = false;
+    },
   });
 
-  const currentCharacter = character ? (() => {
-    const merged = { ...character };
-    for (const key in localChanges) {
-      const localValue = (localChanges as any)[key];
-      const charValue = (character as any)[key];
-      
-      if (
-        localValue !== null &&
-        typeof localValue === 'object' &&
-        !Array.isArray(localValue) &&
-        charValue !== null &&
-        typeof charValue === 'object' &&
-        !Array.isArray(charValue)
-      ) {
-        (merged as any)[key] = { ...charValue, ...localValue };
-      } else {
-        (merged as any)[key] = localValue;
-      }
+  const flushPendingChanges = useCallback(() => {
+    if (Object.keys(pendingChangesRef.current).length > 0 && !isSavingRef.current) {
+      isSavingRef.current = true;
+      const changes = pendingChangesRef.current;
+      pendingChangesRef.current = {};
+      updateMutation.mutate(changes);
     }
-    return merged as Character;
-  })() : null;
+  }, [updateMutation]);
+
+  const scheduleSave = useCallback(() => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(() => {
+      flushPendingChanges();
+    }, 500);
+  }, [flushPendingChanges]);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      if (Object.keys(pendingChangesRef.current).length > 0) {
+        flushPendingChanges();
+      }
+    };
+  }, [flushPendingChanges]);
+
+  const currentCharacter = character ? deepMerge(character, localChanges) as Character : null;
 
   const handleChange = useCallback((updates: Partial<Character>) => {
-    setLocalChanges(prev => {
-      const newChanges = { ...prev };
-      for (const key in updates) {
-        const updateValue = (updates as any)[key];
-        const prevValue = (prev as any)[key];
-        
-        if (
-          updateValue !== null &&
-          typeof updateValue === 'object' &&
-          !Array.isArray(updateValue) &&
-          prevValue !== null &&
-          typeof prevValue === 'object' &&
-          !Array.isArray(prevValue)
-        ) {
-          (newChanges as any)[key] = { ...prevValue, ...updateValue };
-        } else {
-          (newChanges as any)[key] = updateValue;
-        }
+    if (isEditing) {
+      setLocalChanges(prev => deepMerge(prev, updates));
+    } else {
+      if (character) {
+        const optimisticCharacter = deepMerge(character, deepMerge(pendingChangesRef.current, updates));
+        queryClient.setQueryData(['/api/characters', id], optimisticCharacter);
       }
-      return newChanges;
-    });
-  }, []);
+      pendingChangesRef.current = deepMerge(pendingChangesRef.current, updates);
+      scheduleSave();
+    }
+  }, [isEditing, character, id, scheduleSave]);
 
   const saveChanges = async () => {
     if (Object.keys(localChanges).length > 0) {
