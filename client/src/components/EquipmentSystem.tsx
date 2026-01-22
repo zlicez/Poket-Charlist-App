@@ -501,6 +501,8 @@ function EquipmentItem({
   );
 }
 
+type TabValue = EquipmentCategory | "all";
+
 export function EquipmentSystem({ 
   equipment, 
   onChange, 
@@ -509,7 +511,7 @@ export function EquipmentSystem({
   onToggleLock,
   proficiencyBonus = 2
 }: EquipmentSystemProps) {
-  const [activeCategory, setActiveCategory] = useState<EquipmentCategory>("weapon");
+  const [activeTab, setActiveTab] = useState<TabValue>("all");
   const canModify = isEditing || !isLocked;
 
   const categorizedEquipment = useMemo(() => {
@@ -590,7 +592,7 @@ export function EquipmentSystem({
   };
 
   const equippedItems = equipment.filter(e => e.equipped);
-  const currentItems = categorizedEquipment[activeCategory];
+  const catalogCategory: EquipmentCategory = activeTab === "all" ? "weapon" : activeTab;
 
   return (
     <Card className="stat-card p-2 sm:p-3">
@@ -621,8 +623,8 @@ export function EquipmentSystem({
               </TooltipContent>
             </Tooltip>
           )}
-          {canModify && <AddFromCatalogDialog onAdd={addEquipment} category={activeCategory} />}
-          {canModify && <AddCustomItemDialog onAdd={addEquipment} defaultCategory={activeCategory} />}
+          {canModify && <AddFromCatalogDialog onAdd={addEquipment} category={catalogCategory} />}
+          {canModify && <AddCustomItemDialog onAdd={addEquipment} defaultCategory={catalogCategory} />}
         </div>
       </div>
 
@@ -640,8 +642,21 @@ export function EquipmentSystem({
         </div>
       )}
 
-      <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v as EquipmentCategory)}>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
         <TabsList className="w-full h-auto flex-wrap gap-0.5 p-1 mb-2">
+          <TabsTrigger 
+            value="all"
+            className="flex-1 min-w-0 px-1.5 py-1 text-xs gap-1 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
+            data-testid="tab-all"
+          >
+            <Backpack className="w-4 h-4" />
+            <span className="hidden sm:inline">Всё</span>
+            {equipment.length > 0 && (
+              <Badge variant="outline" className="h-4 px-1 text-[10px] ml-0.5">
+                {equipment.reduce((sum, e) => sum + e.quantity, 0)}
+              </Badge>
+            )}
+          </TabsTrigger>
           {EQUIPMENT_CATEGORIES.map((cat) => (
             <TabsTrigger 
               key={cat} 
@@ -659,6 +674,38 @@ export function EquipmentSystem({
             </TabsTrigger>
           ))}
         </TabsList>
+
+        <TabsContent value="all" className="mt-0">
+          {equipment.length === 0 ? (
+            <div className="text-center py-4 text-muted-foreground text-sm">
+              <Package className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p>Инвентарь пуст</p>
+              <p className="text-xs mt-1">
+                Выберите категорию и добавьте предметы
+              </p>
+            </div>
+          ) : (
+            <div 
+              className="max-h-[300px] overflow-y-auto overscroll-contain"
+              style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+            >
+              <div className="space-y-0.5 pr-1">
+                {equipment.map((item, index) => (
+                  <EquipmentItem
+                    key={item.id}
+                    item={item}
+                    index={index}
+                    onToggleEquip={() => toggleEquipped(item.id)}
+                    onUpdateQuantity={(delta) => updateQuantity(item.id, delta)}
+                    onRemove={() => removeEquipment(item.id)}
+                    canModify={canModify}
+                    isEditing={isEditing}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </TabsContent>
 
         {EQUIPMENT_CATEGORIES.map((cat) => (
           <TabsContent key={cat} value={cat} className="mt-0">
