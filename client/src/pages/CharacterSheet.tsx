@@ -228,11 +228,12 @@ export default function CharacterSheet() {
   };
 
   const rollWeaponAttack = (weapon: Weapon, totalAttackBonus: number) => {
+    if (!currentCharacter) return;
     const profBonus = getProficiencyBonus(currentCharacter.level);
     const abilityLabel = weapon.abilityMod === "dex" ? "ЛОВ" : "СИЛ";
     const abilityMod = weapon.abilityMod === "dex" 
-      ? calculateModifier(currentCharacter.abilityScores.dex)
-      : calculateModifier(currentCharacter.abilityScores.str);
+      ? calculateModifier(currentCharacter.abilityScores.DEX)
+      : calculateModifier(currentCharacter.abilityScores.STR);
     
     const roll = rollDice(
       `Атака: ${weapon.name}`,
@@ -424,8 +425,8 @@ export default function CharacterSheet() {
                 isLocked={currentCharacter.weaponsLocked ?? false}
                 onToggleLock={() => handleChange({ weaponsLocked: !currentCharacter.weaponsLocked })}
                 equippedFromInventory={currentCharacter.equipment}
-                strMod={calculateModifier(currentCharacter.abilityScores.str)}
-                dexMod={calculateModifier(currentCharacter.abilityScores.dex)}
+                strMod={calculateModifier(currentCharacter.abilityScores.STR)}
+                dexMod={calculateModifier(currentCharacter.abilityScores.DEX)}
                 proficiencyBonus={getProficiencyBonus(currentCharacter.level)}
               />
               <FeaturesList
