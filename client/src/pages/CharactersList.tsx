@@ -81,7 +81,7 @@ export default function CharactersList() {
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Scroll className="w-6 h-6 text-accent" />
-            <h1 className="text-xl font-bold font-serif">D&D 5e</h1>
+            <h1 className="text-xl font-bold font-serif">POCKET CHARLIST</h1>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -165,7 +165,7 @@ export default function CharactersList() {
       </main>
 
       <footer className="mt-auto py-6 text-center text-sm text-muted-foreground">
-        <p>D&D 5e Character Sheet</p>
+        <p>Pocket Charlist для D&D 5e</p>
         <p className="text-xs mt-1">Dungeons & Dragons is a trademark of Wizards of the Coast LLC</p>
       </footer>
 
