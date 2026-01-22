@@ -11,12 +11,28 @@ import { CombatStats } from "@/components/CombatStats";
 import { SavingThrowsComponent } from "@/components/SavingThrows";
 import { WeaponsList } from "@/components/WeaponsList";
 import { FeaturesList } from "@/components/FeaturesList";
-import { EquipmentList } from "@/components/EquipmentList";
+import { EquipmentSystem } from "@/components/EquipmentSystem";
 import { MoneyBlock } from "@/components/MoneyBlock";
 import { DiceRoller, DiceRollerTrigger, rollDice, type DiceRoll } from "@/components/DiceRoller";
 import { useTheme } from "@/components/ThemeProvider";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { 
+  ABILITY_NAMES, 
+  ABILITY_LABELS,
+  SKILLS_BY_ABILITY,
+  calculateModifier, 
+  getProficiencyBonus,
+  formatModifier,
+  getRacialBonuses,
+  type Character, 
+  type AbilityName,
+  type SkillProficiency,
+  type Weapon,
+  type Money,
+  type Equipment
+} from "@shared/schema";
+import { ArrowLeft, Moon, Sun, Save, StickyNote, User, Users, Flag } from "lucide-react";
 
 function deepMerge(target: any, source: any): any {
   const result = { ...target };
@@ -38,21 +54,6 @@ function deepMerge(target: any, source: any): any {
   }
   return result;
 }
-import { 
-  ABILITY_NAMES, 
-  ABILITY_LABELS,
-  SKILLS_BY_ABILITY,
-  calculateModifier, 
-  getProficiencyBonus,
-  formatModifier,
-  getRacialBonuses,
-  type Character, 
-  type AbilityName,
-  type SkillProficiency,
-  type Weapon,
-  type Money
-} from "@shared/schema";
-import { ArrowLeft, Moon, Sun, Save, StickyNote, User, Users, Flag } from "lucide-react";
 
 export default function CharacterSheet() {
   const { id } = useParams<{ id: string }>();
@@ -408,6 +409,7 @@ export default function CharacterSheet() {
                 isEditing={isEditing}
                 isLocked={currentCharacter.weaponsLocked ?? false}
                 onToggleLock={() => handleChange({ weaponsLocked: !currentCharacter.weaponsLocked })}
+                equippedFromInventory={currentCharacter.equipment}
               />
               <FeaturesList
                 features={currentCharacter.features}
@@ -426,12 +428,13 @@ export default function CharacterSheet() {
                 onChange={(money) => handleChange({ money })}
                 isEditing={isEditing}
               />
-              <EquipmentList
+              <EquipmentSystem
                 equipment={currentCharacter.equipment}
                 onChange={(equipment) => handleChange({ equipment })}
                 isEditing={isEditing}
                 isLocked={currentCharacter.equipmentLocked ?? false}
                 onToggleLock={() => handleChange({ equipmentLocked: !currentCharacter.equipmentLocked })}
+                proficiencyBonus={getProficiencyBonus(currentCharacter.level)}
               />
             </div>
 
