@@ -76,36 +76,36 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
   };
 
   return (
-    <Card className="stat-card p-4">
-      <div className="flex flex-wrap items-start gap-4">
-        <div className="flex items-center gap-4">
-          <Avatar className="w-20 h-20 border-2 border-accent/30">
+    <Card className="stat-card p-3 sm:p-4">
+      <div className="space-y-3">
+        <div className="flex items-start gap-3">
+          <Avatar className="w-14 h-14 sm:w-16 sm:h-16 border-2 border-accent/30 flex-shrink-0">
             {character.avatar ? (
               <AvatarImage src={character.avatar} alt={character.name} />
             ) : null}
-            <AvatarFallback className="text-2xl bg-accent/20">
-              <User className="w-10 h-10 text-accent" />
+            <AvatarFallback className="text-xl bg-accent/20">
+              <User className="w-7 h-7 sm:w-8 sm:h-8 text-accent" />
             </AvatarFallback>
           </Avatar>
 
-          <div className="space-y-1">
+          <div className="flex-1 min-w-0 space-y-2">
             {isEditing ? (
               <Input
                 value={character.name}
                 onChange={(e) => onChange({ name: e.target.value })}
-                className="text-xl font-bold h-8"
+                className="text-lg sm:text-xl font-bold h-10"
                 placeholder="Имя персонажа"
                 data-testid="input-name"
               />
             ) : (
-              <h1 className="text-xl font-bold" data-testid="text-character-name">{character.name}</h1>
+              <h1 className="text-lg sm:text-xl font-bold truncate" data-testid="text-character-name">{character.name}</h1>
             )}
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               {isEditing ? (
-                <>
+                <div className="flex flex-wrap gap-2 w-full">
                   <Select value={character.race} onValueChange={handleRaceChange}>
-                    <SelectTrigger className="w-32 h-7 text-xs" data-testid="select-race">
+                    <SelectTrigger className="flex-1 min-w-[100px] h-10 text-sm" data-testid="select-race">
                       <SelectValue placeholder="Раса" />
                     </SelectTrigger>
                     <SelectContent>
@@ -116,7 +116,7 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
                   </Select>
                   {subraces.length > 0 && (
                     <Select value={character.subrace || "none"} onValueChange={(value) => onChange({ subrace: value === "none" ? undefined : value })}>
-                      <SelectTrigger className="w-32 h-7 text-xs" data-testid="select-subrace">
+                      <SelectTrigger className="flex-1 min-w-[100px] h-10 text-sm" data-testid="select-subrace">
                         <SelectValue placeholder="Подраса" />
                       </SelectTrigger>
                       <SelectContent>
@@ -128,7 +128,7 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
                     </Select>
                   )}
                   <Select value={character.class} onValueChange={handleClassChange}>
-                    <SelectTrigger className="w-32 h-7 text-xs" data-testid="select-class">
+                    <SelectTrigger className="flex-1 min-w-[100px] h-10 text-sm" data-testid="select-class">
                       <SelectValue placeholder="Класс" />
                     </SelectTrigger>
                     <SelectContent>
@@ -137,14 +137,14 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
                       ))}
                     </SelectContent>
                   </Select>
-                </>
+                </div>
               ) : (
                 <>
-                  <Badge variant="secondary">{character.race}{character.subrace ? ` (${character.subrace})` : ''}</Badge>
-                  <Badge variant="outline">{character.class}</Badge>
+                  <Badge variant="secondary" className="text-xs">{character.race}{character.subrace ? ` (${character.subrace})` : ''}</Badge>
+                  <Badge variant="outline" className="text-xs">{character.class}</Badge>
                   {classData && (
-                    <Badge variant="outline" className="text-xs">
-                      Кость хитов: {classData.hitDice}
+                    <Badge variant="outline" className="text-xs hidden sm:inline-flex">
+                      {classData.hitDice}
                     </Badge>
                   )}
                 </>
@@ -153,67 +153,63 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
           </div>
         </div>
 
-        <div className="flex-1" />
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="text-center min-w-[50px]" data-testid="stat-level">
+                  <div className="text-[10px] sm:text-xs text-muted-foreground">Уровень</div>
+                  {isEditing ? (
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      max={20}
+                      value={character.level}
+                      onChange={(e) => handleLevelChange(parseInt(e.target.value) || 1)}
+                      className="w-14 h-10 text-center text-lg font-bold"
+                      data-testid="input-level"
+                    />
+                  ) : (
+                    <div className="text-xl sm:text-2xl font-bold">{character.level}</div>
+                  )}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Уровень персонажа от 1 до 20</p>
+              </TooltipContent>
+            </Tooltip>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="text-center" data-testid="stat-level">
-                <div className="text-xs text-muted-foreground">Уровень</div>
-                {isEditing ? (
-                  <Input
-                    type="number"
-                    min={1}
-                    max={20}
-                    value={character.level}
-                    onChange={(e) => handleLevelChange(parseInt(e.target.value) || 1)}
-                    className="w-14 h-8 text-center text-lg font-bold"
-                    data-testid="input-level"
-                  />
-                ) : (
-                  <div className="text-2xl font-bold">{character.level}</div>
-                )}
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Уровень персонажа от 1 до 20</p>
-              <p className="text-xs text-muted-foreground">Определяет бонус мастерства и доступные способности</p>
-            </TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="text-center px-3 py-1 rounded-md bg-accent/10" data-testid="stat-proficiency">
-                <div className="text-xs text-muted-foreground">Бонус мастерства</div>
-                <div className="text-xl font-bold text-accent">{formatModifier(profBonus)}</div>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Бонус мастерства добавляется к:</p>
-              <ul className="text-xs text-muted-foreground list-disc pl-4 mt-1">
-                <li>Проверкам навыков с владением</li>
-                <li>Спасброскам с владением</li>
-                <li>Броскам атаки с владением оружием</li>
-                <li>КС ваших заклинаний</li>
-              </ul>
-            </TooltipContent>
-          </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="text-center px-2 sm:px-3 py-1 rounded-md bg-accent/10" data-testid="stat-proficiency">
+                  <div className="text-[10px] sm:text-xs text-muted-foreground">Мастерство</div>
+                  <div className="text-lg sm:text-xl font-bold text-accent">{formatModifier(profBonus)}</div>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Бонус мастерства</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
 
           <Button
             variant={isEditing ? "default" : "outline"}
             onClick={onToggleMode}
-            className="gap-2"
+            className="gap-1.5 h-10 px-3 sm:px-4"
             data-testid="button-toggle-mode"
           >
             {isEditing ? (
               <>
                 <Play className="w-4 h-4" />
-                Режим игры
+                <span className="hidden sm:inline">Режим игры</span>
+                <span className="sm:hidden">Играть</span>
               </>
             ) : (
               <>
                 <Edit2 className="w-4 h-4" />
-                Редактировать
+                <span className="hidden sm:inline">Редактировать</span>
+                <span className="sm:hidden">Ред.</span>
               </>
             )}
           </Button>
@@ -246,27 +242,27 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
       </div>
 
       {isEditing && (
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="mt-3 sm:mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
           <div>
-            <label className="text-xs text-muted-foreground flex items-center gap-1">
+            <label className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1 mb-1">
               <Scroll className="w-3 h-3" />
               Предыстория
             </label>
             <Input
               value={character.background || ""}
               onChange={(e) => onChange({ background: e.target.value })}
-              placeholder="Например: Народный герой"
-              className="h-8"
+              placeholder="Народный герой"
+              className="h-10"
               data-testid="input-background"
             />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground flex items-center gap-1">
+            <label className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1 mb-1">
               <Sparkles className="w-3 h-3" />
               Мировоззрение
             </label>
             <Select value={character.alignment || ""} onValueChange={(value) => onChange({ alignment: value })}>
-              <SelectTrigger className="h-8" data-testid="select-alignment">
+              <SelectTrigger className="h-10" data-testid="select-alignment">
                 <SelectValue placeholder="Выберите" />
               </SelectTrigger>
               <SelectContent>
@@ -277,16 +273,17 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
             </Select>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground flex items-center gap-1">
+            <label className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1 mb-1">
               <BookOpen className="w-3 h-3" />
               Опыт (XP)
             </label>
             <Input
               type="number"
+              inputMode="numeric"
               min={0}
               value={character.experience}
               onChange={(e) => onChange({ experience: parseInt(e.target.value) || 0 })}
-              className="h-8"
+              className="h-10"
               data-testid="input-experience"
             />
           </div>

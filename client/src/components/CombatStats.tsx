@@ -75,55 +75,56 @@ function HpTracker({
       {isEditing ? (
         <div className="grid grid-cols-3 gap-2 mt-2">
           <div>
-            <label className="text-xs text-muted-foreground">Текущие</label>
+            <label className="text-[10px] sm:text-xs text-muted-foreground">Текущие</label>
             <Input
               type="number"
+              inputMode="numeric"
               value={current}
               onChange={(e) => onChange({ currentHp: parseInt(e.target.value) || 0 })}
-              className="h-8 text-center"
+              className="h-10 text-center"
               data-testid="input-current-hp"
             />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Макс.</label>
+            <label className="text-[10px] sm:text-xs text-muted-foreground">Макс.</label>
             <Input
               type="number"
+              inputMode="numeric"
               value={max}
               onChange={(e) => onChange({ maxHp: parseInt(e.target.value) || 0 })}
-              className="h-8 text-center"
+              className="h-10 text-center"
               data-testid="input-max-hp"
             />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Врем.</label>
+            <label className="text-[10px] sm:text-xs text-muted-foreground">Врем.</label>
             <Input
               type="number"
+              inputMode="numeric"
               value={temp}
               onChange={(e) => onChange({ tempHp: parseInt(e.target.value) || 0 })}
-              className="h-8 text-center"
+              className="h-10 text-center"
               data-testid="input-temp-hp"
             />
           </div>
         </div>
       ) : (
-        <div className="flex justify-center gap-2">
+        <div className="flex justify-center gap-3">
           <Button 
             variant="outline" 
-            size="sm" 
+            size="icon"
             onClick={() => adjustHp(-1)}
-            className="h-7 w-7 p-0"
             data-testid="button-hp-minus"
           >
-            <Minus className="w-4 h-4" />
+            <Minus className="w-5 h-5" />
           </Button>
           <Button 
             variant="outline" 
-            size="sm" 
+            size="icon"
             onClick={() => adjustHp(1)}
-            className="h-7 w-7 p-0"
             data-testid="button-hp-plus"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-5 h-5" />
           </Button>
         </div>
       )}
@@ -234,61 +235,62 @@ export function CombatStats({ character, onChange, isEditing }: CombatStatsProps
   const calculatedInitiative = dexMod + (character.customInitiativeBonus || 0);
 
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-3 gap-3">
+    <div className="space-y-2 sm:space-y-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <Tooltip>
           <TooltipTrigger asChild>
-            <Card className="stat-card p-3 text-center" data-testid="stat-ac">
-              <Shield className="w-5 h-5 mx-auto mb-1 text-accent" />
-              <div className="text-xs text-muted-foreground mb-1">Класс Доспеха</div>
-              <div className="text-2xl font-bold">{calculatedAC}</div>
+            <Card className="stat-card p-2 sm:p-3 text-center" data-testid="stat-ac">
+              <Shield className="w-4 h-4 sm:w-5 sm:h-5 mx-auto mb-0.5 sm:mb-1 text-accent" />
+              <div className="text-[10px] sm:text-xs text-muted-foreground">КД</div>
+              <div className="text-xl sm:text-2xl font-bold">{calculatedAC}</div>
               {isEditing && (
                 <div className="mt-1">
-                  <label className="text-xs text-muted-foreground">Бонус</label>
+                  <label className="text-[10px] text-muted-foreground">Бонус</label>
                   <Input
                     type="number"
+                    inputMode="numeric"
                     value={character.customACBonus || 0}
                     onChange={(e) => onChange({ customACBonus: parseInt(e.target.value) || 0 })}
-                    className="text-center text-sm h-7 w-16 mx-auto"
+                    className="text-center text-sm h-10 w-14 mx-auto"
                     data-testid="input-ac-bonus"
                   />
                 </div>
               )}
               {!isEditing && (
-                <div className="text-xs text-muted-foreground mt-1">
-                  {armorData ? armorData.name : 'Без доспехов'}
-                  {hasShield && ' + Щит'}
+                <div className="text-[9px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 truncate">
+                  {armorData ? armorData.name : 'Без'}
+                  {hasShield && ' +Щит'}
                 </div>
               )}
             </Card>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Класс Доспеха (КД)</p>
+            <p>Класс Доспеха</p>
             <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
-              <p>Базовый КД: {armorData ? armorData.baseAC : 10}</p>
-              <p>Модификатор ЛОВ: {formatModifier(dexMod)}</p>
+              <p>Базовый: {armorData ? armorData.baseAC : 10}</p>
+              <p>ЛОВ: {formatModifier(dexMod)}</p>
               {hasShield && <p>Щит: +2</p>}
-              {(character.customACBonus || 0) !== 0 && <p>Бонус: {formatModifier(character.customACBonus || 0)}</p>}
             </div>
           </TooltipContent>
         </Tooltip>
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Card className="stat-card p-3 text-center" data-testid="stat-initiative">
-              <Zap className="w-5 h-5 mx-auto mb-1 text-accent" />
-              <div className="text-xs text-muted-foreground mb-1">Инициатива</div>
-              <div className={`text-2xl font-bold ${calculatedInitiative >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+            <Card className="stat-card p-2 sm:p-3 text-center" data-testid="stat-initiative">
+              <Zap className="w-4 h-4 sm:w-5 sm:h-5 mx-auto mb-0.5 sm:mb-1 text-accent" />
+              <div className="text-[10px] sm:text-xs text-muted-foreground">Иниц.</div>
+              <div className={`text-xl sm:text-2xl font-bold ${calculatedInitiative >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                 {formatModifier(calculatedInitiative)}
               </div>
               {isEditing && (
                 <div className="mt-1">
-                  <label className="text-xs text-muted-foreground">Бонус</label>
+                  <label className="text-[10px] text-muted-foreground">Бонус</label>
                   <Input
                     type="number"
+                    inputMode="numeric"
                     value={character.customInitiativeBonus || 0}
                     onChange={(e) => onChange({ customInitiativeBonus: parseInt(e.target.value) || 0 })}
-                    className="text-center text-sm h-7 w-16 mx-auto"
+                    className="text-center text-sm h-10 w-14 mx-auto"
                     data-testid="input-initiative-bonus"
                   />
                 </div>
@@ -306,24 +308,25 @@ export function CombatStats({ character, onChange, isEditing }: CombatStatsProps
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Card className="stat-card p-3 text-center" data-testid="stat-speed">
-              <Footprints className="w-5 h-5 mx-auto mb-1 text-accent" />
-              <div className="text-xs text-muted-foreground mb-1">Скорость</div>
+            <Card className="stat-card p-2 sm:p-3 text-center" data-testid="stat-speed">
+              <Footprints className="w-4 h-4 sm:w-5 sm:h-5 mx-auto mb-0.5 sm:mb-1 text-accent" />
+              <div className="text-[10px] sm:text-xs text-muted-foreground">Скор.</div>
               {isEditing ? (
                 <Input
                   type="number"
+                  inputMode="numeric"
                   value={character.speed}
                   onChange={(e) => onChange({ speed: parseInt(e.target.value) || 30 })}
-                  className="text-center text-lg font-bold h-8"
+                  className="text-center text-base font-bold h-10 mt-1"
                   data-testid="input-speed"
                 />
               ) : (
-                <div className="text-2xl font-bold">{character.speed}</div>
+                <div className="text-xl sm:text-2xl font-bold">{character.speed}</div>
               )}
             </Card>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Скорость показывает, сколько футов персонаж может пройти за один ход</p>
+            <p>Скорость (футов/ход)</p>
           </TooltipContent>
         </Tooltip>
       </div>
@@ -342,25 +345,24 @@ export function CombatStats({ character, onChange, isEditing }: CombatStatsProps
         isEditing={isEditing}
       />
 
-      <Card className="stat-card p-3" data-testid="stat-hit-dice">
+      <Card className="stat-card p-2 sm:p-3" data-testid="stat-hit-dice">
         <div className="flex items-center gap-2 mb-2">
-          <Dice6 className="w-5 h-5 text-accent" />
-          <span className="font-semibold text-sm">Кубики хитов</span>
-          <Badge variant="secondary" className="ml-auto">
+          <Dice6 className="w-4 h-4 sm:w-5 sm:h-5 text-accent" />
+          <span className="font-semibold text-xs sm:text-sm">Кубики хитов</span>
+          <Badge variant="secondary" className="ml-auto text-xs">
             {classData ? classData.hitDice : 'd10'}
           </Badge>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">
+          <span className="text-xs sm:text-sm text-muted-foreground">
             {character.hitDiceRemaining} / {character.level}
           </span>
           {!isEditing && (
-            <div className="flex gap-1">
+            <div className="flex gap-2">
               <Button
                 variant="outline"
-                size="sm"
+                size="icon"
                 onClick={() => onChange({ hitDiceRemaining: Math.max(0, character.hitDiceRemaining - 1) })}
-                className="h-7 w-7 p-0"
                 disabled={character.hitDiceRemaining <= 0}
                 data-testid="button-hit-dice-minus"
               >
@@ -368,9 +370,8 @@ export function CombatStats({ character, onChange, isEditing }: CombatStatsProps
               </Button>
               <Button
                 variant="outline"
-                size="sm"
+                size="icon"
                 onClick={() => onChange({ hitDiceRemaining: Math.min(character.level, character.hitDiceRemaining + 1) })}
-                className="h-7 w-7 p-0"
                 disabled={character.hitDiceRemaining >= character.level}
                 data-testid="button-hit-dice-plus"
               >

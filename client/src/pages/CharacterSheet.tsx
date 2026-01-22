@@ -261,18 +261,17 @@ export default function CharacterSheet() {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
-        <div className="max-w-6xl mx-auto px-4 py-2 flex items-center justify-between gap-2">
+        <div className="max-w-6xl mx-auto px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between gap-1 sm:gap-2">
           <Button 
             variant="ghost" 
-            size="sm" 
+            size="icon" 
             onClick={() => setLocation("/")}
             data-testid="button-back"
           >
-            <ArrowLeft className="w-4 h-4 mr-1" />
-            Назад
+            <ArrowLeft className="w-5 h-5" />
           </Button>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             {isEditing && (
               <Button 
                 size="sm" 
@@ -281,7 +280,8 @@ export default function CharacterSheet() {
                 data-testid="button-save"
               >
                 <Save className="w-4 h-4 mr-1" />
-                Сохранить
+                <span className="hidden sm:inline">Сохранить</span>
+                <span className="sm:hidden">OK</span>
               </Button>
             )}
             <DiceRollerTrigger 
@@ -300,8 +300,8 @@ export default function CharacterSheet() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto p-4">
-        <div className="space-y-4">
+      <main className="max-w-6xl mx-auto p-2 sm:p-4">
+        <div className="space-y-3 sm:space-y-4">
           <CharacterHeader
             character={currentCharacter}
             onChange={handleChange}
@@ -309,8 +309,8 @@ export default function CharacterSheet() {
             onToggleMode={() => isEditing ? saveChanges() : setIsEditing(true)}
           />
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="space-y-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-4">
+            <div className="space-y-2 sm:space-y-3">
               {ABILITY_NAMES.map((ability) => (
                 <AbilityWithSkills
                   key={ability}
@@ -351,7 +351,7 @@ export default function CharacterSheet() {
               ))}
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-2 sm:space-y-3">
               <CombatStats
                 character={currentCharacter}
                 onChange={handleChange}
@@ -380,51 +380,51 @@ export default function CharacterSheet() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4">
             <EquipmentList
               equipment={currentCharacter.equipment}
               onChange={(equipment) => handleChange({ equipment })}
               isEditing={isEditing}
             />
 
-            <div className="space-y-3">
-              <Card className="stat-card p-3">
+            <div className="space-y-2 sm:space-y-3">
+              <Card className="stat-card p-2 sm:p-3">
                 <div className="flex items-center gap-2 mb-2">
                   <StickyNote className="w-4 h-4 text-accent" />
-                  <h3 className="font-semibold text-sm">Заметки</h3>
+                  <h3 className="font-semibold text-xs sm:text-sm">Заметки</h3>
                 </div>
                 {isEditing ? (
                   <Textarea
                     value={currentCharacter.notes || ""}
                     onChange={(e) => handleChange({ notes: e.target.value })}
-                    placeholder="Записи о персонаже, квестах, важных событиях..."
-                    rows={8}
-                    className="resize-none"
+                    placeholder="Записи о персонаже, квестах..."
+                    rows={6}
+                    className="resize-none text-sm"
                     data-testid="textarea-notes"
                   />
                 ) : (
-                  <div className="text-sm text-muted-foreground whitespace-pre-wrap min-h-[120px]">
+                  <div className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap min-h-[80px] sm:min-h-[100px]">
                     {currentCharacter.notes || "Нет заметок"}
                   </div>
                 )}
               </Card>
 
-              <Card className="stat-card p-3">
+              <Card className="stat-card p-2 sm:p-3">
                 <div className="flex items-center gap-2 mb-2">
                   <User className="w-4 h-4 text-accent" />
-                  <h3 className="font-semibold text-sm">Внешность</h3>
+                  <h3 className="font-semibold text-xs sm:text-sm">Внешность</h3>
                 </div>
                 {isEditing ? (
                   <Textarea
                     value={currentCharacter.appearance || ""}
                     onChange={(e) => handleChange({ appearance: e.target.value })}
-                    placeholder="Рост, телосложение, цвет волос и глаз, особые приметы..."
-                    rows={4}
-                    className="resize-none"
+                    placeholder="Рост, телосложение, особые приметы..."
+                    rows={3}
+                    className="resize-none text-sm"
                     data-testid="textarea-appearance"
                   />
                 ) : (
-                  <div className="text-sm text-muted-foreground whitespace-pre-wrap min-h-[60px]">
+                  <div className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap min-h-[40px] sm:min-h-[50px]">
                     {currentCharacter.appearance || "Нет описания"}
                   </div>
                 )}
@@ -432,44 +432,44 @@ export default function CharacterSheet() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card className="stat-card p-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4">
+            <Card className="stat-card p-2 sm:p-3">
               <div className="flex items-center gap-2 mb-2">
                 <Users className="w-4 h-4 text-accent" />
-                <h3 className="font-semibold text-sm">Союзники и Организации</h3>
+                <h3 className="font-semibold text-xs sm:text-sm">Союзники</h3>
               </div>
               {isEditing ? (
                 <Textarea
                   value={currentCharacter.allies || ""}
                   onChange={(e) => handleChange({ allies: e.target.value })}
-                  placeholder="Друзья, союзники, группы с которыми работаете..."
-                  rows={4}
-                  className="resize-none"
+                  placeholder="Друзья, союзники..."
+                  rows={3}
+                  className="resize-none text-sm"
                   data-testid="textarea-allies"
                 />
               ) : (
-                <div className="text-sm text-muted-foreground whitespace-pre-wrap min-h-[60px]">
+                <div className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap min-h-[40px] sm:min-h-[50px]">
                   {currentCharacter.allies || "Нет записей"}
                 </div>
               )}
             </Card>
 
-            <Card className="stat-card p-3">
+            <Card className="stat-card p-2 sm:p-3">
               <div className="flex items-center gap-2 mb-2">
                 <Flag className="w-4 h-4 text-accent" />
-                <h3 className="font-semibold text-sm">Фракции</h3>
+                <h3 className="font-semibold text-xs sm:text-sm">Фракции</h3>
               </div>
               {isEditing ? (
                 <Textarea
                   value={currentCharacter.factions || ""}
                   onChange={(e) => handleChange({ factions: e.target.value })}
-                  placeholder="Членство во фракциях, гильдиях, орденах..."
-                  rows={4}
-                  className="resize-none"
+                  placeholder="Гильдии, ордены..."
+                  rows={3}
+                  className="resize-none text-sm"
                   data-testid="textarea-factions"
                 />
               ) : (
-                <div className="text-sm text-muted-foreground whitespace-pre-wrap min-h-[60px]">
+                <div className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap min-h-[40px] sm:min-h-[50px]">
                   {currentCharacter.factions || "Нет записей"}
                 </div>
               )}

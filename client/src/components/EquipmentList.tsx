@@ -206,14 +206,14 @@ export function EquipmentList({ equipment, onChange, isEditing }: EquipmentListP
   const equippedArmor = equipment.filter(e => e.isArmor && e.equipped);
 
   return (
-    <Card className="stat-card p-3">
-      <div className="flex items-center justify-between mb-3">
+    <Card className="stat-card p-2 sm:p-3">
+      <div className="flex items-center justify-between mb-2 sm:mb-3">
         <div className="flex items-center gap-2">
           <Backpack className="w-4 h-4 text-accent" />
-          <h3 className="font-semibold text-sm">Снаряжение</h3>
+          <h3 className="font-semibold text-xs sm:text-sm">Снаряжение</h3>
           {totalWeight > 0 && (
-            <Badge variant="outline" className="text-xs">
-              {totalWeight.toFixed(1)} фунтов
+            <Badge variant="outline" className="text-[10px] sm:text-xs">
+              {totalWeight.toFixed(1)} ф.
             </Badge>
           )}
         </div>
@@ -251,7 +251,7 @@ export function EquipmentList({ equipment, onChange, isEditing }: EquipmentListP
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={`h-6 w-6 shrink-0 ${item.equipped ? 'text-accent' : 'text-muted-foreground'}`}
+                  className={item.equipped ? 'text-accent' : 'text-muted-foreground'}
                   onClick={() => toggleEquipped(item.id)}
                   data-testid={`button-equip-${index}`}
                   aria-label={item.equipped ? "Снять" : "Надеть"}
