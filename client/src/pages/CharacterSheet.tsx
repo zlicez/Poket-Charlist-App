@@ -13,6 +13,7 @@ import { WeaponsList } from "@/components/WeaponsList";
 import { FeaturesList } from "@/components/FeaturesList";
 import { EquipmentSystem } from "@/components/EquipmentSystem";
 import { MoneyBlock } from "@/components/MoneyBlock";
+import { ProficienciesSection } from "@/components/ProficienciesSection";
 import { DiceRoller, DiceRollerTrigger, rollDice, type DiceRoll } from "@/components/DiceRoller";
 import { useTheme } from "@/components/ThemeProvider";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -227,16 +228,16 @@ export default function CharacterSheet() {
     setIsDiceRollerOpen(true);
   };
 
-  const rollWeaponAttack = (weapon: Weapon, totalAttackBonus: number) => {
+  const rollWeaponAttack = (weapon: Weapon, totalAttackBonus: number, isProficient: boolean = true) => {
     if (!currentCharacter) return;
-    const profBonus = getProficiencyBonus(currentCharacter.level);
+    const profBonus = isProficient ? getProficiencyBonus(currentCharacter.level) : 0;
     const abilityLabel = weapon.abilityMod === "dex" ? "ЛОВ" : "СИЛ";
     const abilityMod = weapon.abilityMod === "dex" 
       ? calculateModifier(currentCharacter.abilityScores.DEX)
       : calculateModifier(currentCharacter.abilityScores.STR);
     
     const roll = rollDice(
-      `Атака: ${weapon.name}`,
+      `Атака: ${weapon.name}${!isProficient ? " (без влад.)" : ""}`,
       "1d20",
       totalAttackBonus,
       [
@@ -428,6 +429,7 @@ export default function CharacterSheet() {
                 strMod={calculateModifier(currentCharacter.abilityScores.STR)}
                 dexMod={calculateModifier(currentCharacter.abilityScores.DEX)}
                 proficiencyBonus={getProficiencyBonus(currentCharacter.level)}
+                proficiencies={currentCharacter.proficiencies ?? { languages: [], weapons: [], armor: [], tools: [] }}
               />
               <FeaturesList
                 features={currentCharacter.features}
@@ -435,6 +437,11 @@ export default function CharacterSheet() {
                 isEditing={isEditing}
                 isLocked={currentCharacter.featuresLocked ?? false}
                 onToggleLock={() => handleChange({ featuresLocked: !currentCharacter.featuresLocked })}
+              />
+              <ProficienciesSection
+                proficiencies={currentCharacter.proficiencies ?? { languages: [], weapons: [], armor: [], tools: [] }}
+                onChange={(proficiencies) => handleChange({ proficiencies })}
+                isEditing={isEditing}
               />
             </div>
           </div>

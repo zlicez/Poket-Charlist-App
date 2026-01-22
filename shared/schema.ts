@@ -540,6 +540,123 @@ export const moneySchema = z.object({
 
 export type Money = z.infer<typeof moneySchema>;
 
+// D&D 5e Proficiency Categories
+export const PROFICIENCY_CATEGORIES = ["languages", "weapons", "armor", "tools"] as const;
+export type ProficiencyCategory = typeof PROFICIENCY_CATEGORIES[number];
+
+export const PROFICIENCY_CATEGORY_LABELS: Record<ProficiencyCategory, string> = {
+  languages: "Языки",
+  weapons: "Оружие",
+  armor: "Доспехи",
+  tools: "Инструменты",
+};
+
+// D&D 5e Languages
+export const LANGUAGES = [
+  "Общий", "Дварфийский", "Эльфийский", "Великаний", "Гномий", 
+  "Гоблинский", "Полуросликов", "Орочий", "Драконий", "Бездны",
+  "Небесный", "Глубинная речь", "Инфернальный", "Первичный",
+  "Сильван", "Подземный", "Воровской жаргон", "Друидический"
+] as const;
+
+// D&D 5e Weapon Proficiencies - canonical SRD lists
+export const SIMPLE_WEAPONS = [
+  "Боевой посох", "Булава", "Дубинка", "Кинжал", "Копьё",
+  "Лёгкий молот", "Метательное копьё", "Ручной топор", "Серп", "Палица",
+  "Лёгкий арбалет", "Дротик", "Короткий лук", "Праща"
+] as const;
+
+export const MARTIAL_WEAPONS = [
+  "Длинный меч", "Короткий меч", "Рапира", "Скимитар",
+  "Боевой топор", "Боевой молот", "Моргенштерн", "Цеп",
+  "Секира", "Двуручный меч", "Глефа", "Алебарда", "Пика", "Молот",
+  "Кнут", "Трезубец", "Длинный лук", "Ручной арбалет", "Тяжёлый арбалет",
+  "Боевая кирка", "Рыцарское копьё"
+] as const;
+
+export const WEAPON_PROFICIENCIES = [
+  "Простое оружие",
+  ...SIMPLE_WEAPONS,
+  "Воинское оружие",
+  ...MARTIAL_WEAPONS,
+] as const;
+
+// D&D 5e Armor Proficiencies  
+export const ARMOR_PROFICIENCIES = [
+  "Лёгкие доспехи", "Средние доспехи", "Тяжёлые доспехи", "Щиты"
+] as const;
+
+// D&D 5e Tool Proficiencies
+export const TOOL_PROFICIENCIES = [
+  // Artisan's Tools
+  "Инструменты алхимика", "Инструменты пивовара", "Инструменты каллиграфа",
+  "Инструменты плотника", "Инструменты картографа", "Инструменты сапожника",
+  "Инструменты повара", "Инструменты стеклодува", "Инструменты ювелира",
+  "Инструменты кожевника", "Инструменты каменщика", "Инструменты художника",
+  "Инструменты гончара", "Инструменты кузнеца", "Инструменты лудильщика",
+  "Инструменты ткача", "Инструменты резчика по дереву",
+  // Gaming Sets
+  "Игральные кости", "Карточный набор", "Набор для драконьих шахмат",
+  "Набор три-дракона",
+  // Musical Instruments
+  "Волынка", "Барабан", "Дульцимер", "Флейта", "Лютня",
+  "Лира", "Рожок", "Свирель", "Шалмей", "Виола",
+  // Other Tools
+  "Набор для маскировки", "Набор фальсификатора", "Набор травника",
+  "Инструменты навигатора", "Набор отравителя", "Воровские инструменты",
+  "Транспорт (наземный)", "Транспорт (водный)"
+] as const;
+
+export const proficienciesSchema = z.object({
+  languages: z.array(z.string()).default([]),
+  weapons: z.array(z.string()).default([]),
+  armor: z.array(z.string()).default([]),
+  tools: z.array(z.string()).default([]),
+});
+
+export type Proficiencies = z.infer<typeof proficienciesSchema>;
+
+// Helper to check if character is proficient with a weapon
+export function isWeaponProficient(weaponName: string, proficiencies: Proficiencies): boolean {
+  const weaponProfs = proficiencies.weapons || [];
+  
+  // Direct weapon match
+  if (weaponProfs.includes(weaponName)) return true;
+  
+  // Check for weapon category proficiency using canonical lists
+  const isSimpleWeapon = (SIMPLE_WEAPONS as readonly string[]).includes(weaponName);
+  const isMartialWeapon = (MARTIAL_WEAPONS as readonly string[]).includes(weaponName);
+  
+  if (weaponProfs.includes("Простое оружие") && isSimpleWeapon) {
+    return true;
+  }
+  
+  if (weaponProfs.includes("Воинское оружие") && isMartialWeapon) {
+    return true;
+  }
+  
+  // Martial weapon proficiency also grants simple weapon proficiency (D&D 5e rule)
+  if (weaponProfs.includes("Воинское оружие") && isSimpleWeapon) {
+    return true;
+  }
+  
+  return false;
+}
+
+// Helper to check armor proficiency
+export function isArmorProficient(armorType: ArmorType | undefined, proficiencies: Proficiencies): boolean {
+  const armorProfs = proficiencies.armor || [];
+  
+  if (!armorType || armorType === "none") return true;
+  
+  if (armorType === "light" && armorProfs.includes("Лёгкие доспехи")) return true;
+  if (armorType === "medium" && armorProfs.includes("Средние доспехи")) return true;
+  if (armorType === "heavy" && armorProfs.includes("Тяжёлые доспехи")) return true;
+  if (armorType === "shield" && armorProfs.includes("Щиты")) return true;
+  
+  return false;
+}
+
 export const characterSchema = z.object({
   id: z.string(),
   name: z.string().min(1),
@@ -571,6 +688,7 @@ export const characterSchema = z.object({
   features: z.array(featureSchema).default([]),
   equipment: z.array(equipmentSchema).default([]),
   money: moneySchema.default({ cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }),
+  proficiencies: proficienciesSchema.default({ languages: [], weapons: [], armor: [], tools: [] }),
   proficiencyBonus: z.number().default(2),
   notes: z.string().optional(),
   appearance: z.string().optional(),
@@ -688,6 +806,7 @@ export function createDefaultCharacter(): InsertCharacter {
     features: [],
     equipment: [],
     money: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 },
+    proficiencies: { languages: ["Общий"], weapons: [], armor: [], tools: [] },
     proficiencyBonus: 2,
     notes: "",
     appearance: "",

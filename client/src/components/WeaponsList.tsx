@@ -7,13 +7,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Swords, Plus, Trash2, Dices, Lock, Unlock, Backpack } from "lucide-react";
-import type { Weapon, Equipment, WeaponAbilityMod } from "@shared/schema";
-import { formatModifier } from "@shared/schema";
+import type { Weapon, Equipment, WeaponAbilityMod, Proficiencies } from "@shared/schema";
+import { formatModifier, isWeaponProficient } from "@shared/schema";
 
 interface WeaponsListProps {
   weapons: Weapon[];
   onChange: (weapons: Weapon[]) => void;
-  onRollAttack: (weapon: Weapon, totalAttackBonus: number) => void;
+  onRollAttack: (weapon: Weapon, totalAttackBonus: number, isProficient: boolean) => void;
   onRollDamage: (weapon: Weapon, damageModifier: number) => void;
   isEditing: boolean;
   isLocked?: boolean;
@@ -22,6 +22,7 @@ interface WeaponsListProps {
   strMod?: number;
   dexMod?: number;
   proficiencyBonus?: number;
+  proficiencies?: Proficiencies;
 }
 
 function AddWeaponDialog({ onAdd }: { onAdd: (weapon: Omit<Weapon, "id">) => void }) {
@@ -156,7 +157,8 @@ export function WeaponsList({
   equippedFromInventory = [],
   strMod = 0,
   dexMod = 0,
-  proficiencyBonus = 2
+  proficiencyBonus = 2,
+  proficiencies = { languages: [], weapons: [], armor: [], tools: [] }
 }: WeaponsListProps) {
   const canModify = isEditing || !isLocked;
 
@@ -234,7 +236,9 @@ export function WeaponsList({
         <div className="space-y-2">
           {equippedWeapons.map((weapon) => {
             const abilityModValue = getAbilityMod(weapon.abilityMod);
-            const totalAttack = proficiencyBonus + abilityModValue + weapon.attackBonus;
+            const isProficient = isWeaponProficient(weapon.name, proficiencies);
+            const profBonus = isProficient ? proficiencyBonus : 0;
+            const totalAttack = profBonus + abilityModValue + weapon.attackBonus;
             const damageModStr = abilityModValue !== 0 ? formatModifier(abilityModValue) : "";
             const abilityLabel = weapon.abilityMod === "dex" ? "ЛОВ" : "СИЛ";
             
@@ -250,6 +254,7 @@ export function WeaponsList({
                     <span className="font-medium text-sm truncate text-accent">{weapon.name}</span>
                     <Badge variant="outline" className="text-[9px] h-4 px-1">{abilityLabel}</Badge>
                     {weapon.isFinesse && <Badge variant="secondary" className="text-[9px] h-4 px-1">Фехт.</Badge>}
+                    {isProficient && <Badge variant="default" className="text-[9px] h-4 px-1 bg-green-600">Влад.</Badge>}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {weapon.damage}{damageModStr} {weapon.damageType}
@@ -265,14 +270,14 @@ export function WeaponsList({
                           variant="ghost" 
                           size="sm" 
                           className="h-7 px-2 gap-1"
-                          onClick={() => onRollAttack(weapon as Weapon, totalAttack)}
+                          onClick={() => onRollAttack(weapon as Weapon, totalAttack, isProficient)}
                           data-testid={`button-attack-inv-${weapon.id}`}
                         >
                           <Dices className="w-3 h-3" />
                           <span className="text-xs">{formatModifier(totalAttack)}</span>
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent>Атака: 1d20{formatModifier(totalAttack)}</TooltipContent>
+                      <TooltipContent>Атака: 1d20{formatModifier(totalAttack)}{!isProficient && " (без владения)"}</TooltipContent>
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -296,7 +301,9 @@ export function WeaponsList({
           
           {weapons.map((weapon) => {
             const abilityModValue = getAbilityMod(weapon.abilityMod);
-            const totalAttack = proficiencyBonus + abilityModValue + weapon.attackBonus;
+            const isProficient = isWeaponProficient(weapon.name, proficiencies);
+            const profBonus = isProficient ? proficiencyBonus : 0;
+            const totalAttack = profBonus + abilityModValue + weapon.attackBonus;
             const damageModStr = abilityModValue !== 0 ? formatModifier(abilityModValue) : "";
             const abilityLabel = weapon.abilityMod === "dex" ? "ЛОВ" : "СИЛ";
             
@@ -311,6 +318,7 @@ export function WeaponsList({
                     <span className="font-medium text-sm truncate">{weapon.name}</span>
                     <Badge variant="outline" className="text-[9px] h-4 px-1">{abilityLabel}</Badge>
                     {weapon.isFinesse && <Badge variant="secondary" className="text-[9px] h-4 px-1">Фехт.</Badge>}
+                    {isProficient && <Badge variant="default" className="text-[9px] h-4 px-1 bg-green-600">Влад.</Badge>}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {weapon.damage}{damageModStr} {weapon.damageType}
@@ -326,14 +334,14 @@ export function WeaponsList({
                           variant="ghost" 
                           size="sm" 
                           className="h-7 px-2 gap-1"
-                          onClick={() => onRollAttack(weapon, totalAttack)}
+                          onClick={() => onRollAttack(weapon, totalAttack, isProficient)}
                           data-testid={`button-attack-${weapon.id}`}
                         >
                           <Dices className="w-3 h-3" />
                           <span className="text-xs">{formatModifier(totalAttack)}</span>
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent>Атака: 1d20{formatModifier(totalAttack)}</TooltipContent>
+                      <TooltipContent>Атака: 1d20{formatModifier(totalAttack)}{!isProficient && " (без владения)"}</TooltipContent>
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
