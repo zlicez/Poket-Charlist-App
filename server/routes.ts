@@ -3,15 +3,22 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertCharacterSchema } from "@shared/schema";
 import { z } from "zod";
+import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
   
-  app.get("/api/characters", async (req, res) => {
+  // Setup auth BEFORE registering other routes
+  await setupAuth(app);
+  registerAuthRoutes(app);
+  
+  // All character routes require authentication
+  app.get("/api/characters", isAuthenticated, async (req: any, res) => {
     try {
-      const characters = await storage.getCharacters();
+      const userId = req.user.claims.sub;
+      const characters = await storage.getCharacters(userId);
       res.json(characters);
     } catch (error) {
       console.error("Error fetching characters:", error);
@@ -19,9 +26,10 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/characters/:id", async (req, res) => {
+  app.get("/api/characters/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const character = await storage.getCharacter(req.params.id);
+      const userId = req.user.claims.sub;
+      const character = await storage.getCharacter(req.params.id, userId);
       if (!character) {
         return res.status(404).json({ error: "Character not found" });
       }
@@ -32,10 +40,11 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/characters", async (req, res) => {
+  app.post("/api/characters", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const validatedData = insertCharacterSchema.parse(req.body);
-      const character = await storage.createCharacter(validatedData);
+      const character = await storage.createCharacter(validatedData, userId);
       res.status(201).json(character);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -46,9 +55,10 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/characters/:id", async (req, res) => {
+  app.patch("/api/characters/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const character = await storage.updateCharacter(req.params.id, req.body);
+      const userId = req.user.claims.sub;
+      const character = await storage.updateCharacter(req.params.id, userId, req.body);
       if (!character) {
         return res.status(404).json({ error: "Character not found" });
       }
@@ -59,9 +69,10 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/characters/:id", async (req, res) => {
+  app.delete("/api/characters/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const deleted = await storage.deleteCharacter(req.params.id);
+      const userId = req.user.claims.sub;
+      const deleted = await storage.deleteCharacter(req.params.id, userId);
       if (!deleted) {
         return res.status(404).json({ error: "Character not found" });
       }

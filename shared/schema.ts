@@ -1,4 +1,9 @@
 import { z } from "zod";
+import { pgTable, varchar, text, integer, boolean, jsonb, timestamp } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+
+// Re-export auth models
+export * from "./models/auth";
 
 export const ABILITY_NAMES = ["STR", "DEX", "CON", "INT", "WIS", "CHA"] as const;
 export type AbilityName = typeof ABILITY_NAMES[number];
@@ -657,8 +662,22 @@ export function isArmorProficient(armorType: ArmorType | undefined, proficiencie
   return false;
 }
 
+// Drizzle table for characters stored in PostgreSQL
+export const characters = pgTable("characters", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  name: varchar("name").notNull(),
+  data: jsonb("data").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type DbCharacter = typeof characters.$inferSelect;
+export type InsertDbCharacter = typeof characters.$inferInsert;
+
 export const characterSchema = z.object({
   id: z.string(),
+  userId: z.string().optional(),
   name: z.string().min(1),
   avatar: z.string().optional(),
   class: z.string(),

@@ -18,6 +18,8 @@ import { DiceRoller, DiceRollerTrigger, rollDice, type DiceRoll } from "@/compon
 import { useTheme } from "@/components/ThemeProvider";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
+import { isUnauthorizedError } from "@/lib/auth-utils";
 import { 
   ABILITY_NAMES, 
   ABILITY_LABELS,
@@ -61,15 +63,28 @@ export default function CharacterSheet() {
   const [, setLocation] = useLocation();
   const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   const [isEditing, setIsEditing] = useState(false);
   const [isDiceRollerOpen, setIsDiceRollerOpen] = useState(false);
   const [rollHistory, setRollHistory] = useState<DiceRoll[]>([]);
   const [localChanges, setLocalChanges] = useState<Partial<Character>>({});
 
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isAuthLoading && !isAuthenticated) {
+      toast({ 
+        title: "Требуется авторизация", 
+        description: "Перенаправление на страницу входа...",
+        variant: "destructive"
+      });
+      setTimeout(() => { window.location.href = "/api/login"; }, 500);
+    }
+  }, [isAuthenticated, isAuthLoading, toast]);
+
   const { data: character, isLoading, error } = useQuery<Character>({
     queryKey: ['/api/characters', id],
-    enabled: !!id,
+    enabled: !!id && isAuthenticated,
   });
 
   const pendingChangesRef = useRef<Partial<Character>>({});

@@ -1,5 +1,6 @@
-import { type Character, type InsertCharacter, DEFAULT_SKILLS_PROFICIENCY } from "@shared/schema";
-import { randomUUID } from "crypto";
+import { type Character, type InsertCharacter, DEFAULT_SKILLS_PROFICIENCY, characters } from "@shared/schema";
+import { db } from "./db";
+import { eq, and } from "drizzle-orm";
 
 function deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>): T {
   const result = { ...target };
@@ -28,53 +29,86 @@ function deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>)
 }
 
 export interface IStorage {
-  getCharacters(): Promise<Character[]>;
-  getCharacter(id: string): Promise<Character | undefined>;
-  createCharacter(character: InsertCharacter): Promise<Character>;
-  updateCharacter(id: string, updates: Partial<Character>): Promise<Character | undefined>;
-  deleteCharacter(id: string): Promise<boolean>;
+  getCharacters(userId: string): Promise<Character[]>;
+  getCharacter(id: string, userId: string): Promise<Character | undefined>;
+  createCharacter(character: InsertCharacter, userId: string): Promise<Character>;
+  updateCharacter(id: string, userId: string, updates: Partial<Character>): Promise<Character | undefined>;
+  deleteCharacter(id: string, userId: string): Promise<boolean>;
 }
 
-export class MemStorage implements IStorage {
-  private characters: Map<string, Character>;
-
-  constructor() {
-    this.characters = new Map();
+export class DatabaseStorage implements IStorage {
+  async getCharacters(userId: string): Promise<Character[]> {
+    const rows = await db.select().from(characters).where(eq(characters.userId, userId));
+    return rows.map(row => ({
+      id: row.id,
+      userId: row.userId,
+      ...(row.data as object),
+    } as Character));
   }
 
-  async getCharacters(): Promise<Character[]> {
-    return Array.from(this.characters.values());
+  async getCharacter(id: string, userId: string): Promise<Character | undefined> {
+    const [row] = await db.select().from(characters)
+      .where(and(eq(characters.id, id), eq(characters.userId, userId)));
+    
+    if (!row) return undefined;
+    
+    return {
+      id: row.id,
+      userId: row.userId,
+      ...(row.data as object),
+    } as Character;
   }
 
-  async getCharacter(id: string): Promise<Character | undefined> {
-    return this.characters.get(id);
-  }
-
-  async createCharacter(insertCharacter: InsertCharacter): Promise<Character> {
-    const id = randomUUID();
-    const character: Character = { 
-      ...insertCharacter, 
-      id,
+  async createCharacter(insertCharacter: InsertCharacter, userId: string): Promise<Character> {
+    const characterData = {
+      ...insertCharacter,
       skills: insertCharacter.skills || { ...DEFAULT_SKILLS_PROFICIENCY },
     };
-    this.characters.set(id, character);
-    return character;
+
+    const [row] = await db.insert(characters).values({
+      userId,
+      name: characterData.name,
+      data: characterData,
+    }).returning();
+
+    return {
+      id: row.id,
+      userId: row.userId,
+      ...(row.data as object),
+    } as Character;
   }
 
-  async updateCharacter(id: string, updates: Partial<Character>): Promise<Character | undefined> {
-    const existing = this.characters.get(id);
+  async updateCharacter(id: string, userId: string, updates: Partial<Character>): Promise<Character | undefined> {
+    const existing = await this.getCharacter(id, userId);
     if (!existing) return undefined;
 
-    const { id: _, ...updateData } = updates;
+    const { id: _, userId: __, ...updateData } = updates;
     const updated = deepMerge(existing, updateData);
-    
-    this.characters.set(id, updated);
-    return updated;
+
+    const [row] = await db.update(characters)
+      .set({ 
+        name: updated.name,
+        data: updated,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(characters.id, id), eq(characters.userId, userId)))
+      .returning();
+
+    if (!row) return undefined;
+
+    return {
+      id: row.id,
+      userId: row.userId,
+      ...(row.data as object),
+    } as Character;
   }
 
-  async deleteCharacter(id: string): Promise<boolean> {
-    return this.characters.delete(id);
+  async deleteCharacter(id: string, userId: string): Promise<boolean> {
+    const result = await db.delete(characters)
+      .where(and(eq(characters.id, id), eq(characters.userId, userId)))
+      .returning();
+    return result.length > 0;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
