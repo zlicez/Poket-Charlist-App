@@ -441,8 +441,16 @@ export default function CharacterSheet() {
                 isLocked={currentCharacter.weaponsLocked ?? false}
                 onToggleLock={() => handleChange({ weaponsLocked: !currentCharacter.weaponsLocked })}
                 equippedFromInventory={currentCharacter.equipment}
-                strMod={calculateModifier(currentCharacter.abilityScores.STR)}
-                dexMod={calculateModifier(currentCharacter.abilityScores.DEX)}
+                strMod={calculateModifier(
+                  currentCharacter.abilityScores.STR + 
+                  (racialBonuses.STR || 0) + 
+                  (currentCharacter.customAbilityBonuses?.STR || 0)
+                )}
+                dexMod={calculateModifier(
+                  currentCharacter.abilityScores.DEX + 
+                  (racialBonuses.DEX || 0) + 
+                  (currentCharacter.customAbilityBonuses?.DEX || 0)
+                )}
                 proficiencyBonus={getProficiencyBonus(currentCharacter.level)}
                 proficiencies={currentCharacter.proficiencies ?? { languages: [], weapons: [], armor: [], tools: [] }}
               />

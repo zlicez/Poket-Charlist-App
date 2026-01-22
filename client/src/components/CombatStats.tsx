@@ -5,7 +5,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Shield, Zap, Footprints, Heart, Skull, Plus, Minus, Dice6, Check, X, RotateCcw } from "lucide-react";
-import { calculateModifier, formatModifier, ARMOR_LIST, calculateAC, CLASS_DATA } from "@shared/schema";
+import { calculateModifier, formatModifier, ARMOR_LIST, calculateAC, CLASS_DATA, getRacialBonuses } from "@shared/schema";
 import type { Character, DeathSaves, Equipment, ArmorData } from "@shared/schema";
 
 interface CombatStatsProps {
@@ -247,7 +247,9 @@ function DeathSavesTracker({
 }
 
 export function CombatStats({ character, onChange, isEditing }: CombatStatsProps) {
-  const dexMod = calculateModifier(character.abilityScores.DEX + (character.customAbilityBonuses?.DEX || 0));
+  const racialBonuses = getRacialBonuses(character.race, character.subrace);
+  const totalDex = character.abilityScores.DEX + (racialBonuses.DEX || 0) + (character.customAbilityBonuses?.DEX || 0);
+  const dexMod = calculateModifier(totalDex);
   const classData = CLASS_DATA[character.class];
   
   const equippedArmor = character.equipment.find(e => e.equipped && e.isArmor && e.armorType !== "shield");
