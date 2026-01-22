@@ -12,8 +12,25 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Backpack, Plus, Trash2, Package, Shield, ShieldCheck, Lock, Unlock, 
   Sword, Apple, FlaskConical, Wrench, Trash, Search,
-  Minus, ChevronDown, ChevronRight, Sparkles
+  Minus, ChevronDown, ChevronRight, Sparkles, GripVertical
 } from "lucide-react";
+import { 
+  DndContext, 
+  closestCenter, 
+  KeyboardSensor, 
+  PointerSensor, 
+  useSensor, 
+  useSensors,
+  DragEndEvent
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { 
   EQUIPMENT_CATEGORIES, 
   CATEGORY_LABELS,
@@ -393,7 +410,7 @@ function AddCustomItemDialog({
   );
 }
 
-function EquipmentItem({
+function SortableEquipmentItem({
   item,
   index,
   onToggleEquip,
@@ -401,6 +418,7 @@ function EquipmentItem({
   onRemove,
   canModify,
   isEditing,
+  canReorder,
 }: {
   item: Equipment;
   index: number;
@@ -409,14 +427,42 @@ function EquipmentItem({
   onRemove: () => void;
   canModify: boolean;
   isEditing: boolean;
+  canReorder: boolean;
 }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id, disabled: !canReorder });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
   const isEquippable = item.isWeapon || item.isArmor;
 
   return (
     <div 
-      className={`flex items-center gap-2 py-1.5 px-2 rounded-md ${item.equipped ? 'bg-accent/10' : 'hover-elevate'}`}
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center gap-2 py-1.5 px-2 rounded-md ${item.equipped ? 'bg-accent/10' : 'hover-elevate'} ${isDragging ? 'z-50' : ''}`}
       data-testid={`equipment-item-${index}`}
     >
+      {canReorder && (
+        <button
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing p-1 text-muted-foreground hover:text-foreground touch-none"
+          data-testid={`drag-handle-${index}`}
+        >
+          <GripVertical className="w-4 h-4" />
+        </button>
+      )}
       {isEquippable && (
         <Button
           variant="ghost"
@@ -513,6 +559,30 @@ export function EquipmentSystem({
 }: EquipmentSystemProps) {
   const [activeTab, setActiveTab] = useState<TabValue>("all");
   const canModify = isEditing || !isLocked;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      const oldIndex = equipment.findIndex((item) => item.id === active.id);
+      const newIndex = equipment.findIndex((item) => item.id === over.id);
+      
+      if (oldIndex !== -1 && newIndex !== -1) {
+        onChange(arrayMove(equipment, oldIndex, newIndex));
+      }
+    }
+  };
 
   const categorizedEquipment = useMemo(() => {
     const result: Record<EquipmentCategory, Equipment[]> = {
@@ -685,25 +755,37 @@ export function EquipmentSystem({
               </p>
             </div>
           ) : (
-            <div 
-              className="max-h-[300px] overflow-y-auto overscroll-contain"
-              style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
             >
-              <div className="space-y-0.5 pr-1">
-                {equipment.map((item, index) => (
-                  <EquipmentItem
-                    key={item.id}
-                    item={item}
-                    index={index}
-                    onToggleEquip={() => toggleEquipped(item.id)}
-                    onUpdateQuantity={(delta) => updateQuantity(item.id, delta)}
-                    onRemove={() => removeEquipment(item.id)}
-                    canModify={canModify}
-                    isEditing={isEditing}
-                  />
-                ))}
-              </div>
-            </div>
+              <SortableContext
+                items={equipment.map(e => e.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div 
+                  className="max-h-[300px] overflow-y-auto overscroll-contain"
+                  style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+                >
+                  <div className="space-y-0.5 pr-1">
+                    {equipment.map((item, index) => (
+                      <SortableEquipmentItem
+                        key={item.id}
+                        item={item}
+                        index={index}
+                        onToggleEquip={() => toggleEquipped(item.id)}
+                        onUpdateQuantity={(delta: number) => updateQuantity(item.id, delta)}
+                        onRemove={() => removeEquipment(item.id)}
+                        canModify={canModify}
+                        isEditing={isEditing}
+                        canReorder={canModify}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </SortableContext>
+            </DndContext>
           )}
         </TabsContent>
 
@@ -724,25 +806,37 @@ export function EquipmentSystem({
                 )}
               </div>
             ) : (
-              <div 
-                className="max-h-[300px] overflow-y-auto overscroll-contain"
-                style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
               >
-                <div className="space-y-0.5 pr-1">
-                  {categorizedEquipment[cat].map((item, index) => (
-                    <EquipmentItem
-                      key={item.id}
-                      item={item}
-                      index={index}
-                      onToggleEquip={() => toggleEquipped(item.id)}
-                      onUpdateQuantity={(delta) => updateQuantity(item.id, delta)}
-                      onRemove={() => removeEquipment(item.id)}
-                      canModify={canModify}
-                      isEditing={isEditing}
-                    />
-                  ))}
-                </div>
-              </div>
+                <SortableContext
+                  items={categorizedEquipment[cat].map(e => e.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div 
+                    className="max-h-[300px] overflow-y-auto overscroll-contain"
+                    style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+                  >
+                    <div className="space-y-0.5 pr-1">
+                      {categorizedEquipment[cat].map((item, index) => (
+                        <SortableEquipmentItem
+                          key={item.id}
+                          item={item}
+                          index={index}
+                          onToggleEquip={() => toggleEquipped(item.id)}
+                          onUpdateQuantity={(delta: number) => updateQuantity(item.id, delta)}
+                          onRemove={() => removeEquipment(item.id)}
+                          canModify={canModify}
+                          isEditing={isEditing}
+                          canReorder={canModify}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </SortableContext>
+              </DndContext>
             )}
           </TabsContent>
         ))}
