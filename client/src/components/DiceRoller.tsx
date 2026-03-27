@@ -89,16 +89,16 @@ function DiceResult({ roll }: { roll: DiceRoll }) {
   const isCritFail = sides === 20 && roll.results.some(r => r === 1);
 
   return (
-    <Card className={`p-3 ${isCritSuccess ? 'border-green-500 bg-green-500/10' : isCritFail ? 'border-red-500 bg-red-500/10' : ''}`}>
+    <Card className={`p-3 ${isCritSuccess ? 'border-positive bg-positive-muted' : isCritFail ? 'border-negative bg-negative-muted' : ''}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="font-medium text-sm truncate">{roll.label}</div>
-          <div className="text-xs text-muted-foreground mt-0.5">
+          <div className="text-xs text-muted-foreground mt-0.5 font-mono">
             {roll.dice}
             {roll.modifier !== 0 && ` ${formatModifier(roll.modifier)}`}
           </div>
         </div>
-        <div className={`text-2xl font-bold ${isCritSuccess ? 'text-green-500' : isCritFail ? 'text-red-500' : ''}`}>
+        <div className={`text-2xl font-bold font-mono ${isCritSuccess ? 'text-positive' : isCritFail ? 'text-negative' : ''}`}>
           {roll.total}
         </div>
       </div>
@@ -117,14 +117,14 @@ function DiceResult({ roll }: { roll: DiceRoll }) {
             <Badge 
               key={i} 
               variant={isMax ? "default" : isMin ? "destructive" : "secondary"}
-              className={`${!isUsed ? 'opacity-50 line-through' : ''}`}
+              className={`font-mono ${!isUsed ? 'opacity-50 line-through' : ''}`}
             >
               {result}
             </Badge>
           );
         })}
         {roll.modifier !== 0 && (
-          <span className="text-sm text-muted-foreground">
+          <span className="text-sm text-muted-foreground font-mono">
             {formatModifier(roll.modifier)}
           </span>
         )}
@@ -143,7 +143,7 @@ function DiceResult({ roll }: { roll: DiceRoll }) {
       )}
 
       {(isCritSuccess || isCritFail) && (
-        <div className={`mt-2 text-xs font-bold ${isCritSuccess ? 'text-green-500' : 'text-red-500'}`}>
+        <div className={`mt-2 text-xs font-bold ${isCritSuccess ? 'text-positive' : 'text-negative'}`}>
           {isCritSuccess ? "Критический успех!" : "Критический провал!"}
         </div>
       )}
@@ -163,7 +163,7 @@ export function DiceRollerTrigger({ onClick, rollCount }: { onClick: () => void;
       <Dices className="w-4 h-4" />
       <span className="hidden sm:inline">История</span>
       {rollCount > 0 && (
-        <Badge variant="secondary" className="text-xs">
+        <Badge variant="secondary" className="text-xs font-mono">
           {rollCount}
         </Badge>
       )}

@@ -58,8 +58,8 @@ export function AbilityScore({ ability, score, onChange, onRoll, isEditing }: Ab
           </div>
 
           <div 
-            className={`text-lg font-bold rounded-md py-1 px-2 inline-block min-w-[3rem] ${
-              modifier >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+            className={`text-lg font-bold font-mono rounded-md py-1 px-2 inline-block min-w-[3rem] ${
+              modifier >= 0 ? 'text-positive' : 'text-negative'
             }`}
           >
             {formatModifier(modifier)}

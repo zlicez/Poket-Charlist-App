@@ -347,8 +347,7 @@ export default function CharacterSheet() {
                 data-testid="button-save"
               >
                 <Save className="w-4 h-4 mr-1" />
-                <span className="hidden sm:inline">Сохранить</span>
-                <span className="sm:hidden">OK</span>
+                Сохранить
               </Button>
             )}
             <DiceRollerTrigger 
@@ -377,7 +376,8 @@ export default function CharacterSheet() {
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-4">
-            <div className="space-y-2 sm:space-y-3">
+            <div className="space-y-2 sm:space-y-3" id="section-abilities">
+              <div className="section-label">Характеристики и навыки</div>
               {ABILITY_NAMES.map((ability) => (
                 <AbilityWithSkills
                   key={ability}
@@ -418,7 +418,8 @@ export default function CharacterSheet() {
               ))}
             </div>
 
-            <div className="space-y-2 sm:space-y-3">
+            <div className="space-y-2 sm:space-y-3" id="section-combat">
+              <div className="section-label">Боевые характеристики</div>
               <CombatStats
                 character={currentCharacter}
                 onChange={handleChange}
@@ -472,8 +473,9 @@ export default function CharacterSheet() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4" id="section-inventory">
             <div className="space-y-2 sm:space-y-3">
+              <div className="section-label">Инвентарь и снаряжение</div>
               <MoneyBlock
                 money={currentCharacter.money ?? { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }}
                 onChange={(money) => handleChange({ money })}
@@ -490,7 +492,8 @@ export default function CharacterSheet() {
             </div>
 
             <div className="space-y-2 sm:space-y-3">
-              <Card className="stat-card p-2 sm:p-3">
+              <div className="section-label">Заметки и описание</div>
+              <Card className="stat-card-tertiary p-2 sm:p-3">
                 <div className="flex items-center gap-2 mb-2">
                   <StickyNote className="w-4 h-4 text-accent" />
                   <h3 className="font-semibold text-xs sm:text-sm">Заметки</h3>
@@ -511,7 +514,7 @@ export default function CharacterSheet() {
                 )}
               </Card>
 
-              <Card className="stat-card p-2 sm:p-3">
+              <Card className="stat-card-tertiary p-2 sm:p-3">
                 <div className="flex items-center gap-2 mb-2">
                   <User className="w-4 h-4 text-accent" />
                   <h3 className="font-semibold text-xs sm:text-sm">Внешность</h3>
@@ -534,8 +537,8 @@ export default function CharacterSheet() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4">
-            <Card className="stat-card p-2 sm:p-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4" id="section-social">
+            <Card className="stat-card-tertiary p-2 sm:p-3">
               <div className="flex items-center gap-2 mb-2">
                 <Users className="w-4 h-4 text-accent" />
                 <h3 className="font-semibold text-xs sm:text-sm">Союзники</h3>
@@ -556,7 +559,7 @@ export default function CharacterSheet() {
               )}
             </Card>
 
-            <Card className="stat-card p-2 sm:p-3">
+            <Card className="stat-card-tertiary p-2 sm:p-3">
               <div className="flex items-center gap-2 mb-2">
                 <Flag className="w-4 h-4 text-accent" />
                 <h3 className="font-semibold text-xs sm:text-sm">Фракции</h3>

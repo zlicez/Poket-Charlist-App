@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Coins, Plus, Minus } from "lucide-react";
-import type { Character, Money } from "@shared/schema";
+import type { Money } from "@shared/schema";
 
 interface MoneyBlockProps {
   money: Money;
@@ -12,11 +12,11 @@ interface MoneyBlockProps {
 }
 
 const MONEY_TYPES: { key: keyof Money; label: string; color: string; fullName: string }[] = [
-  { key: "pp", label: "ПЗ", color: "text-gray-300", fullName: "Платина" },
-  { key: "gp", label: "ЗЗ", color: "text-yellow-500", fullName: "Золото" },
-  { key: "ep", label: "ЭЗ", color: "text-blue-300", fullName: "Электрум" },
-  { key: "sp", label: "СЗ", color: "text-gray-400", fullName: "Серебро" },
-  { key: "cp", label: "МЗ", color: "text-amber-600", fullName: "Медь" },
+  { key: "pp", label: "ПЗ", color: "text-muted-foreground", fullName: "Платина" },
+  { key: "gp", label: "ЗЗ", color: "text-accent", fullName: "Золото" },
+  { key: "ep", label: "ЭЗ", color: "text-info", fullName: "Электрум" },
+  { key: "sp", label: "СЗ", color: "text-muted-foreground", fullName: "Серебро" },
+  { key: "cp", label: "МЗ", color: "text-accent", fullName: "Медь" },
 ];
 
 export function MoneyBlock({ money, onChange, isEditing }: MoneyBlockProps) {
@@ -38,15 +38,15 @@ export function MoneyBlock({ money, onChange, isEditing }: MoneyBlockProps) {
     (money.cp || 0) * 0.01;
 
   return (
-    <Card className="stat-card p-2 sm:p-3" data-testid="money-block">
+    <Card className="stat-card p-3" data-testid="money-block">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <Coins className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500" />
-          <span className="text-sm sm:text-base font-semibold">Деньги</span>
+          <Coins className="w-5 h-5 text-accent" />
+          <span className="text-sm font-semibold">Деньги</span>
         </div>
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className="text-[10px] sm:text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground font-mono">
               ~{totalGoldValue.toFixed(1)} зм
             </span>
           </TooltipTrigger>
@@ -56,12 +56,12 @@ export function MoneyBlock({ money, onChange, isEditing }: MoneyBlockProps) {
         </Tooltip>
       </div>
 
-      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-2">
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
         {MONEY_TYPES.map(({ key, label, color, fullName }) => (
           <div key={key} className="flex flex-col items-center">
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className={`text-[10px] sm:text-xs font-medium ${color}`}>
+                <span className={`text-xs font-medium ${color}`}>
                   {label}
                 </span>
               </TooltipTrigger>
@@ -77,12 +77,12 @@ export function MoneyBlock({ money, onChange, isEditing }: MoneyBlockProps) {
                 min={0}
                 value={money[key] || 0}
                 onChange={(e) => handleInputChange(key, e.target.value)}
-                className="h-10 text-center text-sm p-1"
+                className="h-10 text-center text-sm font-mono p-1"
                 data-testid={`input-money-${key}`}
               />
             ) : (
               <div className="flex flex-col items-center gap-0.5">
-                <span className="text-sm sm:text-base font-bold" data-testid={`text-money-${key}`}>
+                <span className="text-sm font-bold font-mono" data-testid={`text-money-${key}`}>
                   {money[key] || 0}
                 </span>
                 <div className="flex gap-1">

@@ -110,8 +110,8 @@ export function SkillItem({
             {ability}
           </span>
           
-          <span className={`text-sm font-bold min-w-[2rem] text-right ${
-            skillBonus >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+          <span className={`text-sm font-bold font-mono min-w-[2rem] text-right ${
+            skillBonus >= 0 ? 'text-positive' : 'text-negative'
           }`}>
             {formatModifier(skillBonus)}
           </span>

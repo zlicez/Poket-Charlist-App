@@ -30,7 +30,9 @@ A web application for managing Dungeons & Dragons 5th Edition character sheets. 
 - **Frontend**: React, TypeScript, TailwindCSS, Shadcn/UI, Wouter, TanStack Query
 - **Backend**: Express.js, TypeScript
 - **Data**: In-memory storage (MemStorage)
-- **Styling**: Fantasy-themed parchment design with HSL color system
+- **Styling**: Fantasy-themed parchment design with semantic CSS color system
+- **Fonts**: Inter (body), Lora (headings), JetBrains Mono (numbers/dice)
+- **Design System**: Semantic color tokens (positive/negative/info/ability.*), card hierarchy (primary/secondary/tertiary), min 12px text
 
 ## Project Structure
 ```

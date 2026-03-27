@@ -14,6 +14,7 @@ import {
 } from "@shared/schema";
 import { Star, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 interface AbilityWithSkillsProps {
   ability: AbilityName;
@@ -55,7 +56,8 @@ export function AbilityWithSkills({
   onRollSkill,
   isEditing,
 }: AbilityWithSkillsProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const isMobile = !useMediaQuery("(min-width: 640px)");
+  const [isExpanded, setIsExpanded] = useState(!isMobile);
   const racialBonuses = getRacialBonuses(race, subrace);
   const racialBonus = racialBonuses[ability] || 0;
   const totalScore = baseScore + racialBonus + customBonus;
@@ -76,27 +78,25 @@ export function AbilityWithSkills({
   };
 
   return (
-    <Card className="stat-card p-2 sm:p-3">
-      <div className="flex items-stretch gap-2 sm:gap-3">
+    <Card className="stat-card p-3">
+      <div className="flex items-stretch gap-3">
         <Tooltip>
           <TooltipTrigger asChild>
             <div
               className={`
                 flex flex-col items-center justify-center
-                min-w-[70px] sm:min-w-[80px]
-                py-2 px-1 rounded-lg
-                bg-gradient-to-b from-amber-50 to-amber-100
-                dark:from-amber-900/40 dark:to-amber-800/30
-                border border-amber-300 dark:border-amber-700
+                min-w-[72px] sm:min-w-[80px]
+                py-2 px-2 rounded-lg
+                ability-block
                 ${!isEditing ? 'cursor-pointer hover-elevate' : ''}
               `}
               onClick={() => !isEditing && onRollAbility()}
               data-testid={`ability-${ability.toLowerCase()}`}
             >
-              <div className="text-[10px] sm:text-xs font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wide">
+              <div className="text-xs font-bold text-ability-text uppercase tracking-wide">
                 {ability}
               </div>
-              <div className="text-[9px] sm:text-[10px] text-amber-600 dark:text-amber-400">
+              <div className="text-xs text-ability-label">
                 {label.ru}
               </div>
               
@@ -109,18 +109,18 @@ export function AbilityWithSkills({
                     max={30}
                     value={baseScore}
                     onChange={(e) => onScoreChange(parseInt(e.target.value) || 10)}
-                    className="text-center text-base font-bold h-10 w-14 bg-white dark:bg-gray-900"
+                    className="text-center text-base font-bold h-10 w-14 bg-background"
                     onClick={(e) => e.stopPropagation()}
                     data-testid={`input-ability-${ability.toLowerCase()}`}
                   />
                   <div className="flex items-center justify-center gap-1">
-                    <span className="text-[10px] text-muted-foreground">бонус</span>
+                    <span className="text-xs text-muted-foreground">бонус</span>
                     <Input
                       type="number"
                       inputMode="numeric"
                       value={customBonus}
                       onChange={(e) => onCustomBonusChange(parseInt(e.target.value) || 0)}
-                      className="text-center text-xs h-8 w-10 bg-white dark:bg-gray-900"
+                      className="text-center text-xs h-8 w-10 bg-background"
                       onClick={(e) => e.stopPropagation()}
                       data-testid={`input-ability-bonus-${ability.toLowerCase()}`}
                     />
@@ -128,25 +128,23 @@ export function AbilityWithSkills({
                 </div>
               ) : (
                 <>
-                  <div className="text-2xl sm:text-3xl font-bold text-amber-900 dark:text-amber-100">
+                  <div className="text-2xl sm:text-3xl font-bold text-ability-score font-mono">
                     {totalScore}
                   </div>
                   <div className={`
-                    text-base sm:text-lg font-bold px-2 py-0.5 rounded-full
+                    text-base sm:text-lg font-bold font-mono px-2 py-0.5 rounded-full
                     ${modifier >= 0 
-                      ? 'text-green-700 dark:text-green-400 bg-green-100/50 dark:bg-green-900/30' 
-                      : 'text-red-700 dark:text-red-400 bg-red-100/50 dark:bg-red-900/30'
+                      ? 'text-positive bg-positive-muted' 
+                      : 'text-negative bg-negative-muted'
                     }
                   `}>
                     {formatModifier(modifier)}
                   </div>
-                  {(racialBonus > 0 || customBonus !== 0) && (
+                  {racialBonus > 0 && (
                     <div className="flex flex-wrap gap-0.5 mt-1 justify-center">
-                      {racialBonus > 0 && (
-                        <Badge variant="secondary" className="text-[8px] px-1 py-0 h-4">
-                          +{racialBonus}
-                        </Badge>
-                      )}
+                      <Badge variant="secondary" className="text-xs px-1 py-0 h-4">
+                        +{racialBonus}
+                      </Badge>
                     </div>
                   )}
                 </>
@@ -155,7 +153,7 @@ export function AbilityWithSkills({
           </TooltipTrigger>
           <TooltipContent side="right" className="max-w-[200px]">
             <p className="text-xs">{ABILITY_TOOLTIPS[ability]}</p>
-            {!isEditing && <p className="text-[10px] text-muted-foreground mt-1">Нажмите для броска</p>}
+            {!isEditing && <p className="text-xs text-muted-foreground mt-1">Нажмите для броска</p>}
           </TooltipContent>
         </Tooltip>
 
@@ -166,7 +164,7 @@ export function AbilityWithSkills({
             onClick={() => setIsExpanded(!isExpanded)}
             data-testid={`toggle-skills-${ability.toLowerCase()}`}
           >
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Навыки</span>
+            <span className="text-xs text-muted-foreground uppercase tracking-wide">Навыки</span>
             {isExpanded ? (
               <ChevronUp className="w-3 h-3 text-muted-foreground" />
             ) : (
@@ -188,11 +186,11 @@ export function AbilityWithSkills({
                 <div
                   key={skill.name}
                   className={`
-                    flex items-center gap-1.5 sm:gap-2 
-                    py-1.5 sm:py-1 px-1.5 sm:px-2 rounded
+                    flex items-center gap-2 
+                    py-1.5 px-2 rounded
                     min-h-[40px] sm:min-h-0
-                    ${!isEditing ? 'cursor-pointer active:bg-amber-100 dark:active:bg-amber-900/40' : ''}
-                    ${proficiency.proficient ? 'bg-amber-50/80 dark:bg-amber-900/20' : ''}
+                    ${!isEditing ? 'cursor-pointer active:bg-ability-proficient-bg' : ''}
+                    ${proficiency.proficient ? 'bg-ability-proficient-bg' : ''}
                   `}
                   onClick={() => !isEditing && onRollSkill(skill.name)}
                   data-testid={`skill-${skill.name.toLowerCase().replace(/\s/g, '-')}`}
@@ -205,8 +203,8 @@ export function AbilityWithSkills({
                       rounded-full shrink-0
                       ${isEditing ? 'cursor-pointer hover-elevate' : 'pointer-events-none'}
                       ${proficiency.proficient 
-                        ? 'bg-amber-200 dark:bg-amber-800' 
-                        : 'bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600'
+                        ? 'bg-accent/30' 
+                        : 'bg-muted border border-border'
                       }
                     `}
                     onClick={(e) => {
@@ -216,9 +214,9 @@ export function AbilityWithSkills({
                     data-testid={`checkbox-skill-${skill.name.toLowerCase().replace(/\s/g, '-')}`}
                   >
                     {proficiency.expertise ? (
-                      <Star className="w-4 h-4 sm:w-3 sm:h-3 text-amber-700 dark:text-amber-300 fill-current" />
+                      <Star className="w-4 h-4 sm:w-3 sm:h-3 text-accent fill-current" />
                     ) : proficiency.proficient ? (
-                      <div className="w-2.5 h-2.5 sm:w-2 sm:h-2 rounded-full bg-amber-600 dark:bg-amber-400" />
+                      <div className="w-2.5 h-2.5 sm:w-2 sm:h-2 rounded-full bg-accent" />
                     ) : null}
                   </button>
                   
@@ -230,8 +228,8 @@ export function AbilityWithSkills({
                   </span>
                   
                   <span className={`
-                    text-xs sm:text-sm font-bold tabular-nums
-                    ${skillBonus >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}
+                    text-xs sm:text-sm font-bold font-mono tabular-nums
+                    ${skillBonus >= 0 ? 'text-positive' : 'text-negative'}
                   `}>
                     {formatModifier(skillBonus)}
                   </span>

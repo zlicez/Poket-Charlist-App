@@ -17,7 +17,7 @@ export function CharacterCard({ character, onClick, onDelete, isSelected }: Char
   
   return (
     <Card 
-      className={`stat-card p-3 sm:p-4 cursor-pointer hover-elevate active-elevate-2 transition-all ${
+      className={`stat-card p-4 cursor-pointer hover-elevate active-elevate-2 transition-all ${
         isSelected ? 'ring-2 ring-accent' : ''
       }`}
       onClick={onClick}
@@ -37,7 +37,7 @@ export function CharacterCard({ character, onClick, onDelete, isSelected }: Char
           <h3 className="font-bold text-base sm:text-lg truncate" data-testid={`text-character-name-${character.id}`}>
             {character.name}
           </h3>
-          <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 mt-1">
+          <div className="flex flex-wrap items-center gap-1.5 mt-1">
             <Badge variant="secondary" className="text-xs">{character.race}</Badge>
             <Badge variant="outline" className="text-xs">{character.class}</Badge>
             <Badge className="text-xs">Ур. {character.level}</Badge>
@@ -60,12 +60,12 @@ export function CharacterCard({ character, onClick, onDelete, isSelected }: Char
 
       <div className="mt-3 flex items-center gap-4 text-sm">
         <div className="flex items-center gap-1.5">
-          <Heart className={`w-4 h-4 ${hpPercent > 50 ? 'text-green-500' : hpPercent > 25 ? 'text-yellow-500' : 'text-red-500'}`} />
-          <span>{character.currentHp}/{character.maxHp}</span>
+          <Heart className={`w-4 h-4 ${hpPercent > 50 ? 'text-positive' : hpPercent > 25 ? 'text-accent' : 'text-negative'}`} />
+          <span className="font-mono">{character.currentHp}/{character.maxHp}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <Shield className="w-4 h-4 text-accent" />
-          <span>{character.armorClass}</span>
+          <span className="font-mono">{character.armorClass}</span>
         </div>
       </div>
     </Card>

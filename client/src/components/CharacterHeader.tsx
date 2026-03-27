@@ -425,7 +425,7 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="text-center min-w-[50px]" data-testid="stat-level">
-                  <div className="text-[10px] sm:text-xs text-muted-foreground">Уровень</div>
+                  <div className="text-xs text-muted-foreground">Уровень</div>
                   {isEditing && isDesktop ? (
                     <Input
                       type="number"
@@ -450,7 +450,7 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="text-center px-2 sm:px-3 py-1 rounded-md bg-accent/10" data-testid="stat-proficiency">
-                  <div className="text-[10px] sm:text-xs text-muted-foreground">Мастерство</div>
+                  <div className="text-xs text-muted-foreground">Мастерство</div>
                   <div className="text-lg sm:text-xl font-bold text-accent">{formatModifier(profBonus)}</div>
                 </div>
               </TooltipTrigger>
@@ -488,8 +488,7 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
               ) : (
                 <>
                   <Edit2 className="w-4 h-4" />
-                  <span className="hidden sm:inline">Редактировать</span>
-                  <span className="sm:hidden">Ред.</span>
+                  Редактировать
                 </>
               )}
             </Button>
@@ -525,7 +524,7 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
       {isEditing && isDesktop && (
         <div className="mt-3 sm:mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
           <div>
-            <label className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1 mb-1">
+            <label className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
               <Scroll className="w-3 h-3" />
               Предыстория
             </label>
@@ -538,7 +537,7 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
             />
           </div>
           <div>
-            <label className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1 mb-1">
+            <label className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
               <Sparkles className="w-3 h-3" />
               Мировоззрение
             </label>
@@ -554,7 +553,7 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
             </Select>
           </div>
           <div>
-            <label className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1 mb-1">
+            <label className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
               <BookOpen className="w-3 h-3" />
               Опыт (XP)
             </label>

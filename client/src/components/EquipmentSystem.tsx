@@ -678,7 +678,7 @@ export function EquipmentSystem({
         <div className="flex items-center gap-2">
           <Backpack className="w-4 h-4 text-accent" />
           <h3 className="font-semibold text-xs sm:text-sm">Снаряжение</h3>
-          <Badge variant="outline" className="text-[10px] sm:text-xs">
+          <Badge variant="outline" className="text-xs">
             {totalWeight.toFixed(1)} ф.
           </Badge>
         </div>
@@ -731,7 +731,7 @@ export function EquipmentSystem({
               <Backpack className="w-4 h-4" />
               <span className="hidden sm:inline">Всё</span>
               {equipment.length > 0 && (
-                <Badge variant="outline" className="h-4 px-1 text-[10px] ml-0.5">
+                <Badge variant="outline" className="h-4 px-1 text-xs ml-0.5">
                   {equipment.reduce((sum, e) => sum + e.quantity, 0)}
                 </Badge>
               )}
@@ -746,7 +746,7 @@ export function EquipmentSystem({
                 {CATEGORY_ICONS[cat]}
                 <span className="hidden sm:inline">{CATEGORY_LABELS[cat]}</span>
                 {categoryCounts[cat] > 0 && (
-                  <Badge variant="outline" className="h-4 px-1 text-[10px] ml-0.5">
+                  <Badge variant="outline" className="h-4 px-1 text-xs ml-0.5">
                     {categoryCounts[cat]}
                   </Badge>
                 )}

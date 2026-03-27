@@ -207,7 +207,7 @@ export function WeaponsList({
           <Swords className="w-4 h-4 text-accent" />
           <h3 className="font-semibold text-xs sm:text-sm">Оружие</h3>
           {hasEquippedWeapons && (
-            <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
+            <Badge variant="secondary" className="text-xs h-4 px-1.5">
               {equippedWeapons.length} экип.
             </Badge>
           )}
@@ -259,9 +259,9 @@ export function WeaponsList({
                   <div className="flex items-center gap-1.5">
                     <Backpack className="w-3 h-3 text-accent shrink-0" />
                     <span className="font-medium text-sm truncate text-accent">{weapon.name}</span>
-                    <Badge variant="outline" className="text-[9px] h-4 px-1">{abilityLabel}</Badge>
-                    {weapon.isFinesse && <Badge variant="secondary" className="text-[9px] h-4 px-1">Фехт.</Badge>}
-                    {isProficient && <Badge variant="default" className="text-[9px] h-4 px-1 bg-green-600">Влад.</Badge>}
+                    <Badge variant="outline" className="text-xs h-4 px-1">{abilityLabel}</Badge>
+                    {weapon.isFinesse && <Badge variant="secondary" className="text-xs h-4 px-1">Фехт.</Badge>}
+                    {isProficient && <Badge variant="default" className="text-xs h-4 px-1 bg-positive text-primary-foreground">Влад.</Badge>}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {weapon.damage}{damageModStr} {weapon.damageType}
@@ -323,9 +323,9 @@ export function WeaponsList({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="font-medium text-sm truncate">{weapon.name}</span>
-                    <Badge variant="outline" className="text-[9px] h-4 px-1">{abilityLabel}</Badge>
-                    {weapon.isFinesse && <Badge variant="secondary" className="text-[9px] h-4 px-1">Фехт.</Badge>}
-                    {isProficient && <Badge variant="default" className="text-[9px] h-4 px-1 bg-green-600">Влад.</Badge>}
+                    <Badge variant="outline" className="text-xs h-4 px-1">{abilityLabel}</Badge>
+                    {weapon.isFinesse && <Badge variant="secondary" className="text-xs h-4 px-1">Фехт.</Badge>}
+                    {isProficient && <Badge variant="default" className="text-xs h-4 px-1 bg-positive text-primary-foreground">Влад.</Badge>}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {weapon.damage}{damageModStr} {weapon.damageType}

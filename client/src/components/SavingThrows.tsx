@@ -35,7 +35,7 @@ export function SavingThrowsComponent({ abilityScores, savingThrows, level, onCh
   return (
     <Card className="stat-card p-3">
       <div className="flex items-center gap-2 mb-3">
-        <Shield className="w-4 h-4 text-accent" />
+        <Shield className="w-5 h-5 text-accent" />
         <h3 className="font-semibold text-sm">Спасброски</h3>
       </div>
 
@@ -74,8 +74,8 @@ export function SavingThrowsComponent({ abilityScores, savingThrows, level, onCh
                     {ABILITY_LABELS[ability].ru}
                   </span>
                   
-                  <span className={`text-sm font-bold ${
-                    totalBonus >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                  <span className={`text-sm font-bold font-mono ${
+                    totalBonus >= 0 ? 'text-positive' : 'text-negative'
                   }`}>
                     {formatModifier(totalBonus)}
                   </span>

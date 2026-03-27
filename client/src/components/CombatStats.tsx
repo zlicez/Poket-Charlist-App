@@ -3,10 +3,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Shield, Zap, Footprints, Heart, Skull, Plus, Minus, Dice6, Check, X, RotateCcw } from "lucide-react";
-import { calculateModifier, formatModifier, ARMOR_LIST, calculateAC, CLASS_DATA, getRacialBonuses } from "@shared/schema";
-import type { Character, DeathSaves, Equipment, ArmorData } from "@shared/schema";
+import { calculateModifier, formatModifier, calculateAC, CLASS_DATA, getRacialBonuses } from "@shared/schema";
+import type { Character, DeathSaves, ArmorData } from "@shared/schema";
 
 interface CombatStatsProps {
   character: Character;
@@ -36,22 +35,22 @@ function HpTracker({
   };
 
   return (
-    <Card className="stat-card p-3" data-testid="stat-hp">
+    <Card className="stat-card-primary p-3" data-testid="stat-hp">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <Heart className="w-5 h-5 text-red-500" />
-          <span className="font-semibold">Хиты</span>
+          <Heart className="w-5 h-5 text-negative" />
+          <span className="font-semibold text-sm">Хиты</span>
         </div>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Badge variant="outline" className="text-xs">
-              {temp > 0 && <span className="text-blue-500 mr-1">+{temp}</span>}
+            <Badge variant="outline" className="text-xs font-mono">
+              {temp > 0 && <span className="text-info mr-1">+{temp}</span>}
               {current}/{max}
             </Badge>
           </TooltipTrigger>
           <TooltipContent>
             <p>Текущие / Максимальные хиты</p>
-            {temp > 0 && <p className="text-blue-400">Временные хиты: {temp}</p>}
+            {temp > 0 && <p className="text-info">Временные хиты: {temp}</p>}
           </TooltipContent>
         </Tooltip>
       </div>
@@ -67,7 +66,7 @@ function HpTracker({
             style={{ left: `${percentage}%`, width: `${tempPercentage}%` }}
           />
         )}
-        <div className="absolute inset-0 flex items-center justify-center text-white text-sm font-bold drop-shadow">
+        <div className="absolute inset-0 flex items-center justify-center text-destructive-foreground text-sm font-bold font-mono drop-shadow">
           {current} / {max}
         </div>
       </div>
@@ -75,35 +74,35 @@ function HpTracker({
       {isEditing ? (
         <div className="grid grid-cols-3 gap-2 mt-2">
           <div>
-            <label className="text-[10px] sm:text-xs text-muted-foreground">Текущие</label>
+            <label className="text-xs text-muted-foreground">Текущие</label>
             <Input
               type="number"
               inputMode="numeric"
               value={current}
               onChange={(e) => onChange({ currentHp: parseInt(e.target.value) || 0 })}
-              className="h-10 text-center"
+              className="h-10 text-center font-mono"
               data-testid="input-current-hp"
             />
           </div>
           <div>
-            <label className="text-[10px] sm:text-xs text-muted-foreground">Макс.</label>
+            <label className="text-xs text-muted-foreground">Макс.</label>
             <Input
               type="number"
               inputMode="numeric"
               value={max}
               onChange={(e) => onChange({ maxHp: parseInt(e.target.value) || 0 })}
-              className="h-10 text-center"
+              className="h-10 text-center font-mono"
               data-testid="input-max-hp"
             />
           </div>
           <div>
-            <label className="text-[10px] sm:text-xs text-muted-foreground">Врем.</label>
+            <label className="text-xs text-muted-foreground">Врем.</label>
             <Input
               type="number"
               inputMode="numeric"
               value={temp}
               onChange={(e) => onChange({ tempHp: parseInt(e.target.value) || 0 })}
-              className="h-10 text-center"
+              className="h-10 text-center font-mono"
               data-testid="input-temp-hp"
             />
           </div>
@@ -163,10 +162,10 @@ function DeathSavesTracker({
   const isDead = deathSaves.failures >= 3;
 
   return (
-    <Card className={`stat-card p-3 transition-colors ${isStabilized ? 'ring-2 ring-green-500/50' : ''} ${isDead ? 'ring-2 ring-red-500/50' : ''}`} data-testid="stat-death-saves">
+    <Card className={`stat-card p-3 transition-colors ${isStabilized ? 'ring-2 ring-positive/50' : ''} ${isDead ? 'ring-2 ring-negative/50' : ''}`} data-testid="stat-death-saves">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Skull className={`w-5 h-5 ${isDead ? 'text-red-500' : isStabilized ? 'text-green-500' : 'text-muted-foreground'}`} />
+          <Skull className={`w-5 h-5 ${isDead ? 'text-negative' : isStabilized ? 'text-positive' : 'text-muted-foreground'}`} />
           <span className="font-semibold text-sm">Спасброски от смерти</span>
         </div>
         {!isEditing && (
@@ -184,7 +183,7 @@ function DeathSavesTracker({
       </div>
 
       {(isStabilized || isDead) && (
-        <div className={`text-center text-sm font-semibold mb-3 py-1.5 rounded-md ${isStabilized ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-red-500/20 text-red-600 dark:text-red-400'}`}>
+        <div className={`text-center text-sm font-semibold mb-3 py-1.5 rounded-md ${isStabilized ? 'bg-positive-muted text-positive' : 'bg-negative-muted text-negative'}`}>
           {isStabilized ? 'Стабилизирован!' : 'Мёртв'}
         </div>
       )}
@@ -192,8 +191,8 @@ function DeathSavesTracker({
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <Check className="w-4 h-4 text-green-500" />
-            <span className="text-xs sm:text-sm font-medium">Успехи</span>
+            <Check className="w-4 h-4 text-positive" />
+            <span className="text-sm font-medium">Успехи</span>
           </div>
           <div className="flex gap-2">
             {[0, 1, 2].map((i) => {
@@ -204,8 +203,8 @@ function DeathSavesTracker({
                   onClick={() => toggleSuccess(i)}
                   className={`w-10 h-10 sm:w-9 sm:h-9 rounded-lg border-2 transition-all flex items-center justify-center ${
                     isActive
-                      ? 'bg-green-500 border-green-500 text-white shadow-md shadow-green-500/30'
-                      : 'border-green-500/30 hover:border-green-500 hover:bg-green-500/10'
+                      ? 'bg-positive border-positive text-primary-foreground shadow-md'
+                      : 'border-positive/30 hover:border-positive hover:bg-positive-muted'
                   } ${!isEditing ? 'active:scale-95' : 'opacity-50 cursor-not-allowed'}`}
                   disabled={isEditing}
                   data-testid={`button-death-success-${i}`}
@@ -219,8 +218,8 @@ function DeathSavesTracker({
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <X className="w-4 h-4 text-red-500" />
-            <span className="text-xs sm:text-sm font-medium">Провалы</span>
+            <X className="w-4 h-4 text-negative" />
+            <span className="text-sm font-medium">Провалы</span>
           </div>
           <div className="flex gap-2">
             {[0, 1, 2].map((i) => {
@@ -231,8 +230,8 @@ function DeathSavesTracker({
                   onClick={() => toggleFailure(i)}
                   className={`w-10 h-10 sm:w-9 sm:h-9 rounded-lg border-2 transition-all flex items-center justify-center ${
                     isActive
-                      ? 'bg-red-500 border-red-500 text-white shadow-md shadow-red-500/30'
-                      : 'border-red-500/30 hover:border-red-500 hover:bg-red-500/10'
+                      ? 'bg-negative border-negative text-primary-foreground shadow-md'
+                      : 'border-negative/30 hover:border-negative hover:bg-negative-muted'
                   } ${!isEditing ? 'active:scale-95' : 'opacity-50 cursor-not-allowed'}`}
                   disabled={isEditing}
                   data-testid={`button-death-failure-${i}`}
@@ -272,29 +271,29 @@ export function CombatStats({ character, onChange, isEditing }: CombatStatsProps
   const calculatedInitiative = dexMod + (character.customInitiativeBonus || 0);
 
   return (
-    <div className="space-y-2 sm:space-y-3">
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+    <div className="space-y-3">
+      <div className="grid grid-cols-3 gap-3">
         <Tooltip>
           <TooltipTrigger asChild>
-            <Card className="stat-card p-2 sm:p-3 text-center" data-testid="stat-ac">
-              <Shield className="w-4 h-4 sm:w-5 sm:h-5 mx-auto mb-0.5 sm:mb-1 text-accent" />
-              <div className="text-[10px] sm:text-xs text-muted-foreground">КД</div>
-              <div className="text-xl sm:text-2xl font-bold">{calculatedAC}</div>
+            <Card className="stat-card-primary p-3 text-center" data-testid="stat-ac">
+              <Shield className="w-5 h-5 mx-auto mb-1 text-accent" />
+              <div className="text-xs text-muted-foreground">КД</div>
+              <div className="text-2xl font-bold font-mono">{calculatedAC}</div>
               {isEditing && (
                 <div className="mt-1">
-                  <label className="text-[10px] text-muted-foreground">Бонус</label>
+                  <label className="text-xs text-muted-foreground">Бонус</label>
                   <Input
                     type="number"
                     inputMode="numeric"
                     value={character.customACBonus || 0}
                     onChange={(e) => onChange({ customACBonus: parseInt(e.target.value) || 0 })}
-                    className="text-center text-sm h-10 w-14 mx-auto"
+                    className="text-center text-sm h-10 w-14 mx-auto font-mono"
                     data-testid="input-ac-bonus"
                   />
                 </div>
               )}
               {!isEditing && (
-                <div className="text-[9px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 truncate">
+                <div className="text-xs text-muted-foreground mt-1 truncate">
                   {armorData ? armorData.name : 'Без'}
                   {hasShield && ' +Щит'}
                 </div>
@@ -313,21 +312,21 @@ export function CombatStats({ character, onChange, isEditing }: CombatStatsProps
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Card className="stat-card p-2 sm:p-3 text-center" data-testid="stat-initiative">
-              <Zap className="w-4 h-4 sm:w-5 sm:h-5 mx-auto mb-0.5 sm:mb-1 text-accent" />
-              <div className="text-[10px] sm:text-xs text-muted-foreground">Иниц.</div>
-              <div className={`text-xl sm:text-2xl font-bold ${calculatedInitiative >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+            <Card className="stat-card-primary p-3 text-center" data-testid="stat-initiative">
+              <Zap className="w-5 h-5 mx-auto mb-1 text-accent" />
+              <div className="text-xs text-muted-foreground">Иниц.</div>
+              <div className={`text-2xl font-bold font-mono ${calculatedInitiative >= 0 ? 'text-positive' : 'text-negative'}`}>
                 {formatModifier(calculatedInitiative)}
               </div>
               {isEditing && (
                 <div className="mt-1">
-                  <label className="text-[10px] text-muted-foreground">Бонус</label>
+                  <label className="text-xs text-muted-foreground">Бонус</label>
                   <Input
                     type="number"
                     inputMode="numeric"
                     value={character.customInitiativeBonus || 0}
                     onChange={(e) => onChange({ customInitiativeBonus: parseInt(e.target.value) || 0 })}
-                    className="text-center text-sm h-10 w-14 mx-auto"
+                    className="text-center text-sm h-10 w-14 mx-auto font-mono"
                     data-testid="input-initiative-bonus"
                   />
                 </div>
@@ -345,20 +344,20 @@ export function CombatStats({ character, onChange, isEditing }: CombatStatsProps
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Card className="stat-card p-2 sm:p-3 text-center" data-testid="stat-speed">
-              <Footprints className="w-4 h-4 sm:w-5 sm:h-5 mx-auto mb-0.5 sm:mb-1 text-accent" />
-              <div className="text-[10px] sm:text-xs text-muted-foreground">Скор.</div>
+            <Card className="stat-card-primary p-3 text-center" data-testid="stat-speed">
+              <Footprints className="w-5 h-5 mx-auto mb-1 text-accent" />
+              <div className="text-xs text-muted-foreground">Скор.</div>
               {isEditing ? (
                 <Input
                   type="number"
                   inputMode="numeric"
                   value={character.speed}
                   onChange={(e) => onChange({ speed: parseInt(e.target.value) || 30 })}
-                  className="text-center text-base font-bold h-10 mt-1"
+                  className="text-center text-base font-bold h-10 mt-1 font-mono"
                   data-testid="input-speed"
                 />
               ) : (
-                <div className="text-xl sm:text-2xl font-bold">{character.speed}</div>
+                <div className="text-2xl font-bold font-mono">{character.speed}</div>
               )}
             </Card>
           </TooltipTrigger>
@@ -368,16 +367,16 @@ export function CombatStats({ character, onChange, isEditing }: CombatStatsProps
         </Tooltip>
       </div>
 
-      <Card className="stat-card p-2 sm:p-3" data-testid="stat-hit-dice">
+      <Card className="stat-card p-3" data-testid="stat-hit-dice">
         <div className="flex items-center gap-2 mb-2">
-          <Dice6 className="w-4 h-4 sm:w-5 sm:h-5 text-accent" />
-          <span className="font-semibold text-xs sm:text-sm">Кубики хитов</span>
-          <Badge variant="secondary" className="ml-auto text-xs">
+          <Dice6 className="w-5 h-5 text-accent" />
+          <span className="font-semibold text-sm">Кубики хитов</span>
+          <Badge variant="secondary" className="ml-auto text-xs font-mono">
             {classData ? classData.hitDice : 'd10'}
           </Badge>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-xs sm:text-sm text-muted-foreground">
+          <span className="text-sm text-muted-foreground font-mono">
             {character.hitDiceRemaining} / {character.level}
           </span>
           {!isEditing && (

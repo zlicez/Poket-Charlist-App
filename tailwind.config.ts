@@ -11,7 +11,6 @@ export default {
         sm: ".1875rem", /* 3px */
       },
       colors: {
-        // Flat / base colors (regular buttons)
         background: "hsl(var(--background) / <alpha-value>)",
         foreground: "hsl(var(--foreground) / <alpha-value>)",
         border: "hsl(var(--border) / <alpha-value>)",
@@ -80,6 +79,26 @@ export default {
           away: "rgb(245 158 11)",
           busy: "rgb(239 68 68)",
           offline: "rgb(156 163 175)",
+        },
+        positive: {
+          DEFAULT: "hsl(var(--color-positive))",
+          muted: "hsl(var(--color-positive-muted))",
+        },
+        negative: {
+          DEFAULT: "hsl(var(--color-negative))",
+          muted: "hsl(var(--color-negative-muted))",
+        },
+        info: {
+          DEFAULT: "hsl(var(--color-info))",
+          muted: "hsl(var(--color-info-muted))",
+        },
+        ability: {
+          bg: "hsl(var(--color-ability-bg))",
+          border: "hsl(var(--color-ability-border))",
+          text: "hsl(var(--color-ability-text))",
+          label: "hsl(var(--color-ability-label))",
+          score: "hsl(var(--color-ability-score))",
+          "proficient-bg": "hsl(var(--color-ability-proficient-bg))",
         },
       },
       fontFamily: {
