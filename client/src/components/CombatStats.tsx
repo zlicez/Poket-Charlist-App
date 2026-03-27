@@ -11,6 +11,7 @@ interface CombatStatsProps {
   character: Character;
   onChange: (updates: Partial<Character>) => void;
   isEditing: boolean;
+  hideDeathSaves?: boolean;
 }
 
 function HpTracker({ 
@@ -133,7 +134,7 @@ function HpTracker({
   );
 }
 
-function DeathSavesTracker({ 
+export function DeathSavesTracker({ 
   deathSaves, 
   onChange, 
   isEditing 
@@ -247,7 +248,7 @@ function DeathSavesTracker({
   );
 }
 
-export function CombatStats({ character, onChange, isEditing }: CombatStatsProps) {
+export function CombatStats({ character, onChange, isEditing, hideDeathSaves }: CombatStatsProps) {
   const racialBonuses = getRacialBonuses(character.race, character.subrace);
   const totalDex = character.abilityScores.DEX + (racialBonuses.DEX || 0) + (character.customAbilityBonuses?.DEX || 0);
   const dexMod = calculateModifier(totalDex);
@@ -414,11 +415,13 @@ export function CombatStats({ character, onChange, isEditing }: CombatStatsProps
         isEditing={isEditing}
       />
 
-      <DeathSavesTracker
-        deathSaves={character.deathSaves}
-        onChange={(deathSaves) => onChange({ deathSaves })}
-        isEditing={isEditing}
-      />
+      {!hideDeathSaves && (
+        <DeathSavesTracker
+          deathSaves={character.deathSaves}
+          onChange={(deathSaves) => onChange({ deathSaves })}
+          isEditing={isEditing}
+        />
+      )}
     </div>
   );
 }

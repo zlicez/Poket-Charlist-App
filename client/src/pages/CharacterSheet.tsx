@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CharacterHeader } from "@/components/CharacterHeader";
 import { AbilityWithSkills } from "@/components/AbilityWithSkills";
-import { CombatStats } from "@/components/CombatStats";
+import { CombatStats, DeathSavesTracker } from "@/components/CombatStats";
 import { SavingThrowsComponent } from "@/components/SavingThrows";
 import { WeaponsList } from "@/components/WeaponsList";
 import { FeaturesList } from "@/components/FeaturesList";
@@ -463,15 +463,23 @@ export default function CharacterSheet() {
                 character={currentCharacter}
                 onChange={handleChange}
                 isEditing={isEditing}
+                hideDeathSaves
               />
-              <SavingThrowsComponent
-                abilityScores={currentCharacter.abilityScores}
-                savingThrows={currentCharacter.savingThrows}
-                level={currentCharacter.level}
-                onChange={(savingThrows) => handleChange({ savingThrows })}
-                onRoll={rollSavingThrow}
-                isEditing={isEditing}
-              />
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-2 sm:gap-3">
+                <DeathSavesTracker
+                  deathSaves={currentCharacter.deathSaves}
+                  onChange={(deathSaves) => handleChange({ deathSaves })}
+                  isEditing={isEditing}
+                />
+                <SavingThrowsComponent
+                  abilityScores={currentCharacter.abilityScores}
+                  savingThrows={currentCharacter.savingThrows}
+                  level={currentCharacter.level}
+                  onChange={(savingThrows) => handleChange({ savingThrows })}
+                  onRoll={rollSavingThrow}
+                  isEditing={isEditing}
+                />
+              </div>
             </div>
 
             <div className="space-y-2 sm:space-y-3" id="section-equipment">
