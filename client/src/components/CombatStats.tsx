@@ -113,6 +113,7 @@ function HpTracker({
           <Button 
             variant="outline" 
             size="icon"
+            className="h-10 w-10 sm:h-9 sm:w-9"
             onClick={() => adjustHp(-1)}
             data-testid="button-hp-minus"
           >
@@ -121,6 +122,7 @@ function HpTracker({
           <Button 
             variant="outline" 
             size="icon"
+            className="h-10 w-10 sm:h-9 sm:w-9"
             onClick={() => adjustHp(1)}
             data-testid="button-hp-plus"
           >
@@ -172,7 +174,7 @@ function DeathSavesTracker({
             variant="ghost" 
             size="icon"
             onClick={reset} 
-            className={`h-7 w-7 ${deathSaves.successes === 0 && deathSaves.failures === 0 ? 'invisible' : ''}`}
+            className={`h-9 w-9 sm:h-7 sm:w-7 ${deathSaves.successes === 0 && deathSaves.failures === 0 ? 'invisible' : ''}`}
             disabled={deathSaves.successes === 0 && deathSaves.failures === 0}
             data-testid="button-reset-death-saves"
           >
@@ -200,7 +202,7 @@ function DeathSavesTracker({
                 <button
                   key={i}
                   onClick={() => toggleSuccess(i)}
-                  className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg border-2 transition-all flex items-center justify-center ${
+                  className={`w-10 h-10 sm:w-9 sm:h-9 rounded-lg border-2 transition-all flex items-center justify-center ${
                     isActive
                       ? 'bg-green-500 border-green-500 text-white shadow-md shadow-green-500/30'
                       : 'border-green-500/30 hover:border-green-500 hover:bg-green-500/10'
@@ -227,7 +229,7 @@ function DeathSavesTracker({
                 <button
                   key={i}
                   onClick={() => toggleFailure(i)}
-                  className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg border-2 transition-all flex items-center justify-center ${
+                  className={`w-10 h-10 sm:w-9 sm:h-9 rounded-lg border-2 transition-all flex items-center justify-center ${
                     isActive
                       ? 'bg-red-500 border-red-500 text-white shadow-md shadow-red-500/30'
                       : 'border-red-500/30 hover:border-red-500 hover:bg-red-500/10'
@@ -383,6 +385,7 @@ export function CombatStats({ character, onChange, isEditing }: CombatStatsProps
               <Button
                 variant="outline"
                 size="icon"
+                className="h-10 w-10 sm:h-9 sm:w-9"
                 onClick={() => onChange({ hitDiceRemaining: Math.max(0, character.hitDiceRemaining - 1) })}
                 disabled={character.hitDiceRemaining <= 0}
                 data-testid="button-hit-dice-minus"
@@ -392,6 +395,7 @@ export function CombatStats({ character, onChange, isEditing }: CombatStatsProps
               <Button
                 variant="outline"
                 size="icon"
+                className="h-10 w-10 sm:h-9 sm:w-9"
                 onClick={() => onChange({ hitDiceRemaining: Math.min(character.level, character.hitDiceRemaining + 1) })}
                 disabled={character.hitDiceRemaining >= character.level}
                 data-testid="button-hit-dice-plus"

@@ -17,27 +17,27 @@ export function CharacterCard({ character, onClick, onDelete, isSelected }: Char
   
   return (
     <Card 
-      className={`stat-card p-4 cursor-pointer hover-elevate active-elevate-2 transition-all ${
+      className={`stat-card p-3 sm:p-4 cursor-pointer hover-elevate active-elevate-2 transition-all ${
         isSelected ? 'ring-2 ring-accent' : ''
       }`}
       onClick={onClick}
       data-testid={`card-character-${character.id}`}
     >
       <div className="flex items-start gap-3">
-        <Avatar className="w-14 h-14 border-2 border-accent/30">
+        <Avatar className="w-12 h-12 sm:w-14 sm:h-14 border-2 border-accent/30 flex-shrink-0">
           {character.avatar ? (
             <AvatarImage src={character.avatar} alt={character.name} />
           ) : null}
           <AvatarFallback className="text-lg bg-accent/20">
-            <User className="w-7 h-7 text-accent" />
+            <User className="w-6 h-6 sm:w-7 sm:h-7 text-accent" />
           </AvatarFallback>
         </Avatar>
 
         <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-lg truncate" data-testid={`text-character-name-${character.id}`}>
+          <h3 className="font-bold text-base sm:text-lg truncate" data-testid={`text-character-name-${character.id}`}>
             {character.name}
           </h3>
-          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+          <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 mt-1">
             <Badge variant="secondary" className="text-xs">{character.race}</Badge>
             <Badge variant="outline" className="text-xs">{character.class}</Badge>
             <Badge className="text-xs">Ур. {character.level}</Badge>
@@ -47,14 +47,14 @@ export function CharacterCard({ character, onClick, onDelete, isSelected }: Char
         <Button 
           variant="ghost" 
           size="icon"
-          className="shrink-0 text-muted-foreground hover:text-destructive"
+          className="shrink-0 text-muted-foreground hover:text-destructive h-10 w-10 sm:h-9 sm:w-9"
           onClick={(e) => {
             e.stopPropagation();
             onDelete();
           }}
           data-testid={`button-delete-character-${character.id}`}
         >
-          <Trash2 className="w-4 h-4" />
+          <Trash2 className="w-5 h-5 sm:w-4 sm:h-4" />
         </Button>
       </div>
 

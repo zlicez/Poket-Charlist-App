@@ -3,10 +3,17 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  ResponsiveDialog,
+  ResponsiveDialogTrigger,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogFooter,
+} from "@/components/ui/responsive-dialog";
 import { Sparkles, Plus, Trash2, ChevronDown, ChevronRight, Lock, Unlock } from "lucide-react";
 import type { Feature } from "@shared/schema";
 
@@ -34,17 +41,17 @@ function AddFeatureDialog({ onAdd }: { onAdd: (feature: Omit<Feature, "id">) => 
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1" data-testid="button-add-feature">
+    <ResponsiveDialog open={open} onOpenChange={setOpen}>
+      <ResponsiveDialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1 h-9 sm:h-8" data-testid="button-add-feature">
           <Plus className="w-4 h-4" />
           Добавить
         </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Добавить способность</DialogTitle>
-        </DialogHeader>
+      </ResponsiveDialogTrigger>
+      <ResponsiveDialogContent>
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle>Добавить способность</ResponsiveDialogTitle>
+        </ResponsiveDialogHeader>
         <div className="space-y-3">
           <div>
             <label className="text-sm text-muted-foreground">Название</label>
@@ -75,12 +82,12 @@ function AddFeatureDialog({ onAdd }: { onAdd: (feature: Omit<Feature, "id">) => 
             />
           </div>
         </div>
-        <DialogFooter>
+        <ResponsiveDialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Отмена</Button>
           <Button onClick={handleSubmit} data-testid="button-save-feature">Сохранить</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveDialogFooter>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }
 
@@ -91,7 +98,7 @@ function FeatureItem({ feature, onRemove, canModify }: { feature: Feature; onRem
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <div className="rounded-md bg-muted/30 overflow-hidden" data-testid={`feature-${feature.id}`}>
         <CollapsibleTrigger className="w-full">
-          <div className="flex items-center gap-2 p-2 hover-elevate">
+          <div className="flex items-center gap-2 p-2 hover-elevate min-h-[44px] sm:min-h-0">
             {isOpen ? (
               <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
             ) : (
@@ -105,14 +112,14 @@ function FeatureItem({ feature, onRemove, canModify }: { feature: Feature; onRem
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="text-destructive shrink-0"
+                className="text-destructive shrink-0 h-9 w-9 sm:h-8 sm:w-8"
                 onClick={(e) => {
                   e.stopPropagation();
                   onRemove();
                 }}
                 data-testid={`button-remove-feature-${feature.id}`}
               >
-                <Trash2 className="w-3 h-3" />
+                <Trash2 className="w-4 h-4 sm:w-3 sm:h-3" />
               </Button>
             )}
           </div>
@@ -155,7 +162,7 @@ export function FeaturesList({ features, onChange, isEditing, isLocked = false, 
                   variant="ghost"
                   size="icon"
                   onClick={onToggleLock}
-                  className={isLocked ? "text-muted-foreground" : "text-accent"}
+                  className={`h-9 w-9 sm:h-8 sm:w-8 ${isLocked ? "text-muted-foreground" : "text-accent"}`}
                   data-testid="button-toggle-features-lock"
                 >
                   {isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}

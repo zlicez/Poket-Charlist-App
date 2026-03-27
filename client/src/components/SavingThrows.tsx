@@ -50,7 +50,7 @@ export function SavingThrowsComponent({ abilityScores, savingThrows, level, onCh
             <Tooltip key={ability}>
               <TooltipTrigger asChild>
                 <div 
-                  className={`flex items-center gap-2 py-1.5 px-2 rounded-md cursor-pointer hover-elevate active-elevate-2 ${
+                  className={`flex items-center gap-2 py-2 sm:py-1.5 px-2 rounded-md cursor-pointer hover-elevate active-elevate-2 min-h-[40px] sm:min-h-0 ${
                     isProficient ? 'bg-accent/10' : ''
                   }`}
                   onClick={() => !isEditing && onRoll(ability)}
@@ -61,10 +61,11 @@ export function SavingThrowsComponent({ abilityScores, savingThrows, level, onCh
                       checked={isProficient}
                       onCheckedChange={() => toggleProficiency(ability)}
                       onClick={(e) => e.stopPropagation()}
+                      className="h-5 w-5"
                       data-testid={`checkbox-save-${ability.toLowerCase()}`}
                     />
                   ) : (
-                    <div className={`w-3 h-3 rounded-full ${
+                    <div className={`w-4 h-4 rounded-full flex-shrink-0 ${
                       isProficient ? 'bg-accent' : 'border-2 border-muted-foreground/30'
                     }`} />
                   )}

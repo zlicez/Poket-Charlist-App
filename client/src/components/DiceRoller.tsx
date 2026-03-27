@@ -1,7 +1,13 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogDescription,
+} from "@/components/ui/responsive-dialog";
 import { Dices, RotateCcw } from "lucide-react";
 import { formatModifier } from "@shared/schema";
 
@@ -151,11 +157,11 @@ export function DiceRollerTrigger({ onClick, rollCount }: { onClick: () => void;
       variant="outline"
       size="sm"
       onClick={onClick}
-      className="gap-2"
+      className="gap-2 h-9"
       data-testid="button-dice-roller"
     >
       <Dices className="w-4 h-4" />
-      История
+      <span className="hidden sm:inline">История</span>
       {rollCount > 0 && (
         <Badge variant="secondary" className="text-xs">
           {rollCount}
@@ -167,19 +173,19 @@ export function DiceRollerTrigger({ onClick, rollCount }: { onClick: () => void;
 
 export function DiceRoller({ isOpen, onClose, rollHistory, onClearHistory }: DiceRollerProps) {
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md max-h-[80vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+    <ResponsiveDialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <ResponsiveDialogContent className="max-w-md sm:max-h-[80vh] overflow-hidden flex flex-col">
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle className="flex items-center gap-2">
             <Dices className="w-5 h-5 text-accent" />
             История бросков
-          </DialogTitle>
-          <DialogDescription className="sr-only">
+          </ResponsiveDialogTitle>
+          <ResponsiveDialogDescription className="sr-only">
             Просмотр результатов ваших бросков кубов
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveDialogDescription>
+        </ResponsiveDialogHeader>
         
-        <div className="flex-1 overflow-y-auto space-y-2 pr-2">
+        <div className="flex-1 overflow-y-auto space-y-2 pr-2 max-h-[50vh] sm:max-h-[60vh]">
           {rollHistory.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
               <Dices className="w-12 h-12 mx-auto mb-3 opacity-50" />
@@ -195,13 +201,13 @@ export function DiceRoller({ isOpen, onClose, rollHistory, onClearHistory }: Dic
         
         {rollHistory.length > 0 && (
           <div className="pt-2 border-t flex justify-end">
-            <Button variant="ghost" size="sm" onClick={onClearHistory} data-testid="button-clear-history">
+            <Button variant="ghost" size="sm" onClick={onClearHistory} className="h-9" data-testid="button-clear-history">
               <RotateCcw className="w-4 h-4 mr-1" />
               Очистить
             </Button>
           </div>
         )}
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }

@@ -70,7 +70,7 @@ export function SkillItem({
     <Tooltip>
       <TooltipTrigger asChild>
         <div 
-          className={`flex items-center gap-2 py-1.5 px-2 rounded-md cursor-pointer hover-elevate active-elevate-2 ${
+          className={`flex items-center gap-2 py-1.5 px-2 rounded-md cursor-pointer hover-elevate active-elevate-2 min-h-[40px] sm:min-h-0 ${
             proficiency.proficient ? 'bg-accent/10' : ''
           }`}
           onClick={() => !isEditing && onRoll()}
@@ -78,26 +78,26 @@ export function SkillItem({
         >
           {isEditing ? (
             <div 
-              className="flex items-center justify-center w-5 h-5 cursor-pointer"
+              className="flex items-center justify-center w-9 h-9 sm:w-5 sm:h-5 rounded-full shrink-0 cursor-pointer"
               onClick={handleProficiencyClick}
               data-testid={`checkbox-skill-${name.toLowerCase().replace(/\s/g, '-')}`}
             >
               {proficiency.expertise ? (
-                <Star className="w-4 h-4 text-accent fill-accent" />
+                <Star className="w-5 h-5 sm:w-4 sm:h-4 text-accent fill-accent" />
               ) : proficiency.proficient ? (
-                <div className="w-3 h-3 rounded-full bg-accent" />
+                <div className="w-3.5 h-3.5 sm:w-3 sm:h-3 rounded-full bg-accent" />
               ) : (
-                <div className="w-3 h-3 rounded-full border-2 border-muted-foreground" />
+                <div className="w-3.5 h-3.5 sm:w-3 sm:h-3 rounded-full border-2 border-muted-foreground" />
               )}
             </div>
           ) : (
-            <div className="flex items-center justify-center w-5 h-5">
+            <div className="flex items-center justify-center w-9 h-9 sm:w-5 sm:h-5 shrink-0">
               {proficiency.expertise ? (
-                <Star className="w-4 h-4 text-accent fill-accent" />
+                <Star className="w-5 h-5 sm:w-4 sm:h-4 text-accent fill-accent" />
               ) : proficiency.proficient ? (
-                <div className="w-3 h-3 rounded-full bg-accent" />
+                <div className="w-3.5 h-3.5 sm:w-3 sm:h-3 rounded-full bg-accent" />
               ) : (
-                <div className="w-3 h-3 rounded-full border-2 border-muted-foreground/30" />
+                <div className="w-3.5 h-3.5 sm:w-3 sm:h-3 rounded-full border-2 border-muted-foreground/30" />
               )}
             </div>
           )}

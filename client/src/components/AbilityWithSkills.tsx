@@ -162,7 +162,7 @@ export function AbilityWithSkills({
         <div className="flex-1 min-w-0">
           <button
             type="button"
-            className="flex items-center gap-1 w-full text-left mb-1 sm:hidden"
+            className="flex items-center gap-1 w-full text-left mb-1 sm:hidden min-h-[36px]"
             onClick={() => setIsExpanded(!isExpanded)}
             data-testid={`toggle-skills-${ability.toLowerCase()}`}
           >
@@ -190,7 +190,7 @@ export function AbilityWithSkills({
                   className={`
                     flex items-center gap-1.5 sm:gap-2 
                     py-1.5 sm:py-1 px-1.5 sm:px-2 rounded
-                    min-h-[36px] sm:min-h-0
+                    min-h-[40px] sm:min-h-0
                     ${!isEditing ? 'cursor-pointer active:bg-amber-100 dark:active:bg-amber-900/40' : ''}
                     ${proficiency.proficient ? 'bg-amber-50/80 dark:bg-amber-900/20' : ''}
                   `}
@@ -201,8 +201,8 @@ export function AbilityWithSkills({
                     type="button"
                     className={`
                       flex items-center justify-center 
-                      w-6 h-6 sm:w-5 sm:h-5 
-                      rounded-full
+                      w-9 h-9 sm:w-5 sm:h-5 
+                      rounded-full shrink-0
                       ${isEditing ? 'cursor-pointer hover-elevate' : 'pointer-events-none'}
                       ${proficiency.proficient 
                         ? 'bg-amber-200 dark:bg-amber-800' 
@@ -216,9 +216,9 @@ export function AbilityWithSkills({
                     data-testid={`checkbox-skill-${skill.name.toLowerCase().replace(/\s/g, '-')}`}
                   >
                     {proficiency.expertise ? (
-                      <Star className="w-3.5 h-3.5 sm:w-3 sm:h-3 text-amber-700 dark:text-amber-300 fill-current" />
+                      <Star className="w-4 h-4 sm:w-3 sm:h-3 text-amber-700 dark:text-amber-300 fill-current" />
                     ) : proficiency.proficient ? (
-                      <div className="w-2 h-2 rounded-full bg-amber-600 dark:bg-amber-400" />
+                      <div className="w-2.5 h-2.5 sm:w-2 sm:h-2 rounded-full bg-amber-600 dark:bg-amber-400" />
                     ) : null}
                   </button>
                   

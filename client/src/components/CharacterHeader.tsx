@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Progress } from "@/components/ui/progress";
-import { Edit2, Play, User, Sparkles, Scroll, BookOpen, Info } from "lucide-react";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerFooter,
+} from "@/components/ui/drawer";
+import { Edit2, Play, User, Sparkles, Scroll, BookOpen, Info, Settings2 } from "lucide-react";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { 
   CLASSES, 
   RACES, 
@@ -90,6 +100,141 @@ function ClassTooltipContent({ className }: { className: string }) {
   );
 }
 
+function EditingFields({ 
+  character, 
+  onChange, 
+  handleClassChange, 
+  handleRaceChange, 
+  handleLevelChange, 
+  subraces 
+}: { 
+  character: Character;
+  onChange: (updates: Partial<Character>) => void;
+  handleClassChange: (newClass: string) => void;
+  handleRaceChange: (newRace: string) => void;
+  handleLevelChange: (newLevel: number) => void;
+  subraces: string[];
+}) {
+  return (
+    <div className="space-y-3">
+      <div>
+        <label className="text-xs text-muted-foreground mb-1 block">Имя персонажа</label>
+        <Input
+          value={character.name}
+          onChange={(e) => onChange({ name: e.target.value })}
+          className="text-lg font-bold h-10"
+          placeholder="Имя персонажа"
+          data-testid="input-name"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Раса</label>
+          <Select value={character.race} onValueChange={handleRaceChange}>
+            <SelectTrigger className="h-10 text-sm" data-testid="select-race">
+              <SelectValue placeholder="Раса" />
+            </SelectTrigger>
+            <SelectContent>
+              {RACES.map((race) => (
+                <SelectItem key={race} value={race}>{race}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Класс</label>
+          <Select value={character.class} onValueChange={handleClassChange}>
+            <SelectTrigger className="h-10 text-sm" data-testid="select-class">
+              <SelectValue placeholder="Класс" />
+            </SelectTrigger>
+            <SelectContent>
+              {CLASSES.map((cls) => (
+                <SelectItem key={cls} value={cls}>{cls}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {subraces.length > 0 && (
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Подраса</label>
+          <Select value={character.subrace || "none"} onValueChange={(value) => onChange({ subrace: value === "none" ? undefined : value })}>
+            <SelectTrigger className="h-10 text-sm" data-testid="select-subrace">
+              <SelectValue placeholder="Подраса" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Нет</SelectItem>
+              {subraces.map((subrace) => (
+                <SelectItem key={subrace} value={subrace}>{subrace}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Уровень</label>
+          <Input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={20}
+            value={character.level}
+            onChange={(e) => handleLevelChange(parseInt(e.target.value) || 1)}
+            className="h-10 text-center text-lg font-bold"
+            data-testid="input-level"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Опыт (XP)</label>
+          <Input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            value={character.experience}
+            onChange={(e) => onChange({ experience: parseInt(e.target.value) || 0 })}
+            className="h-10"
+            data-testid="input-experience"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
+          <Scroll className="w-3 h-3" />
+          Предыстория
+        </label>
+        <Input
+          value={character.background || ""}
+          onChange={(e) => onChange({ background: e.target.value })}
+          placeholder="Народный герой"
+          className="h-10"
+          data-testid="input-background"
+        />
+      </div>
+      <div>
+        <label className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
+          <Sparkles className="w-3 h-3" />
+          Мировоззрение
+        </label>
+        <Select value={character.alignment || ""} onValueChange={(value) => onChange({ alignment: value })}>
+          <SelectTrigger className="h-10" data-testid="select-alignment">
+            <SelectValue placeholder="Выберите" />
+          </SelectTrigger>
+          <SelectContent>
+            {ALIGNMENTS.map((alignment) => (
+              <SelectItem key={alignment} value={alignment}>{alignment}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
+}
+
 interface CharacterHeaderProps {
   character: Character;
   onChange: (updates: Partial<Character>) => void;
@@ -98,6 +243,8 @@ interface CharacterHeaderProps {
 }
 
 export function CharacterHeader({ character, onChange, isEditing, onToggleMode }: CharacterHeaderProps) {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const isDesktop = useMediaQuery("(min-width: 640px)");
   const profBonus = getProficiencyBonus(character.level);
   const classData = CLASS_DATA[character.class];
   const raceData = RACE_DATA[character.race];
@@ -159,7 +306,7 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
           </Avatar>
 
           <div className="flex-1 min-w-0 space-y-2">
-            {isEditing ? (
+            {isEditing && isDesktop ? (
               <Input
                 value={character.name}
                 onChange={(e) => onChange({ name: e.target.value })}
@@ -172,7 +319,7 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
             )}
 
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-              {isEditing ? (
+              {isEditing && isDesktop ? (
                 <div className="flex flex-wrap gap-2 w-full">
                   <div className="flex items-center gap-1 flex-1 min-w-[100px]">
                     <Select value={character.race} onValueChange={handleRaceChange}>
@@ -279,7 +426,7 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
               <TooltipTrigger asChild>
                 <div className="text-center min-w-[50px]" data-testid="stat-level">
                   <div className="text-[10px] sm:text-xs text-muted-foreground">Уровень</div>
-                  {isEditing ? (
+                  {isEditing && isDesktop ? (
                     <Input
                       type="number"
                       inputMode="numeric"
@@ -313,26 +460,40 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
             </Tooltip>
           </div>
 
-          <Button
-            variant={isEditing ? "default" : "outline"}
-            onClick={onToggleMode}
-            className="gap-1.5 h-10 px-3 sm:px-4"
-            data-testid="button-toggle-mode"
-          >
-            {isEditing ? (
-              <>
-                <Play className="w-4 h-4" />
-                <span className="hidden sm:inline">Режим игры</span>
-                <span className="sm:hidden">Играть</span>
-              </>
-            ) : (
-              <>
-                <Edit2 className="w-4 h-4" />
-                <span className="hidden sm:inline">Редактировать</span>
-                <span className="sm:hidden">Ред.</span>
-              </>
+          <div className="flex items-center gap-1.5">
+            {isEditing && !isDesktop && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setDrawerOpen(true)}
+                className="gap-1.5 h-10 px-3"
+                data-testid="button-open-edit-drawer"
+              >
+                <Settings2 className="w-4 h-4" />
+                Параметры
+              </Button>
             )}
-          </Button>
+            <Button
+              variant={isEditing ? "default" : "outline"}
+              onClick={onToggleMode}
+              className="gap-1.5 h-10 px-3 sm:px-4"
+              data-testid="button-toggle-mode"
+            >
+              {isEditing ? (
+                <>
+                  <Play className="w-4 h-4" />
+                  <span className="hidden sm:inline">Режим игры</span>
+                  <span className="sm:hidden">Играть</span>
+                </>
+              ) : (
+                <>
+                  <Edit2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">Редактировать</span>
+                  <span className="sm:hidden">Ред.</span>
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -361,7 +522,7 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
         </Tooltip>
       </div>
 
-      {isEditing && (
+      {isEditing && isDesktop && (
         <div className="mt-3 sm:mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
           <div>
             <label className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1 mb-1">
@@ -408,6 +569,30 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
             />
           </div>
         </div>
+      )}
+
+      {isEditing && (
+        <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
+          <DrawerContent>
+            <div className="max-h-[85vh] overflow-y-auto px-4 pb-4">
+              <DrawerHeader>
+                <DrawerTitle>Редактирование персонажа</DrawerTitle>
+                <DrawerDescription>Измените параметры вашего персонажа</DrawerDescription>
+              </DrawerHeader>
+              <EditingFields
+                character={character}
+                onChange={onChange}
+                handleClassChange={handleClassChange}
+                handleRaceChange={handleRaceChange}
+                handleLevelChange={handleLevelChange}
+                subraces={subraces}
+              />
+              <DrawerFooter>
+                <Button onClick={() => setDrawerOpen(false)}>Готово</Button>
+              </DrawerFooter>
+            </div>
+          </DrawerContent>
+        </Drawer>
       )}
     </Card>
   );

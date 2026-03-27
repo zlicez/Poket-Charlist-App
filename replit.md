@@ -18,7 +18,7 @@ A web application for managing Dungeons & Dragons 5th Edition character sheets. 
 - **Features & Traits**: Track class features, racial traits, and feats
 - **Multiple Characters**: Create and manage multiple characters
 - **Dark/Light Theme**: Toggle between themes
-- **Mobile-First Design**: Optimized for handheld devices
+- **Mobile-First Design**: Optimized for handheld devices with min 36-40px touch targets, ResponsiveDialog (Dialog on desktop / Drawer on mobile), horizontal scrolling tabs, mobile-adapted grids
 - **Race/Class Tooltips**: Info icons in edit mode and hoverable badges in play mode showing D&D 5e data (ability bonuses, traits, proficiencies, descriptions)
 - **Darkvision Display**: Shows darkvision range based on race/subrace (60-120 ft)
 - **Auto-fill Proficiencies**: Weapon, armor, tool, and language proficiencies auto-populated from race/class/subrace
@@ -36,21 +36,26 @@ A web application for managing Dungeons & Dragons 5th Edition character sheets. 
 ```
 client/src/
 ├── components/           # React components
+│   ├── ui/
+│   │   ├── responsive-dialog.tsx  # Dialog on desktop, Drawer on mobile (<640px)
+│   │   └── ...                    # Shadcn UI components
 │   ├── AbilityScore.tsx     # Ability score display/edit
-│   ├── CharacterCard.tsx    # Character list item
-│   ├── CharacterHeader.tsx  # Character info header
-│   ├── CombatStats.tsx      # AC, HP, initiative, speed
-│   ├── DiceRoller.tsx       # Dice rolling system
-│   ├── EquipmentList.tsx    # Inventory with lock feature
-│   ├── FeaturesList.tsx     # Class/racial features with lock
-│   ├── MoneyBlock.tsx       # Currency management (CP/SP/EP/GP/PP)
-│   ├── SavingThrows.tsx     # Saving throw proficiencies
+│   ├── CharacterCard.tsx    # Character list item (responsive)
+│   ├── CharacterHeader.tsx  # Character info header (Drawer editing on mobile)
+│   ├── CombatStats.tsx      # AC, HP, initiative, speed (min 40px touch targets)
+│   ├── DiceRoller.tsx       # Dice rolling system (ResponsiveDialog)
+│   ├── EquipmentSystem.tsx  # Inventory with categorized tabs, lock feature
+│   ├── FeaturesList.tsx     # Class/racial features with lock (ResponsiveDialog)
+│   ├── MoneyBlock.tsx       # Currency management (3-col mobile, 5-col desktop)
+│   ├── SavingThrows.tsx     # Saving throw proficiencies (min 40px touch targets)
 │   ├── SkillItem.tsx        # Individual skill display
 │   ├── ThemeProvider.tsx    # Dark/light theme context
-│   └── WeaponsList.tsx      # Weapons with lock feature
+│   └── WeaponsList.tsx      # Weapons with lock feature (ResponsiveDialog)
+├── hooks/
+│   └── use-media-query.ts   # Media query hook for responsive behavior
 ├── pages/
 │   ├── CharacterSheet.tsx   # Main character sheet page
-│   ├── CharactersList.tsx   # Character selection page
+│   ├── CharactersList.tsx   # Character selection page (responsive)
 │   └── not-found.tsx        # 404 page
 └── App.tsx                  # App root with routing
 

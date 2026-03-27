@@ -56,7 +56,7 @@ export function MoneyBlock({ money, onChange, isEditing }: MoneyBlockProps) {
         </Tooltip>
       </div>
 
-      <div className="grid grid-cols-5 gap-1 sm:gap-2">
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-2">
         {MONEY_TYPES.map(({ key, label, color, fullName }) => (
           <div key={key} className="flex flex-col items-center">
             <Tooltip>
@@ -77,7 +77,7 @@ export function MoneyBlock({ money, onChange, isEditing }: MoneyBlockProps) {
                 min={0}
                 value={money[key] || 0}
                 onChange={(e) => handleInputChange(key, e.target.value)}
-                className="h-8 sm:h-10 text-center text-xs sm:text-sm p-1"
+                className="h-10 text-center text-sm p-1"
                 data-testid={`input-money-${key}`}
               />
             ) : (
@@ -85,25 +85,25 @@ export function MoneyBlock({ money, onChange, isEditing }: MoneyBlockProps) {
                 <span className="text-sm sm:text-base font-bold" data-testid={`text-money-${key}`}>
                   {money[key] || 0}
                 </span>
-                <div className="flex gap-0.5">
+                <div className="flex gap-1">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6"
+                    className="h-9 w-9 sm:h-8 sm:w-8"
                     onClick={() => adjustMoney(key, -1)}
                     disabled={!money[key]}
                     data-testid={`button-money-${key}-minus`}
                   >
-                    <Minus className="w-3 h-3" />
+                    <Minus className="w-4 h-4 sm:w-3 sm:h-3" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6"
+                    className="h-9 w-9 sm:h-8 sm:w-8"
                     onClick={() => adjustMoney(key, 1)}
                     data-testid={`button-money-${key}-plus`}
                   >
-                    <Plus className="w-3 h-3" />
+                    <Plus className="w-4 h-4 sm:w-3 sm:h-3" />
                   </Button>
                 </div>
               </div>

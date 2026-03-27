@@ -3,9 +3,16 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  ResponsiveDialog,
+  ResponsiveDialogTrigger,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogFooter,
+} from "@/components/ui/responsive-dialog";
 import { Swords, Plus, Trash2, Dices, Lock, Unlock, Backpack } from "lucide-react";
 import type { Weapon, Equipment, WeaponAbilityMod, Proficiencies } from "@shared/schema";
 import { formatModifier, isWeaponProficient } from "@shared/schema";
@@ -49,17 +56,17 @@ function AddWeaponDialog({ onAdd }: { onAdd: (weapon: Omit<Weapon, "id">) => voi
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1" data-testid="button-add-weapon">
+    <ResponsiveDialog open={open} onOpenChange={setOpen}>
+      <ResponsiveDialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1 h-9 sm:h-8" data-testid="button-add-weapon">
           <Plus className="w-4 h-4" />
           Добавить
         </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Добавить оружие</DialogTitle>
-        </DialogHeader>
+      </ResponsiveDialogTrigger>
+      <ResponsiveDialogContent>
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle>Добавить оружие</ResponsiveDialogTitle>
+        </ResponsiveDialogHeader>
         <div className="space-y-3">
           <div>
             <label className="text-sm text-muted-foreground">Название</label>
@@ -124,12 +131,12 @@ function AddWeaponDialog({ onAdd }: { onAdd: (weapon: Omit<Weapon, "id">) => voi
               </Select>
             </div>
             <div className="flex items-end">
-              <label className="flex items-center gap-2 cursor-pointer h-9">
+              <label className="flex items-center gap-2 cursor-pointer h-10 min-h-[40px]">
                 <input
                   type="checkbox"
                   checked={isFinesse}
                   onChange={(e) => setIsFinesse(e.target.checked)}
-                  className="rounded"
+                  className="rounded w-5 h-5"
                   data-testid="checkbox-weapon-finesse"
                 />
                 <span className="text-sm">Фехтовальное</span>
@@ -137,12 +144,12 @@ function AddWeaponDialog({ onAdd }: { onAdd: (weapon: Omit<Weapon, "id">) => voi
             </div>
           </div>
         </div>
-        <DialogFooter>
+        <ResponsiveDialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Отмена</Button>
           <Button onClick={handleSubmit} data-testid="button-save-weapon">Сохранить</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveDialogFooter>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }
 
@@ -213,7 +220,7 @@ export function WeaponsList({
                   variant="ghost"
                   size="icon"
                   onClick={onToggleLock}
-                  className={isLocked ? "text-muted-foreground" : "text-accent"}
+                  className={`h-9 w-9 sm:h-8 sm:w-8 ${isLocked ? "text-muted-foreground" : "text-accent"}`}
                   data-testid="button-toggle-weapons-lock"
                 >
                   {isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
@@ -269,7 +276,7 @@ export function WeaponsList({
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="h-7 px-2 gap-1"
+                          className="h-9 sm:h-7 px-2 gap-1"
                           onClick={() => onRollAttack(weapon as Weapon, totalAttack, isProficient)}
                           data-testid={`button-attack-inv-${weapon.id}`}
                         >
@@ -284,7 +291,7 @@ export function WeaponsList({
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="h-7 px-2"
+                          className="h-9 sm:h-7 px-2"
                           onClick={() => onRollDamage(weapon as Weapon, abilityModValue)}
                           data-testid={`button-damage-inv-${weapon.id}`}
                         >
@@ -333,7 +340,7 @@ export function WeaponsList({
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="h-7 px-2 gap-1"
+                          className="h-9 sm:h-7 px-2 gap-1"
                           onClick={() => onRollAttack(weapon, totalAttack, isProficient)}
                           data-testid={`button-attack-${weapon.id}`}
                         >
@@ -348,7 +355,7 @@ export function WeaponsList({
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="h-7 px-2"
+                          className="h-9 sm:h-7 px-2"
                           onClick={() => onRollDamage(weapon, abilityModValue)}
                           data-testid={`button-damage-${weapon.id}`}
                         >
@@ -364,7 +371,7 @@ export function WeaponsList({
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="text-destructive"
+                    className="text-destructive h-9 w-9 sm:h-8 sm:w-8"
                     onClick={() => removeWeapon(weapon.id)}
                     data-testid={`button-remove-weapon-${weapon.id}`}
                   >

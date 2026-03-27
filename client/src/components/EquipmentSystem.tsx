@@ -2,13 +2,21 @@ import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  ResponsiveDialog,
+  ResponsiveDialogTrigger,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+} from "@/components/ui/responsive-dialog";
 import { 
   Backpack, Plus, Trash2, Package, Shield, ShieldCheck, Lock, Unlock, 
   Sword, Apple, FlaskConical, Wrench, Trash, Search,
@@ -101,22 +109,22 @@ function AddFromCatalogDialog({
   if (items.length === 0) return null;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`button-catalog-${category}`}>
+    <ResponsiveDialog open={open} onOpenChange={setOpen}>
+      <ResponsiveDialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-7 sm:w-7" data-testid={`button-catalog-${category}`}>
           <Package className="w-4 h-4" />
         </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      </ResponsiveDialogTrigger>
+      <ResponsiveDialogContent className="max-w-md">
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle className="flex items-center gap-2">
             {CATEGORY_ICONS[category]}
             {CATEGORY_LABELS[category]}
-          </DialogTitle>
-          <DialogDescription>
+          </ResponsiveDialogTitle>
+          <ResponsiveDialogDescription>
             Выберите предмет из каталога D&D 5e
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveDialogDescription>
+        </ResponsiveDialogHeader>
         
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -135,7 +143,7 @@ function AddFromCatalogDialog({
               <button
                 key={item.name}
                 onClick={() => handleAdd(item)}
-                className="w-full text-left p-2 rounded-md hover-elevate active-elevate-2 transition-colors"
+                className="w-full text-left p-3 sm:p-2 rounded-md hover-elevate active-elevate-2 transition-colors min-h-[44px] sm:min-h-0"
                 data-testid={`catalog-item-${index}`}
               >
                 <div className="flex items-center justify-between gap-2">
@@ -169,8 +177,8 @@ function AddFromCatalogDialog({
             )}
           </div>
         </ScrollArea>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }
 
@@ -241,20 +249,20 @@ function AddCustomItemDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetForm(); }}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1" data-testid="button-add-custom">
+    <ResponsiveDialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetForm(); }}>
+      <ResponsiveDialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1 h-9 sm:h-8" data-testid="button-add-custom">
           <Plus className="w-4 h-4" />
           <Sparkles className="w-3 h-3" />
         </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Создать предмет</DialogTitle>
-          <DialogDescription>
+      </ResponsiveDialogTrigger>
+      <ResponsiveDialogContent>
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle>Создать предмет</ResponsiveDialogTitle>
+          <ResponsiveDialogDescription>
             Добавьте собственный предмет в инвентарь
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveDialogDescription>
+        </ResponsiveDialogHeader>
         
         <div className="space-y-3">
           <div>
@@ -399,14 +407,14 @@ function AddCustomItemDialog({
           </div>
         </div>
 
-        <DialogFooter>
+        <ResponsiveDialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Отмена</Button>
           <Button onClick={handleSubmit} disabled={!name.trim()} data-testid="button-save-custom">
             Добавить
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveDialogFooter>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }
 
@@ -457,7 +465,7 @@ function SortableEquipmentItem({
         <button
           {...attributes}
           {...listeners}
-          className="cursor-grab active:cursor-grabbing p-1 text-muted-foreground hover:text-foreground touch-none"
+          className="cursor-grab active:cursor-grabbing p-1 text-muted-foreground hover:text-foreground touch-none min-w-[36px] min-h-[36px] flex items-center justify-center"
           data-testid={`drag-handle-${index}`}
         >
           <GripVertical className="w-4 h-4" />
@@ -467,7 +475,7 @@ function SortableEquipmentItem({
         <Button
           variant="ghost"
           size="icon"
-          className={`h-7 w-7 ${item.equipped ? 'text-accent' : 'text-muted-foreground'}`}
+          className={`h-9 w-9 sm:h-7 sm:w-7 ${item.equipped ? 'text-accent' : 'text-muted-foreground'}`}
           onClick={onToggleEquip}
           data-testid={`button-equip-${index}`}
         >
@@ -514,20 +522,20 @@ function SortableEquipmentItem({
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-6 w-6"
+            className="h-9 w-9 sm:h-7 sm:w-7"
             onClick={() => onUpdateQuantity(-1)}
             data-testid={`button-qty-minus-${index}`}
           >
-            <Minus className="w-3 h-3" />
+            <Minus className="w-4 h-4 sm:w-3 sm:h-3" />
           </Button>
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-6 w-6"
+            className="h-9 w-9 sm:h-7 sm:w-7"
             onClick={() => onUpdateQuantity(1)}
             data-testid={`button-qty-plus-${index}`}
           >
-            <Plus className="w-3 h-3" />
+            <Plus className="w-4 h-4 sm:w-3 sm:h-3" />
           </Button>
         </div>
       )}
@@ -536,11 +544,11 @@ function SortableEquipmentItem({
         <Button 
           variant="ghost" 
           size="icon" 
-          className="h-6 w-6 text-destructive shrink-0"
+          className="h-9 w-9 sm:h-7 sm:w-7 text-destructive shrink-0"
           onClick={onRemove}
           data-testid={`button-remove-${index}`}
         >
-          <Trash2 className="w-3 h-3" />
+          <Trash2 className="w-4 h-4 sm:w-3 sm:h-3" />
         </Button>
       )}
     </div>
@@ -682,7 +690,7 @@ export function EquipmentSystem({
                   variant="ghost"
                   size="icon"
                   onClick={onToggleLock}
-                  className={`h-7 w-7 ${isLocked ? "text-muted-foreground" : "text-accent"}`}
+                  className={`h-9 w-9 sm:h-7 sm:w-7 ${isLocked ? "text-muted-foreground" : "text-accent"}`}
                   data-testid="button-toggle-equipment-lock"
                 >
                   {isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
@@ -713,37 +721,39 @@ export function EquipmentSystem({
       )}
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
-        <TabsList className="w-full h-auto flex-wrap gap-0.5 p-1 mb-2">
-          <TabsTrigger 
-            value="all"
-            className="flex-1 min-w-0 px-1.5 py-1 text-xs gap-1 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
-            data-testid="tab-all"
-          >
-            <Backpack className="w-4 h-4" />
-            <span className="hidden sm:inline">Всё</span>
-            {equipment.length > 0 && (
-              <Badge variant="outline" className="h-4 px-1 text-[10px] ml-0.5">
-                {equipment.reduce((sum, e) => sum + e.quantity, 0)}
-              </Badge>
-            )}
-          </TabsTrigger>
-          {EQUIPMENT_CATEGORIES.map((cat) => (
+        <div className="overflow-x-auto scrollbar-hide -mx-2 px-2 sm:mx-0 sm:px-0">
+          <TabsList className="w-max sm:w-full h-auto p-1 mb-2 flex gap-0.5">
             <TabsTrigger 
-              key={cat} 
-              value={cat}
-              className="flex-1 min-w-0 px-1.5 py-1 text-xs gap-1 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
-              data-testid={`tab-${cat}`}
+              value="all"
+              className="px-2 py-1.5 sm:flex-1 min-w-0 min-h-[40px] sm:min-h-0 text-xs gap-1 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
+              data-testid="tab-all"
             >
-              {CATEGORY_ICONS[cat]}
-              <span className="hidden sm:inline">{CATEGORY_LABELS[cat]}</span>
-              {categoryCounts[cat] > 0 && (
+              <Backpack className="w-4 h-4" />
+              <span className="hidden sm:inline">Всё</span>
+              {equipment.length > 0 && (
                 <Badge variant="outline" className="h-4 px-1 text-[10px] ml-0.5">
-                  {categoryCounts[cat]}
+                  {equipment.reduce((sum, e) => sum + e.quantity, 0)}
                 </Badge>
               )}
             </TabsTrigger>
-          ))}
-        </TabsList>
+            {EQUIPMENT_CATEGORIES.map((cat) => (
+              <TabsTrigger 
+                key={cat} 
+                value={cat}
+                className="px-2 py-1.5 sm:flex-1 min-w-0 min-h-[40px] sm:min-h-0 text-xs gap-1 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
+                data-testid={`tab-${cat}`}
+              >
+                {CATEGORY_ICONS[cat]}
+                <span className="hidden sm:inline">{CATEGORY_LABELS[cat]}</span>
+                {categoryCounts[cat] > 0 && (
+                  <Badge variant="outline" className="h-4 px-1 text-[10px] ml-0.5">
+                    {categoryCounts[cat]}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
         <TabsContent value="all" className="mt-0">
           {equipment.length === 0 ? (
