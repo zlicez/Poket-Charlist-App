@@ -2,15 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 /* LIGHT MODE - Fantasy Parchment Theme */
 :root {
-  --button-outline: rgba(0,0,0, .10);
-  --badge-outline: rgba(0,0,0, .05);
+  --button-outline: rgba(0, 0, 0, .10);
+  --badge-outline: rgba(0, 0, 0, .05);
 
   --opaque-button-border-intensity: -8;
 
-  --elevate-1: rgba(0,0,0, .03);
-  --elevate-2: rgba(0,0,0, .08);
+  --elevate-1: rgba(0, 0, 0, .03);
+  --elevate-2: rgba(0, 0, 0, .08);
 
   --background: 35 30% 95%;
   --foreground: 25 30% 15%;
@@ -50,7 +56,7 @@
 
   --input: 30 25% 78%;
   --ring: 35 60% 45%;
-  
+
   --chart-1: 25 55% 40%;
   --chart-2: 140 45% 40%;
   --chart-3: 200 55% 45%;
@@ -90,13 +96,13 @@
 
 /* DARK MODE - Dark Fantasy Theme */
 .dark {
-  --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
+  --button-outline: rgba(255, 255, 255, .10);
+  --badge-outline: rgba(255, 255, 255, .05);
 
   --opaque-button-border-intensity: 9;
 
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
+  --elevate-1: rgba(255, 255, 255, .04);
+  --elevate-2: rgba(255, 255, 255, .09);
 
   --background: 25 25% 10%;
   --foreground: 38 25% 90%;
@@ -136,7 +142,7 @@
 
   --input: 25 20% 25%;
   --ring: 35 55% 50%;
-  
+
   --chart-1: 35 60% 55%;
   --chart-2: 140 50% 50%;
   --chart-3: 200 55% 55%;
@@ -175,6 +181,7 @@
   }
 
   .no-default-hover-elevate {}
+
   .no-default-active-elevate {}
 
   .toggle-elevate::before,
@@ -248,20 +255,37 @@
   }
 
   @keyframes dice-pulse {
-    0%, 100% { 
+
+    0%,
+    100% {
       box-shadow: 0 0 5px hsl(var(--accent) / 0.3);
     }
-    50% { 
+
+    50% {
       box-shadow: 0 0 20px hsl(var(--accent) / 0.6);
     }
   }
 
   @keyframes roll-dice {
-    0% { transform: rotate(0deg) scale(1); }
-    25% { transform: rotate(90deg) scale(1.1); }
-    50% { transform: rotate(180deg) scale(1); }
-    75% { transform: rotate(270deg) scale(1.1); }
-    100% { transform: rotate(360deg) scale(1); }
+    0% {
+      transform: rotate(0deg) scale(1);
+    }
+
+    25% {
+      transform: rotate(90deg) scale(1.1);
+    }
+
+    50% {
+      transform: rotate(180deg) scale(1);
+    }
+
+    75% {
+      transform: rotate(270deg) scale(1.1);
+    }
+
+    100% {
+      transform: rotate(360deg) scale(1);
+    }
   }
 
   .rolling {
