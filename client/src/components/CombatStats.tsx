@@ -368,52 +368,54 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves }: 
         </Tooltip>
       </div>
 
-      <Card className="stat-card p-3" data-testid="stat-hit-dice">
-        <div className="flex items-center gap-2 mb-2">
-          <Dice6 className="w-5 h-5 text-accent" />
-          <span className="font-semibold text-sm">Кубики хитов</span>
-          <Badge variant="secondary" className="ml-auto text-xs font-mono">
-            {classData ? classData.hitDice : 'd10'}
-          </Badge>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground font-mono">
-            {character.hitDiceRemaining} / {character.level}
-          </span>
-          {!isEditing && (
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-10 w-10 sm:h-9 sm:w-9"
-                onClick={() => onChange({ hitDiceRemaining: Math.max(0, character.hitDiceRemaining - 1) })}
-                disabled={character.hitDiceRemaining <= 0}
-                data-testid="button-hit-dice-minus"
-              >
-                <Minus className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-10 w-10 sm:h-9 sm:w-9"
-                onClick={() => onChange({ hitDiceRemaining: Math.min(character.level, character.hitDiceRemaining + 1) })}
-                disabled={character.hitDiceRemaining >= character.level}
-                data-testid="button-hit-dice-plus"
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
-        </div>
-      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <HpTracker
+          current={character.currentHp}
+          max={character.maxHp}
+          temp={character.tempHp}
+          onChange={onChange}
+          isEditing={isEditing}
+        />
 
-      <HpTracker
-        current={character.currentHp}
-        max={character.maxHp}
-        temp={character.tempHp}
-        onChange={onChange}
-        isEditing={isEditing}
-      />
+        <Card className="stat-card p-3" data-testid="stat-hit-dice">
+          <div className="flex items-center gap-2 mb-2">
+            <Dice6 className="w-5 h-5 text-accent" />
+            <span className="font-semibold text-sm">Кубики хитов</span>
+            <Badge variant="secondary" className="ml-auto text-xs font-mono">
+              {classData ? classData.hitDice : 'd10'}
+            </Badge>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground font-mono">
+              {character.hitDiceRemaining} / {character.level}
+            </span>
+            {!isEditing && (
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10 sm:h-9 sm:w-9"
+                  onClick={() => onChange({ hitDiceRemaining: Math.max(0, character.hitDiceRemaining - 1) })}
+                  disabled={character.hitDiceRemaining <= 0}
+                  data-testid="button-hit-dice-minus"
+                >
+                  <Minus className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10 sm:h-9 sm:w-9"
+                  onClick={() => onChange({ hitDiceRemaining: Math.min(character.level, character.hitDiceRemaining + 1) })}
+                  disabled={character.hitDiceRemaining >= character.level}
+                  data-testid="button-hit-dice-plus"
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+        </Card>
+      </div>
 
       {!hideDeathSaves && (
         <DeathSavesTracker

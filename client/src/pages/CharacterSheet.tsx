@@ -465,7 +465,7 @@ export default function CharacterSheet() {
                 isEditing={isEditing}
                 hideDeathSaves
               />
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-2 sm:gap-3">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-3">
                 <DeathSavesTracker
                   deathSaves={currentCharacter.deathSaves}
                   onChange={(deathSaves) => handleChange({ deathSaves })}
