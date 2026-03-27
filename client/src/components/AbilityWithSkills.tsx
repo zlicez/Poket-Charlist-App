@@ -13,7 +13,7 @@ import {
   type SkillProficiency,
 } from "@shared/schema";
 import { Star, ChevronDown, ChevronUp } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMediaQuery } from "@/hooks/use-media-query";
 
 interface AbilityWithSkillsProps {
@@ -56,8 +56,16 @@ export function AbilityWithSkills({
   onRollSkill,
   isEditing,
 }: AbilityWithSkillsProps) {
-  const isMobile = !useMediaQuery("(min-width: 640px)");
-  const [isExpanded, setIsExpanded] = useState(!isMobile);
+  const isDesktop = useMediaQuery("(min-width: 640px)");
+  const [isExpanded, setIsExpanded] = useState(true);
+  const initializedRef = useRef(false);
+
+  useEffect(() => {
+    if (!initializedRef.current) {
+      setIsExpanded(isDesktop);
+      initializedRef.current = true;
+    }
+  }, [isDesktop]);
   const racialBonuses = getRacialBonuses(race, subrace);
   const racialBonus = racialBonuses[ability] || 0;
   const totalScore = baseScore + racialBonus + customBonus;

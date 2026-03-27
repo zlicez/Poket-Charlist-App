@@ -35,7 +35,7 @@ import {
   type Money,
   type Equipment
 } from "@shared/schema";
-import { ArrowLeft, Moon, Sun, Save, StickyNote, User, Users, Flag } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Save, StickyNote, User, Users, Flag, Swords, Shield, Backpack, ScrollText } from "lucide-react";
 
 function deepMerge(target: any, source: any): any {
   const result = { ...target };
@@ -365,6 +365,31 @@ export default function CharacterSheet() {
           </div>
         </div>
       </header>
+
+      <nav className="sticky top-[49px] sm:top-[53px] z-40 bg-background/95 backdrop-blur border-b" data-testid="section-nav">
+        <div className="max-w-6xl mx-auto px-1 sm:px-4 overflow-x-auto scrollbar-hide">
+          <div className="flex gap-0.5 sm:gap-1 py-1">
+            {[
+              { id: "section-abilities", label: "Характеристики", icon: Swords },
+              { id: "section-combat", label: "Бой", icon: Shield },
+              { id: "section-inventory", label: "Инвентарь", icon: Backpack },
+              { id: "section-social", label: "Заметки", icon: ScrollText },
+            ].map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => {
+                  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap"
+                data-testid={`nav-${id}`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </nav>
 
       <main className="max-w-6xl mx-auto p-2 sm:p-4">
         <div className="space-y-3 sm:space-y-4">
