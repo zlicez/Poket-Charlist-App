@@ -35,7 +35,7 @@ import {
   type Money,
   type Equipment
 } from "@shared/schema";
-import { ArrowLeft, Moon, Sun, Save, StickyNote, User, Users, Flag, Swords, Shield, Backpack, ScrollText, Sparkles } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Save, StickyNote, User, Users, Flag, Swords, Shield, Backpack, Sparkles, Crosshair } from "lucide-react";
 
 function deepMerge(target: any, source: any): any {
   const result = { ...target };
@@ -293,7 +293,7 @@ export default function CharacterSheet() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background p-4">
-        <div className="max-w-6xl mx-auto space-y-4">
+        <div className="max-w-7xl mx-auto space-y-4">
           <Skeleton className="h-32 w-full" />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {[...Array(6)].map((_, i) => (
@@ -328,7 +328,7 @@ export default function CharacterSheet() {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
-        <div className="max-w-6xl mx-auto px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between gap-1 sm:gap-2">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between gap-1 sm:gap-2">
           <Button 
             variant="ghost" 
             size="icon" 
@@ -367,13 +367,13 @@ export default function CharacterSheet() {
       </header>
 
       <nav className="sticky top-[49px] sm:top-[53px] z-40 bg-background/95 backdrop-blur border-b" data-testid="section-nav">
-        <div className="max-w-6xl mx-auto px-1 sm:px-4 overflow-x-auto scrollbar-hide">
+        <div className="max-w-7xl mx-auto px-1 sm:px-4 overflow-x-auto scrollbar-hide">
           <div className="flex gap-0.5 sm:gap-1 py-1">
             {[
               { id: "section-abilities", label: "Характеристики", icon: Swords },
               { id: "section-combat", label: "Бой", icon: Shield },
+              { id: "section-equipment", label: "Оружие", icon: Crosshair },
               { id: "section-inventory", label: "Инвентарь", icon: Backpack },
-              { id: "section-social", label: "Заметки", icon: ScrollText },
             ].map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -391,7 +391,7 @@ export default function CharacterSheet() {
         </div>
       </nav>
 
-      <main className="max-w-6xl mx-auto p-2 sm:p-4">
+      <main className="max-w-7xl mx-auto p-2 sm:p-4">
         <div className="space-y-3 sm:space-y-4">
           <CharacterHeader
             character={currentCharacter}
@@ -412,10 +412,10 @@ export default function CharacterSheet() {
             </Card>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-4">
             <div id="section-abilities">
               <div className="section-label">Характеристики и навыки</div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-2 sm:gap-3">
               {ABILITY_NAMES.map((ability) => (
                 <AbilityWithSkills
                   key={ability}
@@ -472,6 +472,10 @@ export default function CharacterSheet() {
                 onRoll={rollSavingThrow}
                 isEditing={isEditing}
               />
+            </div>
+
+            <div className="space-y-2 sm:space-y-3" id="section-equipment">
+              <div className="section-label">Оружие и способности</div>
               <WeaponsList
                 weapons={currentCharacter.weapons}
                 onChange={(weapons) => handleChange({ weapons })}
@@ -512,112 +516,111 @@ export default function CharacterSheet() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4" id="section-inventory">
-            <div className="space-y-2 sm:space-y-3">
-              <div className="section-label">Инвентарь и снаряжение</div>
-              <MoneyBlock
-                money={currentCharacter.money ?? { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }}
-                onChange={(money) => handleChange({ money })}
-                isEditing={isEditing}
-              />
-              <EquipmentSystem
-                equipment={currentCharacter.equipment}
-                onChange={(equipment) => handleChange({ equipment })}
-                isEditing={isEditing}
-                isLocked={currentCharacter.equipmentLocked ?? false}
-                onToggleLock={() => handleChange({ equipmentLocked: !currentCharacter.equipmentLocked })}
-                proficiencyBonus={getProficiencyBonus(currentCharacter.level)}
-              />
-            </div>
-
-            <div className="space-y-2 sm:space-y-3">
-              <div className="section-label">Заметки и описание</div>
-              <Card className="stat-card-tertiary p-2 sm:p-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <StickyNote className="w-4 h-4 text-accent" />
-                  <h3 className="font-semibold text-xs sm:text-sm">Заметки</h3>
-                </div>
-                {isEditing ? (
-                  <Textarea
-                    value={currentCharacter.notes || ""}
-                    onChange={(e) => handleChange({ notes: e.target.value })}
-                    placeholder="Записи о персонаже, квестах..."
-                    rows={6}
-                    className="resize-none text-sm"
-                    data-testid="textarea-notes"
-                  />
-                ) : (
-                  <div className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap min-h-[80px] sm:min-h-[100px]">
-                    {currentCharacter.notes || "Нет заметок"}
-                  </div>
-                )}
-              </Card>
-
-              <Card className="stat-card-tertiary p-2 sm:p-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <User className="w-4 h-4 text-accent" />
-                  <h3 className="font-semibold text-xs sm:text-sm">Внешность</h3>
-                </div>
-                {isEditing ? (
-                  <Textarea
-                    value={currentCharacter.appearance || ""}
-                    onChange={(e) => handleChange({ appearance: e.target.value })}
-                    placeholder="Рост, телосложение, особые приметы..."
-                    rows={3}
-                    className="resize-none text-sm"
-                    data-testid="textarea-appearance"
-                  />
-                ) : (
-                  <div className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap min-h-[40px] sm:min-h-[50px]">
-                    {currentCharacter.appearance || "Нет описания"}
-                  </div>
-                )}
-              </Card>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4" id="section-social">
-            <Card className="stat-card-tertiary p-2 sm:p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Users className="w-4 h-4 text-accent" />
-                <h3 className="font-semibold text-xs sm:text-sm">Союзники</h3>
-              </div>
-              {isEditing ? (
-                <Textarea
-                  value={currentCharacter.allies || ""}
-                  onChange={(e) => handleChange({ allies: e.target.value })}
-                  placeholder="Друзья, союзники..."
-                  rows={3}
-                  className="resize-none text-sm"
-                  data-testid="textarea-allies"
+          <div id="section-inventory">
+            <div className="section-label">Инвентарь и снаряжение</div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-4">
+              <div className="lg:col-span-2 space-y-2 sm:space-y-3">
+                <MoneyBlock
+                  money={currentCharacter.money ?? { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }}
+                  onChange={(money) => handleChange({ money })}
+                  isEditing={isEditing}
                 />
-              ) : (
-                <div className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap min-h-[40px] sm:min-h-[50px]">
-                  {currentCharacter.allies || "Нет записей"}
-                </div>
-              )}
-            </Card>
-
-            <Card className="stat-card-tertiary p-2 sm:p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Flag className="w-4 h-4 text-accent" />
-                <h3 className="font-semibold text-xs sm:text-sm">Фракции</h3>
-              </div>
-              {isEditing ? (
-                <Textarea
-                  value={currentCharacter.factions || ""}
-                  onChange={(e) => handleChange({ factions: e.target.value })}
-                  placeholder="Гильдии, ордены..."
-                  rows={3}
-                  className="resize-none text-sm"
-                  data-testid="textarea-factions"
+                <EquipmentSystem
+                  equipment={currentCharacter.equipment}
+                  onChange={(equipment) => handleChange({ equipment })}
+                  isEditing={isEditing}
+                  isLocked={currentCharacter.equipmentLocked ?? false}
+                  onToggleLock={() => handleChange({ equipmentLocked: !currentCharacter.equipmentLocked })}
+                  proficiencyBonus={getProficiencyBonus(currentCharacter.level)}
                 />
-              ) : (
-                <div className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap min-h-[40px] sm:min-h-[50px]">
-                  {currentCharacter.factions || "Нет записей"}
-                </div>
-              )}
-            </Card>
+              </div>
+
+              <div className="space-y-2 sm:space-y-3">
+                <Card className="stat-card-tertiary p-2 sm:p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <StickyNote className="w-4 h-4 text-accent" />
+                    <h3 className="font-semibold text-xs sm:text-sm">Заметки</h3>
+                  </div>
+                  {isEditing ? (
+                    <Textarea
+                      value={currentCharacter.notes || ""}
+                      onChange={(e) => handleChange({ notes: e.target.value })}
+                      placeholder="Записи о персонаже, квестах..."
+                      rows={6}
+                      className="resize-none text-sm"
+                      data-testid="textarea-notes"
+                    />
+                  ) : (
+                    <div className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap min-h-[80px] sm:min-h-[100px]">
+                      {currentCharacter.notes || "Нет заметок"}
+                    </div>
+                  )}
+                </Card>
+
+                <Card className="stat-card-tertiary p-2 sm:p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <User className="w-4 h-4 text-accent" />
+                    <h3 className="font-semibold text-xs sm:text-sm">Внешность</h3>
+                  </div>
+                  {isEditing ? (
+                    <Textarea
+                      value={currentCharacter.appearance || ""}
+                      onChange={(e) => handleChange({ appearance: e.target.value })}
+                      placeholder="Рост, телосложение, особые приметы..."
+                      rows={3}
+                      className="resize-none text-sm"
+                      data-testid="textarea-appearance"
+                    />
+                  ) : (
+                    <div className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap min-h-[40px] sm:min-h-[50px]">
+                      {currentCharacter.appearance || "Нет описания"}
+                    </div>
+                  )}
+                </Card>
+
+                <Card className="stat-card-tertiary p-2 sm:p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Users className="w-4 h-4 text-accent" />
+                    <h3 className="font-semibold text-xs sm:text-sm">Союзники</h3>
+                  </div>
+                  {isEditing ? (
+                    <Textarea
+                      value={currentCharacter.allies || ""}
+                      onChange={(e) => handleChange({ allies: e.target.value })}
+                      placeholder="Друзья, союзники..."
+                      rows={3}
+                      className="resize-none text-sm"
+                      data-testid="textarea-allies"
+                    />
+                  ) : (
+                    <div className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap min-h-[40px] sm:min-h-[50px]">
+                      {currentCharacter.allies || "Нет записей"}
+                    </div>
+                  )}
+                </Card>
+
+                <Card className="stat-card-tertiary p-2 sm:p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Flag className="w-4 h-4 text-accent" />
+                    <h3 className="font-semibold text-xs sm:text-sm">Фракции</h3>
+                  </div>
+                  {isEditing ? (
+                    <Textarea
+                      value={currentCharacter.factions || ""}
+                      onChange={(e) => handleChange({ factions: e.target.value })}
+                      placeholder="Гильдии, ордены..."
+                      rows={3}
+                      className="resize-none text-sm"
+                      data-testid="textarea-factions"
+                    />
+                  ) : (
+                    <div className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap min-h-[40px] sm:min-h-[50px]">
+                      {currentCharacter.factions || "Нет записей"}
+                    </div>
+                  )}
+                </Card>
+              </div>
+            </div>
           </div>
         </div>
       </main>

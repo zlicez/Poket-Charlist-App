@@ -167,6 +167,12 @@ function DeathSavesTracker({
         <div className="flex items-center gap-2">
           <Skull className={`w-5 h-5 ${isDead ? 'text-negative' : isStabilized ? 'text-positive' : 'text-muted-foreground'}`} />
           <span className="font-semibold text-sm">Спасброски от смерти</span>
+          {isStabilized && (
+            <Badge variant="default" className="text-xs h-5 px-1.5 bg-positive text-primary-foreground">Стабилизирован</Badge>
+          )}
+          {isDead && (
+            <Badge variant="default" className="text-xs h-5 px-1.5 bg-negative text-primary-foreground">Мёртв</Badge>
+          )}
         </div>
         {!isEditing && (
           <Button 
@@ -181,12 +187,6 @@ function DeathSavesTracker({
           </Button>
         )}
       </div>
-
-      {(isStabilized || isDead) && (
-        <div className={`text-center text-sm font-semibold mb-3 py-1.5 rounded-md ${isStabilized ? 'bg-positive-muted text-positive' : 'bg-negative-muted text-negative'}`}>
-          {isStabilized ? 'Стабилизирован!' : 'Мёртв'}
-        </div>
-      )}
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">
