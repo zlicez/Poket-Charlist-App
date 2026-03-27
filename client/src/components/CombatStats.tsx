@@ -168,12 +168,11 @@ export function DeathSavesTracker({
         <div className="flex items-center gap-2">
           <Skull className={`w-5 h-5 ${isDead ? 'text-negative' : isStabilized ? 'text-positive' : 'text-muted-foreground'}`} />
           <span className="font-semibold text-sm">Спасброски от смерти</span>
-          {isStabilized && (
-            <Badge variant="default" className="text-xs h-5 px-1.5 bg-positive text-primary-foreground">Стабилизирован</Badge>
-          )}
-          {isDead && (
+          {isDead ? (
             <Badge variant="default" className="text-xs h-5 px-1.5 bg-negative text-primary-foreground">Мёртв</Badge>
-          )}
+          ) : isStabilized ? (
+            <Badge variant="default" className="text-xs h-5 px-1.5 bg-positive text-primary-foreground">Стабилизирован</Badge>
+          ) : null}
         </div>
         {!isEditing && (
           <Button 
