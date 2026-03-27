@@ -482,8 +482,7 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
               {isEditing ? (
                 <>
                   <Play className="w-4 h-4" />
-                  <span className="hidden sm:inline">Режим игры</span>
-                  <span className="sm:hidden">Играть</span>
+                  Играть
                 </>
               ) : (
                 <>
