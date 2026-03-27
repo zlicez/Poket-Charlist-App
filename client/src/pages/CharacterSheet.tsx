@@ -35,7 +35,7 @@ import {
   type Money,
   type Equipment
 } from "@shared/schema";
-import { ArrowLeft, Moon, Sun, Save, StickyNote, User, Users, Flag, Swords, Shield, Backpack, ScrollText } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Save, StickyNote, User, Users, Flag, Swords, Shield, Backpack, ScrollText, Sparkles } from "lucide-react";
 
 function deepMerge(target: any, source: any): any {
   const result = { ...target };
@@ -400,9 +400,22 @@ export default function CharacterSheet() {
             onToggleMode={() => isEditing ? saveChanges() : setIsEditing(true)}
           />
 
+          {!isEditing && currentCharacter.equipment.length === 0 && currentCharacter.weapons.length === 0 && currentCharacter.features.length === 0 && (
+            <Card className="p-3 sm:p-4 border-info/30 bg-info/5" data-testid="new-character-hint">
+              <div className="flex items-start gap-3">
+                <Sparkles className="w-5 h-5 text-info shrink-0 mt-0.5" />
+                <div className="text-sm space-y-1">
+                  <p className="font-medium text-foreground">Новый персонаж? Начните настройку!</p>
+                  <p className="text-muted-foreground">Нажмите «Редактировать» чтобы задать характеристики, добавить оружие и снаряжение.</p>
+                </div>
+              </div>
+            </Card>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-4">
-            <div className="space-y-2 sm:space-y-3" id="section-abilities">
+            <div id="section-abilities">
               <div className="section-label">Характеристики и навыки</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3">
               {ABILITY_NAMES.map((ability) => (
                 <AbilityWithSkills
                   key={ability}
@@ -441,6 +454,7 @@ export default function CharacterSheet() {
                   isEditing={isEditing}
                 />
               ))}
+              </div>
             </div>
 
             <div className="space-y-2 sm:space-y-3" id="section-combat">

@@ -259,9 +259,9 @@ export function WeaponsList({
                   <div className="flex items-center gap-1.5">
                     <Backpack className="w-3 h-3 text-accent shrink-0" />
                     <span className="font-medium text-sm truncate text-accent">{weapon.name}</span>
-                    <Badge variant="outline" className="text-xs h-4 px-1">{abilityLabel}</Badge>
-                    {weapon.isFinesse && <Badge variant="secondary" className="text-xs h-4 px-1">Фехт.</Badge>}
-                    {isProficient && <Badge variant="default" className="text-xs h-4 px-1 bg-positive text-primary-foreground">Влад.</Badge>}
+                    <span className="text-xs text-muted-foreground">
+                      {abilityLabel}{weapon.isFinesse ? " • фехт." : ""}{isProficient ? " • влад." : ""}
+                    </span>
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {weapon.damage}{damageModStr} {weapon.damageType}
@@ -323,9 +323,9 @@ export function WeaponsList({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="font-medium text-sm truncate">{weapon.name}</span>
-                    <Badge variant="outline" className="text-xs h-4 px-1">{abilityLabel}</Badge>
-                    {weapon.isFinesse && <Badge variant="secondary" className="text-xs h-4 px-1">Фехт.</Badge>}
-                    {isProficient && <Badge variant="default" className="text-xs h-4 px-1 bg-positive text-primary-foreground">Влад.</Badge>}
+                    <span className="text-xs text-muted-foreground">
+                      {abilityLabel}{weapon.isFinesse ? " • фехт." : ""}{isProficient ? " • влад." : ""}
+                    </span>
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {weapon.damage}{damageModStr} {weapon.damageType}
