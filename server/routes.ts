@@ -135,7 +135,7 @@ export async function registerRoutes(
       if (!character) {
         return res.status(404).json({ error: "Shared character not found" });
       }
-      const { userId: _userId, ...safeCharacter } = character;
+      const { userId: _userId, notes: _notes, ...safeCharacter } = character;
       res.json(safeCharacter);
     } catch (error) {
       console.error("Error fetching shared character:", error);
