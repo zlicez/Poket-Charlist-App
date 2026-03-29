@@ -77,30 +77,30 @@ export function AbilityWithSkills({
   };
 
   return (
-    <Card className="stat-card p-3">
-      <div className="flex items-stretch gap-3">
+    <Card className="stat-card p-3 flex flex-col h-full">
+      <div className="flex items-stretch gap-3 flex-1">
         <Tooltip>
           <TooltipTrigger asChild>
             <div
               className={`
                 flex flex-col items-center justify-center
-                min-w-[72px] sm:min-w-[80px]
-                py-2 px-2 rounded-lg
+                w-[76px] sm:w-[84px] shrink-0
+                py-3 px-2 rounded-lg
                 ability-block
                 ${!isEditing ? 'cursor-pointer hover-elevate' : ''}
               `}
               onClick={() => !isEditing && onRollAbility()}
               data-testid={`ability-${ability.toLowerCase()}`}
             >
-              <div className="text-xs font-bold text-ability-text uppercase tracking-wide">
+              <div className="text-[11px] font-bold text-ability-text uppercase tracking-wider">
                 {ability}
               </div>
-              <div className="text-xs text-ability-label">
+              <div className="text-[11px] text-ability-label leading-tight">
                 {label.ru}
               </div>
               
               {isEditing ? (
-                <div className="mt-1 space-y-1">
+                <div className="mt-1.5 space-y-1">
                   <Input
                     type="number"
                     inputMode="numeric"
@@ -127,11 +127,11 @@ export function AbilityWithSkills({
                 </div>
               ) : (
                 <>
-                  <div className="text-2xl sm:text-3xl font-bold text-ability-score font-mono">
+                  <div className="text-2xl font-bold text-ability-score font-mono mt-1">
                     {totalScore}
                   </div>
                   <div className={`
-                    text-base sm:text-lg font-bold font-mono px-2 py-0.5 rounded-full
+                    text-sm font-bold font-mono px-2.5 py-0.5 rounded-full mt-0.5
                     ${modifier >= 0 
                       ? 'text-positive bg-positive-muted' 
                       : 'text-negative bg-negative-muted'
@@ -140,11 +140,9 @@ export function AbilityWithSkills({
                     {formatModifier(modifier)}
                   </div>
                   {racialBonus > 0 && (
-                    <div className="flex flex-wrap gap-0.5 mt-1 justify-center">
-                      <Badge variant="secondary" className="text-xs px-1 py-0 h-4">
-                        +{racialBonus}
-                      </Badge>
-                    </div>
+                    <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4 mt-1">
+                      +{racialBonus}
+                    </Badge>
                   )}
                 </>
               )}
@@ -156,14 +154,14 @@ export function AbilityWithSkills({
           </TooltipContent>
         </Tooltip>
 
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 flex flex-col">
           <button
             type="button"
             className="flex items-center gap-1 w-full text-left mb-1 sm:hidden min-h-[36px]"
             onClick={() => setIsExpanded(!isExpanded)}
             data-testid={`toggle-skills-${ability.toLowerCase()}`}
           >
-            <span className="text-xs text-muted-foreground uppercase tracking-wide">Навыки</span>
+            <span className="text-xs text-muted-foreground uppercase tracking-wide">Навыки ({relatedSkills.length})</span>
             {isExpanded ? (
               <ChevronUp className="w-3 h-3 text-muted-foreground" />
             ) : (
@@ -171,7 +169,7 @@ export function AbilityWithSkills({
             )}
           </button>
 
-          <div className={`space-y-0.5 ${!isExpanded ? 'hidden sm:block' : ''}`}>
+          <div className={`space-y-0.5 flex-1 ${!isExpanded ? 'hidden sm:block' : ''}`}>
             {relatedSkills.map((skill) => {
               const proficiency = skills[skill.name] || { proficient: false, expertise: false };
               let skillBonus = modifier;
@@ -187,7 +185,7 @@ export function AbilityWithSkills({
                   className={`
                     flex items-center gap-2 
                     py-1.5 px-2 rounded
-                    min-h-[40px] sm:min-h-0
+                    min-h-[40px] sm:min-h-[28px]
                     ${!isEditing ? 'cursor-pointer active:bg-ability-proficient-bg' : ''}
                     ${proficiency.proficient ? 'bg-ability-proficient-bg' : ''}
                   `}
@@ -235,6 +233,11 @@ export function AbilityWithSkills({
                 </div>
               );
             })}
+            {relatedSkills.length === 0 && (
+              <div className="flex items-center justify-center h-full text-xs text-muted-foreground italic py-2">
+                Нет связанных навыков
+              </div>
+            )}
           </div>
         </div>
       </div>

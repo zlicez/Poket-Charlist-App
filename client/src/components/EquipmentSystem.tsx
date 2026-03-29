@@ -63,13 +63,13 @@ interface EquipmentSystemProps {
 }
 
 const CATEGORY_ICONS: Record<EquipmentCategory, React.ReactNode> = {
-  weapon: <Sword className="w-4 h-4" />,
-  armor: <Shield className="w-4 h-4" />,
-  food: <Apple className="w-4 h-4" />,
-  potion: <FlaskConical className="w-4 h-4" />,
-  tool: <Wrench className="w-4 h-4" />,
-  misc: <Package className="w-4 h-4" />,
-  trash: <Trash className="w-4 h-4" />,
+  weapon: <Sword className="w-3.5 h-3.5 sm:w-4 sm:h-4" />,
+  armor: <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4" />,
+  food: <Apple className="w-3.5 h-3.5 sm:w-4 sm:h-4" />,
+  potion: <FlaskConical className="w-3.5 h-3.5 sm:w-4 sm:h-4" />,
+  tool: <Wrench className="w-3.5 h-3.5 sm:w-4 sm:h-4" />,
+  misc: <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4" />,
+  trash: <Trash className="w-3.5 h-3.5 sm:w-4 sm:h-4" />,
 };
 
 const CATEGORY_ITEMS: Record<EquipmentCategory, BaseEquipmentItem[]> = {
@@ -458,24 +458,24 @@ function SortableEquipmentItem({
     <div 
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-2 py-1.5 px-2 rounded-md ${item.equipped ? 'bg-accent/10' : 'hover-elevate'} ${isDragging ? 'z-50' : ''}`}
+      className={`flex items-center gap-1.5 sm:gap-2 py-1.5 px-1.5 sm:px-2 rounded-md ${item.equipped ? 'bg-accent/10' : 'hover-elevate'} ${isDragging ? 'z-50' : ''}`}
       data-testid={`equipment-item-${index}`}
     >
       {canReorder && (
         <button
           {...attributes}
           {...listeners}
-          className="cursor-grab active:cursor-grabbing p-1 text-muted-foreground hover:text-foreground touch-none min-w-[36px] min-h-[36px] flex items-center justify-center"
+          className="cursor-grab active:cursor-grabbing p-0.5 text-muted-foreground hover:text-foreground touch-none min-w-[32px] min-h-[36px] flex items-center justify-center shrink-0"
           data-testid={`drag-handle-${index}`}
         >
-          <GripVertical className="w-4 h-4" />
+          <GripVertical className="w-3.5 h-3.5" />
         </button>
       )}
       {isEquippable && (
         <Button
           variant="ghost"
           size="icon"
-          className={`h-9 w-9 sm:h-7 sm:w-7 ${item.equipped ? 'text-accent' : 'text-muted-foreground'}`}
+          className={`h-8 w-8 sm:h-7 sm:w-7 shrink-0 ${item.equipped ? 'text-accent' : 'text-muted-foreground'}`}
           onClick={onToggleEquip}
           data-testid={`button-equip-${index}`}
         >
@@ -488,22 +488,22 @@ function SortableEquipmentItem({
       )}
 
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className={`text-sm font-medium ${item.equipped ? 'text-accent' : ''}`}>
+        <div className="flex items-center gap-1 flex-wrap">
+          <span className={`text-xs sm:text-sm font-medium truncate ${item.equipped ? 'text-accent' : ''}`}>
             {item.name}
           </span>
           {item.quantity > 1 && (
-            <Badge variant="secondary" className="text-xs h-5">x{item.quantity}</Badge>
+            <Badge variant="secondary" className="text-[10px] sm:text-xs h-4 sm:h-5 px-1">x{item.quantity}</Badge>
           )}
           {item.isArmor && (
-            <Badge variant="outline" className="text-xs h-5">КД {item.armorBaseAC}</Badge>
+            <Badge variant="outline" className="text-[10px] sm:text-xs h-4 sm:h-5 px-1 hidden sm:inline-flex">КД {item.armorBaseAC}</Badge>
           )}
           {item.isWeapon && (
-            <Badge variant="outline" className="text-xs h-5">{item.damage}</Badge>
+            <Badge variant="outline" className="text-[10px] sm:text-xs h-4 sm:h-5 px-1 hidden sm:inline-flex">{item.damage}</Badge>
           )}
         </div>
         {(item.description || item.weaponProperties || item.damageType) && (
-          <div className="text-xs text-muted-foreground truncate">
+          <div className="text-[10px] sm:text-xs text-muted-foreground truncate">
             {item.isWeapon && item.damageType && <span>{item.damageType}</span>}
             {item.weaponProperties && <span> • {item.weaponProperties}</span>}
             {!item.isWeapon && item.description && <span>{item.description}</span>}
@@ -512,30 +512,30 @@ function SortableEquipmentItem({
       </div>
 
       {item.weight !== undefined && (
-        <span className="text-xs text-muted-foreground shrink-0">
+        <span className="text-[10px] sm:text-xs text-muted-foreground shrink-0 hidden sm:inline">
           {(item.weight * item.quantity).toFixed(1)}ф
         </span>
       )}
 
       {!isEditing && !isEquippable && (
-        <div className="flex items-center">
+        <div className="flex items-center shrink-0">
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-9 w-9 sm:h-7 sm:w-7"
+            className="h-8 w-8 sm:h-7 sm:w-7"
             onClick={() => onUpdateQuantity(-1)}
             data-testid={`button-qty-minus-${index}`}
           >
-            <Minus className="w-4 h-4 sm:w-3 sm:h-3" />
+            <Minus className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
           </Button>
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-9 w-9 sm:h-7 sm:w-7"
+            className="h-8 w-8 sm:h-7 sm:w-7"
             onClick={() => onUpdateQuantity(1)}
             data-testid={`button-qty-plus-${index}`}
           >
-            <Plus className="w-4 h-4 sm:w-3 sm:h-3" />
+            <Plus className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
           </Button>
         </div>
       )}
@@ -544,11 +544,11 @@ function SortableEquipmentItem({
         <Button 
           variant="ghost" 
           size="icon" 
-          className="h-9 w-9 sm:h-7 sm:w-7 text-destructive shrink-0"
+          className="h-8 w-8 sm:h-7 sm:w-7 text-destructive shrink-0"
           onClick={onRemove}
           data-testid={`button-remove-${index}`}
         >
-          <Trash2 className="w-4 h-4 sm:w-3 sm:h-3" />
+          <Trash2 className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
         </Button>
       )}
     </div>
@@ -722,16 +722,16 @@ export function EquipmentSystem({
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
         <div className="overflow-x-auto scrollbar-hide -mx-2 px-2 sm:mx-0 sm:px-0">
-          <TabsList className="w-max sm:w-full h-auto p-1 mb-2 flex gap-0.5">
+          <TabsList className="w-max sm:w-full h-auto p-0.5 sm:p-1 mb-2 flex gap-0">
             <TabsTrigger 
               value="all"
-              className="px-2 py-1.5 sm:flex-1 min-w-0 min-h-[40px] sm:min-h-0 text-xs gap-1 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
+              className="px-1.5 sm:px-2 py-1.5 sm:flex-1 min-w-[36px] sm:min-w-0 min-h-[40px] sm:min-h-0 text-[11px] sm:text-xs gap-0.5 sm:gap-1 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
               data-testid="tab-all"
             >
-              <Backpack className="w-4 h-4" />
+              <Backpack className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span className="hidden sm:inline">Всё</span>
               {equipment.length > 0 && (
-                <Badge variant="outline" className="h-4 px-1 text-xs ml-0.5">
+                <Badge variant="outline" className="h-4 px-1 text-[10px] sm:text-xs ml-0.5 hidden sm:inline-flex">
                   {equipment.reduce((sum, e) => sum + e.quantity, 0)}
                 </Badge>
               )}
@@ -740,13 +740,13 @@ export function EquipmentSystem({
               <TabsTrigger 
                 key={cat} 
                 value={cat}
-                className="px-2 py-1.5 sm:flex-1 min-w-0 min-h-[40px] sm:min-h-0 text-xs gap-1 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
+                className="px-1.5 sm:px-2 py-1.5 sm:flex-1 min-w-[36px] sm:min-w-0 min-h-[40px] sm:min-h-0 text-[11px] sm:text-xs gap-0.5 sm:gap-1 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
                 data-testid={`tab-${cat}`}
               >
                 {CATEGORY_ICONS[cat]}
                 <span className="hidden sm:inline">{CATEGORY_LABELS[cat]}</span>
                 {categoryCounts[cat] > 0 && (
-                  <Badge variant="outline" className="h-4 px-1 text-xs ml-0.5">
+                  <Badge variant="outline" className="h-4 px-1 text-[10px] sm:text-xs ml-0.5 hidden sm:inline-flex">
                     {categoryCounts[cat]}
                   </Badge>
                 )}
