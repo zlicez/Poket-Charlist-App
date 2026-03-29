@@ -564,14 +564,16 @@ export default function CharacterSheet() {
             </div>
           </div>
 
-          <div id="section-spells">
-            <div className="section-label">Заклинания</div>
-            <SpellsSection
-              character={currentCharacter}
-              onChange={handleChange}
-              isEditing={isEditing}
-            />
-          </div>
+          {(isEditing || currentCharacter.spellcasting) && (
+            <div id="section-spells">
+              <div className="section-label">Заклинания</div>
+              <SpellsSection
+                character={currentCharacter}
+                onChange={handleChange}
+                isEditing={isEditing}
+              />
+            </div>
+          )}
 
           <div id="section-inventory">
             <div className="section-label">Инвентарь и снаряжение</div>

@@ -299,7 +299,6 @@ function SpellCard({
           <Checkbox
             checked={spell.prepared}
             onCheckedChange={() => onTogglePrepared()}
-            disabled={isEditing}
             className="shrink-0"
             data-testid={`checkbox-spell-prepared-${spell.id}`}
           />
