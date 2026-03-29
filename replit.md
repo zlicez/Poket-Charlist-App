@@ -86,7 +86,14 @@ server/
     └── storage.ts             # Users table CRUD
 
 shared/
-├── schema.ts                  # DB schema, types, Zod schemas, D&D 5e data (1087 lines)
+├── schema.ts                  # DB table + re-exports from all modules
+├── data/
+│   ├── d5e-constants.ts       # Abilities, skills, alignments, XP, proficiency lists, languages
+│   ├── d5e-classes.ts         # ClassData interface + CLASS_DATA + CLASSES
+│   ├── d5e-races.ts           # RaceData interface + RACE_DATA + RACES
+│   └── d5e-equipment.ts       # Armor, equipment categories, base equipment catalogs
+├── types/
+│   └── character-types.ts     # Zod schemas, Character type, helper functions, defaults
 └── models/auth.ts             # users + sessions table schemas
 ```
 
