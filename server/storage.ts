@@ -35,6 +35,10 @@ export interface IStorage {
   createCharacter(character: InsertCharacter, userId: string): Promise<Character>;
   updateCharacter(id: string, userId: string, updates: Partial<Character>): Promise<Character | undefined>;
   deleteCharacter(id: string, userId: string): Promise<boolean>;
+  enableSharing(id: string, userId: string): Promise<{ shareToken: string } | undefined>;
+  disableSharing(id: string, userId: string): Promise<boolean>;
+  getShareInfo(id: string, userId: string): Promise<{ shareToken: string | null; isShared: boolean } | undefined>;
+  getCharacterByShareToken(token: string): Promise<Character | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -110,10 +114,56 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return result.length > 0;
   }
+
+  async enableSharing(id: string, userId: string): Promise<{ shareToken: string } | undefined> {
+    const [row] = await db.select({ shareToken: characters.shareToken, isShared: characters.isShared })
+      .from(characters)
+      .where(and(eq(characters.id, id), eq(characters.userId, userId)));
+    if (!row) return undefined;
+
+    if (row.isShared && row.shareToken) {
+      return { shareToken: row.shareToken };
+    }
+
+    const token = randomUUID();
+    await db.update(characters)
+      .set({ shareToken: token, isShared: true })
+      .where(and(eq(characters.id, id), eq(characters.userId, userId)));
+    return { shareToken: token };
+  }
+
+  async disableSharing(id: string, userId: string): Promise<boolean> {
+    const result = await db.update(characters)
+      .set({ isShared: false, shareToken: null })
+      .where(and(eq(characters.id, id), eq(characters.userId, userId)))
+      .returning();
+    return result.length > 0;
+  }
+
+  async getShareInfo(id: string, userId: string): Promise<{ shareToken: string | null; isShared: boolean } | undefined> {
+    const [row] = await db.select({ shareToken: characters.shareToken, isShared: characters.isShared })
+      .from(characters)
+      .where(and(eq(characters.id, id), eq(characters.userId, userId)));
+    if (!row) return undefined;
+    return { shareToken: row.shareToken, isShared: row.isShared };
+  }
+
+  async getCharacterByShareToken(token: string): Promise<Character | undefined> {
+    const [row] = await db.select().from(characters)
+      .where(and(eq(characters.shareToken, token), eq(characters.isShared, true)));
+    if (!row) return undefined;
+    return {
+      id: row.id,
+      userId: row.userId,
+      ...(row.data as object),
+    } as Character;
+  }
 }
 
 class MemStorage implements IStorage {
   private chars = new Map<string, Character>();
+  private shareTokens = new Map<string, { charId: string; isShared: boolean }>();
+  private charTokenMap = new Map<string, string>();
 
   async getCharacters(userId: string): Promise<Character[]> {
     return Array.from(this.chars.values()).filter(c => c.userId === userId);
@@ -149,7 +199,50 @@ class MemStorage implements IStorage {
     const c = this.chars.get(id);
     if (!c || c.userId !== userId) return false;
     this.chars.delete(id);
+    const token = this.charTokenMap.get(id);
+    if (token) {
+      this.shareTokens.delete(token);
+      this.charTokenMap.delete(id);
+    }
     return true;
+  }
+
+  async enableSharing(id: string, userId: string): Promise<{ shareToken: string } | undefined> {
+    const c = this.chars.get(id);
+    if (!c || c.userId !== userId) return undefined;
+    const existingToken = this.charTokenMap.get(id);
+    if (existingToken && this.shareTokens.get(existingToken)?.isShared) {
+      return { shareToken: existingToken };
+    }
+    const token = existingToken || randomUUID();
+    this.shareTokens.set(token, { charId: id, isShared: true });
+    this.charTokenMap.set(id, token);
+    return { shareToken: token };
+  }
+
+  async disableSharing(id: string, userId: string): Promise<boolean> {
+    const c = this.chars.get(id);
+    if (!c || c.userId !== userId) return false;
+    const token = this.charTokenMap.get(id);
+    if (token) {
+      this.shareTokens.delete(token);
+      this.charTokenMap.delete(id);
+    }
+    return true;
+  }
+
+  async getShareInfo(id: string, userId: string): Promise<{ shareToken: string | null; isShared: boolean } | undefined> {
+    const c = this.chars.get(id);
+    if (!c || c.userId !== userId) return undefined;
+    const token = this.charTokenMap.get(id);
+    const info = token ? this.shareTokens.get(token) : undefined;
+    return { shareToken: token || null, isShared: info?.isShared || false };
+  }
+
+  async getCharacterByShareToken(token: string): Promise<Character | undefined> {
+    const info = this.shareTokens.get(token);
+    if (!info || !info.isShared) return undefined;
+    return this.chars.get(info.charId);
   }
 }
 

@@ -1,4 +1,4 @@
-import { pgTable, varchar, jsonb, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, varchar, jsonb, timestamp, boolean } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 export * from "./models/auth";
@@ -14,6 +14,8 @@ export const characters = pgTable("characters", {
   userId: varchar("user_id").notNull(),
   name: varchar("name").notNull(),
   data: jsonb("data").notNull(),
+  shareToken: varchar("share_token").unique(),
+  isShared: boolean("is_shared").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

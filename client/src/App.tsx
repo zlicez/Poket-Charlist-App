@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import CharactersList from "@/pages/CharactersList";
 import CharacterSheet from "@/pages/CharacterSheet";
+import SharedCharacterSheet from "@/pages/SharedCharacterSheet";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -13,6 +14,7 @@ function Router() {
     <Switch>
       <Route path="/" component={CharactersList} />
       <Route path="/character/:id" component={CharacterSheet} />
+      <Route path="/shared/:token" component={SharedCharacterSheet} />
       <Route component={NotFound} />
     </Switch>
   );

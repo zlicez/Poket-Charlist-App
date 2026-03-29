@@ -87,5 +87,61 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/characters/:id/share", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const info = await storage.getShareInfo(req.params.id, userId);
+      if (!info) {
+        return res.status(404).json({ error: "Character not found" });
+      }
+      res.json(info);
+    } catch (error) {
+      console.error("Error getting share info:", error);
+      res.status(500).json({ error: "Failed to get share info" });
+    }
+  });
+
+  app.post("/api/characters/:id/share", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const result = await storage.enableSharing(req.params.id, userId);
+      if (!result) {
+        return res.status(404).json({ error: "Character not found" });
+      }
+      res.json(result);
+    } catch (error) {
+      console.error("Error enabling sharing:", error);
+      res.status(500).json({ error: "Failed to enable sharing" });
+    }
+  });
+
+  app.delete("/api/characters/:id/share", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const disabled = await storage.disableSharing(req.params.id, userId);
+      if (!disabled) {
+        return res.status(404).json({ error: "Character not found" });
+      }
+      res.json({ isShared: false, shareToken: null });
+    } catch (error) {
+      console.error("Error disabling sharing:", error);
+      res.status(500).json({ error: "Failed to disable sharing" });
+    }
+  });
+
+  app.get("/api/shared/:token", async (req, res) => {
+    try {
+      const character = await storage.getCharacterByShareToken(req.params.token);
+      if (!character) {
+        return res.status(404).json({ error: "Shared character not found" });
+      }
+      const { userId: _userId, ...safeCharacter } = character;
+      res.json(safeCharacter);
+    } catch (error) {
+      console.error("Error fetching shared character:", error);
+      res.status(500).json({ error: "Failed to fetch shared character" });
+    }
+  });
+
   return httpServer;
 }

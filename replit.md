@@ -28,6 +28,7 @@ A web application for managing Dungeons & Dragons 5th Edition character sheets. 
 - **Auto-fill Proficiencies**: Weapon, armor, tool, and language proficiencies auto-populated from race/class/subrace
 - **Proficiency Styling**: Auto-filled (secondary badges with tooltips) vs user-added (outline badges, removable)
 - **Export/Import**: Export character to PDF (multi-page, Cyrillic, jsPDF) or JSON (with format versioning); Import from Long Story Short JSON or Pocket Charlist JSON with auto-format detection
+- **Character Sharing**: Generate public read-only link for a character; toggle sharing on/off; shared page at `/shared/:token` shows full character sheet without auth; userId excluded from public response
 - **User Authentication**: Login via Google or email with Replit Auth (OIDC)
 - **Persistent Storage**: Characters saved in PostgreSQL database per user with deep merge updates
 
@@ -77,6 +78,7 @@ client/src/
 ├── pages/
 │   ├── CharacterSheet.tsx     # Main character sheet (layout: header+HP+death saves → 3-col grid → inventory)
 │   ├── CharactersList.tsx     # Character list + landing page
+│   ├── SharedCharacterSheet.tsx # Public read-only character view at /shared/:token
 │   └── not-found.tsx          # 404 page
 └── App.tsx                    # Root with routing (Wouter)
 
@@ -127,6 +129,10 @@ shared/
 - `POST /api/characters` - Create new character
 - `PATCH /api/characters/:id` - Update character (deep merge)
 - `DELETE /api/characters/:id` - Delete character
+- `GET /api/characters/:id/share` - Get share info (token, isShared)
+- `POST /api/characters/:id/share` - Enable sharing (generates token)
+- `DELETE /api/characters/:id/share` - Disable sharing (clears token)
+- `GET /api/shared/:token` - Get shared character (no auth, excludes userId)
 - `GET /api/auth/user` - Current user info
 - `GET /api/login` - Redirect to OIDC
 - `GET /api/callback` - OIDC callback

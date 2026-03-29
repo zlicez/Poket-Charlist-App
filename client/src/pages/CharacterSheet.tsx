@@ -47,7 +47,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { exportCharacterToJSON } from "@/lib/json-export";
 import { exportCharacterToPDF } from "@/lib/pdf-export";
-import { ArrowLeft, Moon, Sun, Save, Edit2, X, StickyNote, User, Users, Flag, Swords, Shield, Backpack, Sparkles, Crosshair, BookOpen, Download, FileText, FileJson } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { ArrowLeft, Moon, Sun, Save, Edit2, X, StickyNote, User, Users, Flag, Swords, Shield, Backpack, Sparkles, Crosshair, BookOpen, Download, FileText, FileJson, Share2, Copy, Check, Link } from "lucide-react";
 
 function deepMerge(target: any, source: any): any {
   const result = { ...target };
@@ -82,6 +91,8 @@ export default function CharacterSheet() {
   const [rollHistory, setRollHistory] = useState<DiceRoll[]>([]);
   const [localChanges, setLocalChanges] = useState<Partial<Character>>({});
   const [newCharHintVisible, setNewCharHintVisible] = useState(true);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -131,6 +142,56 @@ export default function CharacterSheet() {
       isSavingRef.current = false;
     },
   });
+
+  const shareQuery = useQuery<{ shareToken: string | null; isShared: boolean }>({
+    queryKey: ['/api/characters', id, 'share'],
+    enabled: !!id && isAuthenticated,
+  });
+
+  const enableShareMutation = useMutation({
+    mutationFn: () => apiRequest('POST', `/api/characters/${id}/share`),
+    onSuccess: async (res) => {
+      const data = await res.json();
+      queryClient.setQueryData(['/api/characters', id, 'share'], { shareToken: data.shareToken, isShared: true });
+    },
+    onError: () => {
+      toast({ title: "Ошибка", description: "Не удалось включить общий доступ", variant: "destructive" });
+    },
+  });
+
+  const disableShareMutation = useMutation({
+    mutationFn: () => apiRequest('DELETE', `/api/characters/${id}/share`),
+    onSuccess: () => {
+      queryClient.setQueryData(['/api/characters', id, 'share'], { shareToken: null, isShared: false });
+    },
+    onError: () => {
+      toast({ title: "Ошибка", description: "Не удалось отключить общий доступ", variant: "destructive" });
+    },
+  });
+
+  const shareUrl = shareQuery.data?.shareToken
+    ? `${window.location.origin}/shared/${shareQuery.data.shareToken}`
+    : null;
+
+  const handleCopyShareLink = async () => {
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast({ title: "Ссылка скопирована" });
+    } catch {
+      toast({ title: "Не удалось скопировать", variant: "destructive" });
+    }
+  };
+
+  const handleToggleShare = (enabled: boolean) => {
+    if (enabled) {
+      enableShareMutation.mutate();
+    } else {
+      disableShareMutation.mutate();
+    }
+  };
 
   const flushPendingChanges = useCallback(() => {
     if (Object.keys(pendingChangesRef.current).length > 0 && !isSavingRef.current) {
@@ -413,6 +474,14 @@ export default function CharacterSheet() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsShareDialogOpen(true)}
+              data-testid="button-share"
+            >
+              <Share2 className="w-5 h-5" />
+            </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -734,6 +803,56 @@ export default function CharacterSheet() {
         rollHistory={rollHistory}
         onClearHistory={() => setRollHistory([])}
       />
+
+      <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Поделиться персонажем</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="share-toggle" className="text-sm">
+                Общий доступ по ссылке
+              </Label>
+              <Switch
+                id="share-toggle"
+                checked={shareQuery.data?.isShared || false}
+                onCheckedChange={handleToggleShare}
+                disabled={enableShareMutation.isPending || disableShareMutation.isPending}
+                data-testid="switch-share-toggle"
+              />
+            </div>
+            {shareQuery.data?.isShared && shareUrl && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  Любой, у кого есть эта ссылка, сможет просматривать лист персонажа (без возможности редактирования).
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    value={shareUrl}
+                    readOnly
+                    className="text-xs"
+                    data-testid="input-share-url"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleCopyShareLink}
+                    data-testid="button-copy-share-link"
+                  >
+                    {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+            )}
+            {!shareQuery.data?.isShared && (
+              <p className="text-xs text-muted-foreground">
+                Включите общий доступ, чтобы получить ссылку для просмотра листа персонажа.
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
