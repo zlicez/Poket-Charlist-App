@@ -266,9 +266,14 @@ export function CharacterHeader({ character, onChange, isEditing }: CharacterHea
         hitDice: `${character.level}${newClassData.hitDice}`,
         savingThrows,
       };
-      if (newClassData.spellcastingAbility && character.spellcasting) {
+      if (newClassData.spellcastingAbility) {
+        const existingSpellcasting = character.spellcasting ?? {
+          ability: newClassData.spellcastingAbility,
+          spellSlots: Array.from({ length: 9 }, () => ({ max: 0, used: 0 })),
+          spells: [],
+        };
         updates.spellcasting = {
-          ...character.spellcasting,
+          ...existingSpellcasting,
           ability: newClassData.spellcastingAbility,
         };
       }

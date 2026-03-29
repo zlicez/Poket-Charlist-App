@@ -24,6 +24,7 @@ import {
   ABILITY_NAMES, 
   ABILITY_LABELS,
   SKILLS_BY_ABILITY,
+  CLASS_DATA,
   calculateModifier, 
   getProficiencyBonus,
   formatModifier,
@@ -564,7 +565,7 @@ export default function CharacterSheet() {
             </div>
           </div>
 
-          {(isEditing || currentCharacter.spellcasting) && (
+          {(isEditing || currentCharacter.spellcasting || CLASS_DATA[currentCharacter.class]?.spellcastingAbility) && (
             <div id="section-spells">
               <div className="section-label">Заклинания</div>
               <SpellsSection

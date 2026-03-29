@@ -583,7 +583,8 @@ export function SpellsSection({ character, onChange, isEditing }: SpellsSectionP
   const hasAnySlots = spellcasting.spellSlots.some((s) => s.max > 0);
   const hasAnySpells = spellcasting.spells.length > 0;
 
-  if (!hasAnySlots && !hasAnySpells && !isEditing) {
+  const isCasterClass = !!classSpellAbility;
+  if (!hasAnySlots && !hasAnySpells && !isEditing && !isCasterClass) {
     return null;
   }
 
