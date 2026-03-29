@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/responsive-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  BookOpen, Plus, Trash2, ChevronDown, ChevronRight, Flame,
+  BookOpen, Plus, Trash2, ChevronDown, ChevronRight, Edit2,
   Clock, Ruler, Sparkles, Eye, Target, Wand2,
 } from "lucide-react";
 import {
@@ -274,16 +274,136 @@ function SpellSlotTracker({
   );
 }
 
+function EditSpellDialog({
+  spell,
+  onSave,
+  trigger,
+}: {
+  spell: Spell;
+  onSave: (updated: Spell) => void;
+  trigger: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(spell.name);
+  const [level, setLevel] = useState(spell.level);
+  const [castingTime, setCastingTime] = useState(spell.castingTime);
+  const [range, setRange] = useState(spell.range);
+  const [components, setComponents] = useState(spell.components);
+  const [duration, setDuration] = useState(spell.duration || "");
+  const [concentration, setConcentration] = useState(spell.concentration);
+  const [ritual, setRitual] = useState(spell.ritual);
+  const [description, setDescription] = useState(spell.description);
+
+  const handleOpen = (isOpen: boolean) => {
+    if (isOpen) {
+      setName(spell.name);
+      setLevel(spell.level);
+      setCastingTime(spell.castingTime);
+      setRange(spell.range);
+      setComponents(spell.components);
+      setDuration(spell.duration || "");
+      setConcentration(spell.concentration);
+      setRitual(spell.ritual);
+      setDescription(spell.description);
+    }
+    setOpen(isOpen);
+  };
+
+  const handleSubmit = () => {
+    if (!name.trim()) return;
+    onSave({
+      ...spell,
+      name,
+      level,
+      castingTime,
+      range,
+      components,
+      duration,
+      concentration,
+      ritual,
+      description,
+    });
+    setOpen(false);
+  };
+
+  return (
+    <ResponsiveDialog open={open} onOpenChange={handleOpen}>
+      <ResponsiveDialogTrigger asChild>{trigger}</ResponsiveDialogTrigger>
+      <ResponsiveDialogContent>
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle>Редактировать заклинание</ResponsiveDialogTitle>
+        </ResponsiveDialogHeader>
+        <div className="space-y-3 p-4">
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Название *</label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} className="h-10" data-testid="input-edit-spell-name" />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Уровень</label>
+              <Select value={String(level)} onValueChange={(v) => setLevel(Number(v))}>
+                <SelectTrigger className="h-10" data-testid="select-edit-spell-level"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 10 }, (_, i) => (
+                    <SelectItem key={i} value={String(i)}>{i === 0 ? "Заговор" : `${i} уровень`}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Время сотворения</label>
+              <Input value={castingTime} onChange={(e) => setCastingTime(e.target.value)} className="h-10" data-testid="input-edit-spell-casting-time" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Дистанция</label>
+              <Input value={range} onChange={(e) => setRange(e.target.value)} className="h-10" data-testid="input-edit-spell-range" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Компоненты</label>
+              <Input value={components} onChange={(e) => setComponents(e.target.value)} className="h-10" data-testid="input-edit-spell-components" />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Длительность</label>
+            <Input value={duration} onChange={(e) => setDuration(e.target.value)} className="h-10" data-testid="input-edit-spell-duration" />
+          </div>
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={concentration} onCheckedChange={(c) => setConcentration(c === true)} data-testid="checkbox-edit-spell-concentration" />
+              Концентрация
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={ritual} onCheckedChange={(c) => setRitual(c === true)} data-testid="checkbox-edit-spell-ritual" />
+              Ритуал
+            </label>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Описание</label>
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="resize-none" data-testid="textarea-edit-spell-description" />
+          </div>
+        </div>
+        <ResponsiveDialogFooter>
+          <Button onClick={handleSubmit} disabled={!name.trim()} data-testid="button-confirm-edit-spell">Сохранить</Button>
+        </ResponsiveDialogFooter>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
+  );
+}
+
 function SpellCard({
   spell,
   isEditing,
   onRemove,
   onTogglePrepared,
+  onUpdate,
 }: {
   spell: Spell;
   isEditing: boolean;
   onRemove: () => void;
   onTogglePrepared: () => void;
+  onUpdate: (updated: Spell) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -318,15 +438,26 @@ function SpellCard({
           )}
         </button>
         {isEditing && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 shrink-0 text-destructive"
-            onClick={onRemove}
-            data-testid={`button-remove-spell-${spell.id}`}
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </Button>
+          <div className="flex items-center gap-0.5 shrink-0">
+            <EditSpellDialog
+              spell={spell}
+              onSave={onUpdate}
+              trigger={
+                <Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`button-edit-spell-${spell.id}`}>
+                  <Edit2 className="w-3.5 h-3.5" />
+                </Button>
+              }
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-destructive"
+              onClick={onRemove}
+              data-testid={`button-remove-spell-${spell.id}`}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </Button>
+          </div>
         )}
       </div>
       {expanded && (
@@ -423,6 +554,14 @@ export function SpellsSection({ character, onChange, isEditing }: SpellsSectionP
     updateSpellcasting({
       spells: spellcasting.spells.map((s) =>
         s.id === spellId ? { ...s, prepared: !s.prepared } : s
+      ),
+    });
+  };
+
+  const handleUpdateSpell = (updated: Spell) => {
+    updateSpellcasting({
+      spells: spellcasting.spells.map((s) =>
+        s.id === updated.id ? updated : s
       ),
     });
   };
@@ -563,6 +702,7 @@ export function SpellsSection({ character, onChange, isEditing }: SpellsSectionP
                       isEditing={isEditing}
                       onRemove={() => handleRemoveSpell(spell.id)}
                       onTogglePrepared={() => handleTogglePrepared(spell.id)}
+                      onUpdate={handleUpdateSpell}
                     />
                   ))}
                   {spells.length === 0 && (
