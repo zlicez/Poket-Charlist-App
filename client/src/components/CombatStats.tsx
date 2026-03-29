@@ -7,26 +7,29 @@ import { Shield, Zap, Footprints, Heart, Skull, Plus, Minus, Dice6, Check, X, Ro
 import { calculateModifier, formatModifier, calculateAC, CLASS_DATA, getRacialBonuses } from "@shared/schema";
 import type { Character, DeathSaves, ArmorData } from "@shared/schema";
 
+interface HpTrackerProps {
+  current: number;
+  max: number;
+  temp: number;
+  onChange: (updates: { currentHp?: number; maxHp?: number; tempHp?: number }) => void;
+  isEditing: boolean;
+}
+
 interface CombatStatsProps {
   character: Character;
   onChange: (updates: Partial<Character>) => void;
   isEditing: boolean;
   hideDeathSaves?: boolean;
+  hideHp?: boolean;
 }
 
-function HpTracker({ 
+export function HpTracker({ 
   current, 
   max, 
   temp, 
   onChange, 
   isEditing 
-}: { 
-  current: number; 
-  max: number; 
-  temp: number;
-  onChange: (updates: { currentHp?: number; maxHp?: number; tempHp?: number }) => void;
-  isEditing: boolean;
-}) {
+}: HpTrackerProps) {
   const percentage = Math.max(0, Math.min(100, (current / max) * 100));
   const tempPercentage = Math.max(0, Math.min(100 - percentage, (temp / max) * 100));
 
@@ -247,7 +250,7 @@ export function DeathSavesTracker({
   );
 }
 
-export function CombatStats({ character, onChange, isEditing, hideDeathSaves }: CombatStatsProps) {
+export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hideHp }: CombatStatsProps) {
   const racialBonuses = getRacialBonuses(character.race, character.subrace);
   const totalDex = character.abilityScores.DEX + (racialBonuses.DEX || 0) + (character.customAbilityBonuses?.DEX || 0);
   const dexMod = calculateModifier(totalDex);
@@ -367,14 +370,16 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves }: 
         </Tooltip>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <HpTracker
-          current={character.currentHp}
-          max={character.maxHp}
-          temp={character.tempHp}
-          onChange={onChange}
-          isEditing={isEditing}
-        />
+      <div className={`grid ${hideHp ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2'} gap-3`}>
+        {!hideHp && (
+          <HpTracker
+            current={character.currentHp}
+            max={character.maxHp}
+            temp={character.tempHp}
+            onChange={onChange}
+            isEditing={isEditing}
+          />
+        )}
 
         <Card className="stat-card p-3" data-testid="stat-hit-dice">
           <div className="flex items-center gap-2 mb-2">

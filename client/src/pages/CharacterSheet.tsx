@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CharacterHeader } from "@/components/CharacterHeader";
 import { AbilityWithSkills } from "@/components/AbilityWithSkills";
-import { CombatStats, DeathSavesTracker } from "@/components/CombatStats";
+import { CombatStats, DeathSavesTracker, HpTracker } from "@/components/CombatStats";
 import { SavingThrowsComponent } from "@/components/SavingThrows";
 import { WeaponsList } from "@/components/WeaponsList";
 import { FeaturesList } from "@/components/FeaturesList";
@@ -393,12 +393,30 @@ export default function CharacterSheet() {
 
       <main className="max-w-7xl mx-auto p-2 sm:p-4">
         <div className="space-y-3 sm:space-y-4">
-          <CharacterHeader
-            character={currentCharacter}
-            onChange={handleChange}
-            isEditing={isEditing}
-            onToggleMode={() => isEditing ? saveChanges() : setIsEditing(true)}
-          />
+          <div className="flex flex-col lg:flex-row gap-2 sm:gap-4">
+            <div className="flex-1 min-w-0">
+              <CharacterHeader
+                character={currentCharacter}
+                onChange={handleChange}
+                isEditing={isEditing}
+                onToggleMode={() => isEditing ? saveChanges() : setIsEditing(true)}
+              />
+            </div>
+            <div className="flex flex-col gap-2 sm:gap-3 lg:w-[320px] xl:w-[360px] flex-shrink-0">
+              <HpTracker
+                current={currentCharacter.currentHp}
+                max={currentCharacter.maxHp}
+                temp={currentCharacter.tempHp}
+                onChange={handleChange}
+                isEditing={isEditing}
+              />
+              <DeathSavesTracker
+                deathSaves={currentCharacter.deathSaves}
+                onChange={(deathSaves) => handleChange({ deathSaves })}
+                isEditing={isEditing}
+              />
+            </div>
+          </div>
 
           {!isEditing && currentCharacter.equipment.length === 0 && currentCharacter.weapons.length === 0 && currentCharacter.features.length === 0 && (
             <Card className="p-3 sm:p-4 border-info/30 bg-info/5" data-testid="new-character-hint">
@@ -464,22 +482,16 @@ export default function CharacterSheet() {
                 onChange={handleChange}
                 isEditing={isEditing}
                 hideDeathSaves
+                hideHp
               />
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-3">
-                <DeathSavesTracker
-                  deathSaves={currentCharacter.deathSaves}
-                  onChange={(deathSaves) => handleChange({ deathSaves })}
-                  isEditing={isEditing}
-                />
-                <SavingThrowsComponent
-                  abilityScores={currentCharacter.abilityScores}
-                  savingThrows={currentCharacter.savingThrows}
-                  level={currentCharacter.level}
-                  onChange={(savingThrows) => handleChange({ savingThrows })}
-                  onRoll={rollSavingThrow}
-                  isEditing={isEditing}
-                />
-              </div>
+              <SavingThrowsComponent
+                abilityScores={currentCharacter.abilityScores}
+                savingThrows={currentCharacter.savingThrows}
+                level={currentCharacter.level}
+                onChange={(savingThrows) => handleChange({ savingThrows })}
+                onRoll={rollSavingThrow}
+                isEditing={isEditing}
+              />
             </div>
 
             <div className="space-y-2 sm:space-y-3" id="section-equipment">
