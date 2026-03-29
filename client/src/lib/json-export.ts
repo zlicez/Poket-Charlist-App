@@ -1,7 +1,7 @@
 import type { Character } from "@shared/schema";
 
 export function exportCharacterToJSON(character: Character): void {
-  const { userId, ...characterData } = character as any;
+  const { userId: _userId, ...characterData } = character;
 
   const exportData = {
     format: "pocket-charlist",
