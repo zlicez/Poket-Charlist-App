@@ -27,10 +27,8 @@ import {
   getProficiencyBonus, 
   formatModifier,
   getXPProgress,
-  XP_THRESHOLDS,
   getCharacterClasses,
   getTotalLevel,
-  formatClassesDisplay,
 } from "@shared/schema";
 import type { Character, AbilityName, ClassEntry } from "@shared/schema";
 
@@ -316,11 +314,9 @@ export function CharacterHeader({ character, onChange, isEditing }: CharacterHea
   const charClasses = getCharacterClasses(character);
   const totalLevel = getTotalLevel(charClasses);
   const profBonus = getProficiencyBonus(totalLevel);
-  const primaryClassData = CLASS_DATA[charClasses[0]?.name];
   const raceData = RACE_DATA[character.race];
   const subraces = raceData?.subraces ? Object.keys(raceData.subraces) : [];
   const xpProgress = getXPProgress(character.experience, totalLevel);
-  const classDisplayLabel = charClasses.length > 1 ? formatClassesDisplay(charClasses) : character.class;
 
   const handleClassesChange = (newClasses: ClassEntry[]) => {
     const newTotalLevel = getTotalLevel(newClasses);
