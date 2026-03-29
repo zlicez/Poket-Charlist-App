@@ -17,6 +17,7 @@ A web application for managing Dungeons & Dragons 5th Edition character sheets. 
 - **Currency System**: Track 5 D&D currencies (CP, SP, EP, GP, PP) with colored coin backgrounds and +/- buttons
 - **Weapons & Equipment**: Track weapons with attack/damage rolls, inventory with 7 categories and drag-and-drop
 - **Weapon Ability Modifiers**: D&D 5e rules: STR for melee, DEX for ranged, finesse weapons can use either
+- **Spell System**: Full spellcasting support — spellcasting ability, save DC, attack bonus (auto-calculated), spell slots 1-9 with usage tracking, cantrips and spells with prepared/unprepared toggle, add/remove spells with full details (casting time, range, components, duration, concentration, ritual)
 - **Features & Traits**: Track class features, racial traits, and feats
 - **Multiple Characters**: Create and manage multiple characters per user
 - **Dark/Light Theme**: Toggle between fantasy-themed dark and light modes
@@ -52,6 +53,7 @@ client/src/
 │   ├── DiceRoller.tsx         # Dice rolling modal with history
 │   ├── EquipmentSystem.tsx    # Inventory with 7 categories, drag-and-drop, catalog
 │   ├── FeaturesList.tsx       # Class/racial features with lock
+│   ├── SpellsSection.tsx     # Spellcasting: ability/DC/attack, slots, spell list
 │   ├── MoneyBlock.tsx         # 5 currencies with gradient coin backgrounds
 │   ├── ProficienciesSection.tsx # 4 proficiency categories with auto-fill
 │   ├── SavingThrows.tsx       # 6 saving throws with proficiency
@@ -106,6 +108,8 @@ shared/
 │ Abilities+Skills │ Combat (AC/Init/ │ Weapons      │
 │ (6 cards)        │ Speed/HitDice)   │ Features     │
 │                  │ + Saving Throws  │ Proficiencies│
+├──────────────────────────────────────────────────┤
+│ Spells (ability/DC/attack, slots, spell list)    │
 ├──────────────────────────────────────────────────┤
 │ Money │ Equipment (drag-and-drop)                 │
 │       │ Notes/Appearance/Allies/Factions          │

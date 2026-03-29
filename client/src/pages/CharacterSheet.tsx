@@ -12,6 +12,7 @@ import { SavingThrowsComponent } from "@/components/SavingThrows";
 import { WeaponsList } from "@/components/WeaponsList";
 import { FeaturesList } from "@/components/FeaturesList";
 import { EquipmentSystem } from "@/components/EquipmentSystem";
+import { SpellsSection } from "@/components/SpellsSection";
 import { ProficienciesSection } from "@/components/ProficienciesSection";
 import { DiceRoller, DiceRollerTrigger, rollDice, type DiceRoll } from "@/components/DiceRoller";
 import { useTheme } from "@/components/ThemeProvider";
@@ -34,7 +35,7 @@ import {
   type Money,
   type Equipment
 } from "@shared/schema";
-import { ArrowLeft, Moon, Sun, Save, Edit2, X, StickyNote, User, Users, Flag, Swords, Shield, Backpack, Sparkles, Crosshair } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Save, Edit2, X, StickyNote, User, Users, Flag, Swords, Shield, Backpack, Sparkles, Crosshair, BookOpen } from "lucide-react";
 
 function deepMerge(target: any, source: any): any {
   const result = { ...target };
@@ -386,6 +387,7 @@ export default function CharacterSheet() {
               { id: "section-abilities", label: "Характеристики", icon: Swords },
               { id: "section-combat", label: "Бой", icon: Shield },
               { id: "section-equipment", label: "Оружие", icon: Crosshair },
+              { id: "section-spells", label: "Заклинания", icon: BookOpen },
               { id: "section-inventory", label: "Инвентарь", icon: Backpack },
             ].map(({ id, label, icon: Icon }) => (
               <button
@@ -560,6 +562,15 @@ export default function CharacterSheet() {
                 />
               </div>
             </div>
+          </div>
+
+          <div id="section-spells">
+            <div className="section-label">Заклинания</div>
+            <SpellsSection
+              character={currentCharacter}
+              onChange={handleChange}
+              isEditing={isEditing}
+            />
           </div>
 
           <div id="section-inventory">

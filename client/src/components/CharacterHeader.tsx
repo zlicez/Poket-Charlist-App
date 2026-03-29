@@ -261,11 +261,18 @@ export function CharacterHeader({ character, onChange, isEditing }: CharacterHea
         WIS: newClassData.savingThrows.includes("WIS"),
         CHA: newClassData.savingThrows.includes("CHA"),
       };
-      onChange({ 
+      const updates: Partial<Character> = { 
         class: newClass,
         hitDice: `${character.level}${newClassData.hitDice}`,
-        savingThrows
-      });
+        savingThrows,
+      };
+      if (newClassData.spellcastingAbility && character.spellcasting) {
+        updates.spellcasting = {
+          ...character.spellcasting,
+          ability: newClassData.spellcastingAbility,
+        };
+      }
+      onChange(updates);
     } else {
       onChange({ class: newClass });
     }

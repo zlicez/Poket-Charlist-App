@@ -9,6 +9,7 @@ export interface ClassData {
   armorProficiencies: string[];
   weaponProficiencies: string[];
   toolProficiencies: string[];
+  spellcastingAbility?: AbilityName;
 }
 
 export const CLASS_DATA: Record<string, ClassData> = {
@@ -20,7 +21,8 @@ export const CLASS_DATA: Record<string, ClassData> = {
     description: "Музыкант и заклинатель, черпающий магию из песен и историй. Мастер вдохновения и поддержки союзников.",
     armorProficiencies: ["Лёгкие доспехи"],
     weaponProficiencies: ["Простое оружие", "Ручные арбалеты", "Длинные мечи", "Рапиры", "Короткие мечи"],
-    toolProficiencies: ["Три музыкальных инструмента"]
+    toolProficiencies: ["Три музыкальных инструмента"],
+    spellcastingAbility: "CHA",
   },
   "Варвар": { 
     name: "Варвар", 
@@ -50,7 +52,8 @@ export const CLASS_DATA: Record<string, ClassData> = {
     description: "Учёный заклинатель, черпающий магию из книг и исследований. Обладает широчайшим арсеналом заклинаний.",
     armorProficiencies: [],
     weaponProficiencies: ["Кинжалы", "Дротики", "Пращи", "Боевые посохи", "Лёгкие арбалеты"],
-    toolProficiencies: []
+    toolProficiencies: [],
+    spellcastingAbility: "INT",
   },
   "Друид": { 
     name: "Друид", 
@@ -60,7 +63,8 @@ export const CLASS_DATA: Record<string, ClassData> = {
     description: "Жрец природы, способный превращаться в зверей и повелевать стихиями. Защитник дикой природы.",
     armorProficiencies: ["Лёгкие доспехи", "Средние доспехи", "Щиты (не металл)"],
     weaponProficiencies: ["Дубинки", "Кинжалы", "Дротики", "Метательные копья", "Булавы", "Боевые посохи", "Скимитары", "Серпы", "Пращи", "Копья"],
-    toolProficiencies: ["Набор травника"]
+    toolProficiencies: ["Набор травника"],
+    spellcastingAbility: "WIS",
   },
   "Жрец": { 
     name: "Жрец", 
@@ -70,7 +74,8 @@ export const CLASS_DATA: Record<string, ClassData> = {
     description: "Божественный заклинатель, получающий силу от своего божества. Целитель и защитник веры.",
     armorProficiencies: ["Лёгкие доспехи", "Средние доспехи", "Щиты"],
     weaponProficiencies: ["Простое оружие"],
-    toolProficiencies: []
+    toolProficiencies: [],
+    spellcastingAbility: "WIS",
   },
   "Изобретатель": { 
     name: "Изобретатель", 
@@ -80,7 +85,8 @@ export const CLASS_DATA: Record<string, ClassData> = {
     description: "Мастер магических устройств и алхимии. Создаёт волшебные предметы и усиливает снаряжение.",
     armorProficiencies: ["Лёгкие доспехи", "Средние доспехи", "Щиты"],
     weaponProficiencies: ["Простое оружие"],
-    toolProficiencies: ["Воровские инструменты", "Инструменты ремесленника"]
+    toolProficiencies: ["Воровские инструменты", "Инструменты ремесленника"],
+    spellcastingAbility: "INT",
   },
   "Колдун": { 
     name: "Колдун", 
@@ -90,7 +96,8 @@ export const CLASS_DATA: Record<string, ClassData> = {
     description: "Заклинатель, заключивший договор с могущественной сущностью. Получает уникальные способности от покровителя.",
     armorProficiencies: ["Лёгкие доспехи"],
     weaponProficiencies: ["Простое оружие"],
-    toolProficiencies: []
+    toolProficiencies: [],
+    spellcastingAbility: "CHA",
   },
   "Монах": { 
     name: "Монах", 
@@ -110,7 +117,8 @@ export const CLASS_DATA: Record<string, ClassData> = {
     description: "Святой воин, связанный священной клятвой. Сочетает боевое мастерство с божественной магией.",
     armorProficiencies: ["Все доспехи", "Щиты"],
     weaponProficiencies: ["Простое оружие", "Воинское оружие"],
-    toolProficiencies: []
+    toolProficiencies: [],
+    spellcastingAbility: "CHA",
   },
   "Плут": { 
     name: "Плут", 
@@ -130,7 +138,8 @@ export const CLASS_DATA: Record<string, ClassData> = {
     description: "Охотник и следопыт диких земель. Мастер выслеживания и борьбы с избранными врагами.",
     armorProficiencies: ["Лёгкие доспехи", "Средние доспехи", "Щиты"],
     weaponProficiencies: ["Простое оружие", "Воинское оружие"],
-    toolProficiencies: []
+    toolProficiencies: [],
+    spellcastingAbility: "WIS",
   },
   "Чародей": { 
     name: "Чародей", 
@@ -140,7 +149,8 @@ export const CLASS_DATA: Record<string, ClassData> = {
     description: "Заклинатель с врождённой магией в крови. Способен изменять заклинания метамагией.",
     armorProficiencies: [],
     weaponProficiencies: ["Кинжалы", "Дротики", "Пращи", "Боевые посохи", "Лёгкие арбалеты"],
-    toolProficiencies: []
+    toolProficiencies: [],
+    spellcastingAbility: "CHA",
   },
 };
 

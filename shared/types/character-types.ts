@@ -118,6 +118,41 @@ export const proficienciesSchema = z.object({
 
 export type Proficiencies = z.infer<typeof proficienciesSchema>;
 
+export const spellSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  level: z.number().min(0).max(9),
+  castingTime: z.string().default("1 действие"),
+  range: z.string().default(""),
+  components: z.string().default(""),
+  duration: z.string().default(""),
+  concentration: z.boolean().default(false),
+  ritual: z.boolean().default(false),
+  description: z.string().default(""),
+  prepared: z.boolean().default(true),
+});
+
+export type Spell = z.infer<typeof spellSchema>;
+
+export const spellSlotSchema = z.object({
+  max: z.number().min(0).default(0),
+  used: z.number().min(0).default(0),
+});
+
+export type SpellSlot = z.infer<typeof spellSlotSchema>;
+
+export const spellcastingSchema = z.object({
+  ability: z.enum(["STR", "DEX", "CON", "INT", "WIS", "CHA"]).default("INT"),
+  spellSlots: z.array(spellSlotSchema).length(9).default([
+    { max: 0, used: 0 }, { max: 0, used: 0 }, { max: 0, used: 0 },
+    { max: 0, used: 0 }, { max: 0, used: 0 }, { max: 0, used: 0 },
+    { max: 0, used: 0 }, { max: 0, used: 0 }, { max: 0, used: 0 },
+  ]),
+  spells: z.array(spellSchema).default([]),
+});
+
+export type Spellcasting = z.infer<typeof spellcastingSchema>;
+
 export const characterSchema = z.object({
   id: z.string(),
   userId: z.string().optional(),
@@ -151,6 +186,7 @@ export const characterSchema = z.object({
   equipment: z.array(equipmentSchema).default([]),
   money: moneySchema.default({ cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }),
   proficiencies: proficienciesSchema.default({ languages: [], weapons: [], armor: [], tools: [] }),
+  spellcasting: spellcastingSchema.optional(),
   proficiencyBonus: z.number().default(2),
   notes: z.string().optional(),
   appearance: z.string().optional(),
@@ -332,6 +368,14 @@ export function getRaceAndClassProficiencies(
   result.tools = Array.from(new Set(result.tools));
   
   return result;
+}
+
+export function calculateSpellSaveDC(abilityModifier: number, proficiencyBonus: number): number {
+  return 8 + proficiencyBonus + abilityModifier;
+}
+
+export function calculateSpellAttackBonus(abilityModifier: number, proficiencyBonus: number): number {
+  return proficiencyBonus + abilityModifier;
 }
 
 export function getRaceDarkvision(race: string, subrace?: string): number | null {
