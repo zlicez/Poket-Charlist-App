@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "yyjMN19alJPe3wYOmGHLW"
+uri = "file://PROJECT_DOCUMENTATION.md"
+type = "text"
+title = "D&D 5e Character Sheet — Полная документация проекта"
