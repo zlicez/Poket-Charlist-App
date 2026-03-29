@@ -27,6 +27,7 @@ A web application for managing Dungeons & Dragons 5th Edition character sheets. 
 - **Darkvision Display**: Shows darkvision range based on race/subrace (60-120 ft)
 - **Auto-fill Proficiencies**: Weapon, armor, tool, and language proficiencies auto-populated from race/class/subrace
 - **Proficiency Styling**: Auto-filled (secondary badges with tooltips) vs user-added (outline badges, removable)
+- **Export/Import**: Export character to PDF (multi-page, Cyrillic, jsPDF) or JSON (with format versioning); Import from Long Story Short JSON or Pocket Charlist JSON with auto-format detection
 - **User Authentication**: Login via Google or email with Replit Auth (OIDC)
 - **Persistent Storage**: Characters saved in PostgreSQL database per user with deep merge updates
 
@@ -68,6 +69,9 @@ client/src/
 │   └── use-toast.ts           # Toast notifications
 ├── lib/
 │   ├── auth-utils.ts          # Login redirect, 401 handling
+│   ├── json-export.ts         # Export character to JSON (versioned format)
+│   ├── lss-import.ts          # Import from LSS or Pocket Charlist JSON
+│   ├── pdf-export.ts          # Export character to PDF (Cyrillic via Roboto base64)
 │   ├── queryClient.ts         # TanStack Query config + apiRequest
 │   └── utils.ts               # cn() utility
 ├── pages/

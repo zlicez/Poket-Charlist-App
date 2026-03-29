@@ -9,7 +9,8 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { createDefaultCharacter, type Character } from "@shared/schema";
-import { Plus, Scroll, Moon, Sun, Dices, Shield, Swords, LogIn, LogOut, User } from "lucide-react";
+import { parseLSSJson } from "@/lib/lss-import";
+import { Plus, Scroll, Moon, Sun, Dices, Shield, Swords, LogIn, LogOut, User, Upload } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   AlertDialog,
@@ -21,7 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 function LandingPage({ theme, toggleTheme }: { theme: string; toggleTheme: () => void }) {
   return (
@@ -92,6 +93,7 @@ export default function CharactersList() {
   const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { user, isLoading: isAuthLoading, isAuthenticated, logout } = useAuth();
 
   const { data: characters = [], isLoading } = useQuery<Character[]>({
@@ -136,6 +138,56 @@ export default function CharactersList() {
       });
     },
   });
+
+  const importMutation = useMutation({
+    mutationFn: async (characterData: any) => {
+      return apiRequest('POST', '/api/characters', characterData);
+    },
+    onSuccess: async (response) => {
+      const newCharacter = await response.json();
+      queryClient.invalidateQueries({ queryKey: ['/api/characters'] });
+      setLocation(`/character/${newCharacter.id}`);
+      toast({ title: "Персонаж импортирован", description: "Данные успешно загружены!" });
+    },
+    onError: () => {
+      toast({
+        title: "Ошибка импорта",
+        description: "Не удалось импортировать персонажа. Проверьте формат файла.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const characterData = parseLSSJson(content);
+        importMutation.mutate(characterData);
+      } catch (err: any) {
+        toast({
+          title: "Ошибка чтения файла",
+          description: err?.message || "Файл повреждён или имеет неизвестный формат.",
+          variant: "destructive",
+        });
+      }
+    };
+    reader.onerror = () => {
+      toast({
+        title: "Ошибка",
+        description: "Не удалось прочитать файл.",
+        variant: "destructive",
+      });
+    };
+    reader.readAsText(file);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const handleDelete = () => {
     if (deleteId) {
@@ -231,15 +283,27 @@ export default function CharactersList() {
             <p className="text-sm sm:text-base text-muted-foreground mb-6">
               Создайте своего первого персонажа и отправляйтесь в приключение!
             </p>
-            <Button 
-              onClick={() => createMutation.mutate()}
-              disabled={createMutation.isPending}
-              className="gap-2 h-11 sm:h-10"
-              data-testid="button-create-first-character"
-            >
-              <Plus className="w-5 h-5" />
-              Создать персонажа
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => createMutation.mutate()}
+                disabled={createMutation.isPending}
+                className="gap-2 h-11 sm:h-10"
+                data-testid="button-create-first-character"
+              >
+                <Plus className="w-5 h-5" />
+                Создать персонажа
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={importMutation.isPending}
+                className="gap-2 h-11 sm:h-10"
+                data-testid="button-import-character"
+              >
+                <Upload className="w-5 h-5" />
+                Импорт
+              </Button>
+            </div>
           </Card>
         ) : (
           <div className="space-y-3 sm:space-y-4">
@@ -247,16 +311,29 @@ export default function CharactersList() {
               <h3 className="text-base sm:text-lg font-semibold">
                 Ваши персонажи ({characters.length})
               </h3>
-              <Button 
-                onClick={() => createMutation.mutate()}
-                disabled={createMutation.isPending}
-                className="gap-2 h-11 sm:h-10"
-                data-testid="button-create-character"
-              >
-                <Plus className="w-5 h-5 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">Новый персонаж</span>
-                <span className="sm:hidden">Новый</span>
-              </Button>
+              <div className="flex gap-1.5 sm:gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={importMutation.isPending}
+                  className="gap-1.5 h-11 sm:h-10"
+                  data-testid="button-import-character-list"
+                >
+                  <Upload className="w-4 h-4" />
+                  <span className="hidden sm:inline">Импорт</span>
+                </Button>
+                <Button 
+                  onClick={() => createMutation.mutate()}
+                  disabled={createMutation.isPending}
+                  className="gap-2 h-11 sm:h-10"
+                  data-testid="button-create-character"
+                >
+                  <Plus className="w-5 h-5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Новый персонаж</span>
+                  <span className="sm:hidden">Новый</span>
+                </Button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -277,6 +354,15 @@ export default function CharactersList() {
         <p>D&D 5e Character Sheet</p>
         <p className="text-xs mt-1">Dungeons & Dragons is a trademark of Wizards of the Coast LLC</p>
       </footer>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        onChange={handleImport}
+        className="hidden"
+        data-testid="input-import-file"
+      />
 
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>

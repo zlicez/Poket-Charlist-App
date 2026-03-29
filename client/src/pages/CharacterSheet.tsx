@@ -39,7 +39,15 @@ import {
   type Money,
   type Equipment
 } from "@shared/schema";
-import { ArrowLeft, Moon, Sun, Save, Edit2, X, StickyNote, User, Users, Flag, Swords, Shield, Backpack, Sparkles, Crosshair, BookOpen } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { exportCharacterToJSON } from "@/lib/json-export";
+import { exportCharacterToPDF } from "@/lib/pdf-export";
+import { ArrowLeft, Moon, Sun, Save, Edit2, X, StickyNote, User, Users, Flag, Swords, Shield, Backpack, Sparkles, Crosshair, BookOpen, Download, FileText, FileJson } from "lucide-react";
 
 function deepMerge(target: any, source: any): any {
   const result = { ...target };
@@ -372,6 +380,39 @@ export default function CharacterSheet() {
               onClick={() => setIsDiceRollerOpen(true)}
               rollCount={rollHistory.length}
             />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  data-testid="button-export-menu"
+                >
+                  <Download className="w-5 h-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => {
+                    exportCharacterToPDF(currentCharacter);
+                    toast({ title: "PDF генерируется..." });
+                  }}
+                  data-testid="button-export-pdf"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  Экспорт в PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    exportCharacterToJSON(currentCharacter);
+                    toast({ title: "JSON сохранён" });
+                  }}
+                  data-testid="button-export-json"
+                >
+                  <FileJson className="w-4 h-4 mr-2" />
+                  Экспорт в JSON
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
               variant="ghost"
               size="icon"
