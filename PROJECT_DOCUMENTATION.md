@@ -66,16 +66,16 @@
 | Drizzle ORM | 0.39 | ORM для PostgreSQL |
 | Zod | 3.24 | Валидация данных |
 | Passport.js | 0.7 | Аутентификация |
-| OpenID Connect | — | Авторизация через Replit |
+| passport-google-oauth20 | 2.0 | Аутентификация через Google OAuth 2.0 |
 | express-session | 1.18 | Управление сессиями |
 | connect-pg-simple | 10.0 | Хранение сессий в PostgreSQL |
 
 ### Инфраструктура
 | Компонент | Описание |
 |---|---|
-| PostgreSQL | База данных (Replit Database) |
+| PostgreSQL | База данных |
 | Vite | 7.3 — Сборщик и dev-сервер |
-| Replit Auth (OIDC) | Аутентификация пользователей |
+| Google OAuth 2.0 | Аутентификация пользователей |
 | esbuild | Сборка production-билда |
 
 ### Шрифты
@@ -106,7 +106,7 @@
 ┌────────────────────┼────────────────────┼────────┐
 │                 СЕРВЕР (Express)                  │
 │                                                   │
-│  Middleware:   OIDC Auth  →  isAuthenticated      │
+│  Middleware:   Google OAuth → isAuthenticated     │
 │                    │                               │
 │  Routes:  /api/characters  (CRUD)                 │
 │           /api/auth/user                          │
@@ -127,7 +127,7 @@
 1. **SPA** — одностраничное приложение, маршрутизация на клиенте (Wouter)
 2. **REST API** — все данные передаются через JSON-эндпоинты
 3. **Optimistic updates** — TanStack Query кэширует данные, мутации инвалидируют кэш
-4. **Сессионная аутентификация** — cookie-based через Passport.js + OIDC
+4. **Сессионная аутентификация** — cookie-based через Passport.js + Google OAuth 2.0
 5. **JSONB-хранение** — данные персонажа хранятся в одном JSONB-поле (гибкая схема)
 
 ---
@@ -186,13 +186,10 @@ project-root/
 │   ├── routes.ts                  # API-маршруты (CRUD персонажей)
 │   ├── storage.ts                 # Интерфейс хранилища + DatabaseStorage
 │   ├── db.ts                      # Подключение к PostgreSQL (Drizzle)
+│   ├── google-auth.ts             # Google OAuth 2.0 (production)
+│   ├── local-auth.ts              # Локальная авторизация (LOCAL_DEV=true)
 │   ├── vite.ts                    # Интеграция Vite dev-сервера
-│   ├── static.ts                  # Раздача статики в production
-│   └── replit_integrations/auth/  # Модуль аутентификации
-│       ├── index.ts               # Экспорт setupAuth, isAuthenticated
-│       ├── replitAuth.ts          # OIDC-стратегия для Passport.js
-│       ├── routes.ts              # /api/auth/user
-│       └── storage.ts             # CRUD для таблицы users
+│   └── static.ts                  # Раздача статики в production
 │
 ├── shared/                        # Общий код (клиент + сервер)
 │   ├── schema.ts                  # Схема БД, типы, Zod-схемы, D&D-данные (1087 строк)
@@ -372,7 +369,7 @@ expire TIMESTAMP    Время истечения
     │
     ├── Не авторизован → Лендинг → Кнопка "Войти"
     │                                    │
-    │                          Replit OIDC (Google/email)
+    │                          Google OAuth 2.0
     │                                    │
     │                          Redirect → /api/callback
     │                                    │
@@ -489,8 +486,8 @@ expire TIMESTAMP    Время истечения
 
 | Метод | Маршрут | Описание |
 |---|---|---|
-| GET | `/api/login` | Редирект на Replit OIDC |
-| GET | `/api/callback` | Обработка возврата из OIDC |
+| GET | `/api/login` | Редирект на Google OAuth (или авто-вход при LOCAL_DEV) |
+| GET | `/api/callback` | Обработка callback от Google OAuth |
 | GET | `/api/logout` | Выход из системы |
 | GET | `/api/auth/user` | Текущий пользователь |
 
@@ -505,11 +502,11 @@ expire TIMESTAMP    Время истечения
 
 ### Поток авторизации
 
+**Production (Google OAuth 2.0):**
 ```
 Пользователь → "Войти" → /api/login
                               │
-                    Replit OIDC Provider
-                  (Google / Email login)
+                  Google OAuth 2.0 (accounts.google.com)
                               │
                     /api/callback (Passport)
                               │
@@ -520,17 +517,24 @@ expire TIMESTAMP    Время истечения
                     Redirect → / (приложение)
 ```
 
+**LOCAL_DEV=true (локальная разработка):**
+```
+Любой запрос → isAuthenticated → автоматически пропускается
+req.user.claims.sub = "local-dev-user" (фиктивный пользователь)
+Хранилище: MemStorage (если DATABASE_URL не задан) или PostgreSQL
+```
+
 ### Механизмы безопасности
 
 1. **Сессионная аутентификация** — cookie с подписью (SESSION_SECRET)
 2. **Хранение сессий в PostgreSQL** — персистентные сессии через `connect-pg-simple`
-3. **OIDC-токены** — автоматическое обновление при истечении (refresh token)
+3. **Google OAuth 2.0** — профиль пользователя upsert-ится при каждом входе
 4. **Проверка владения** — каждый запрос к `/api/characters` фильтруется по `userId`
 5. **Валидация данных** — Zod-схемы на сервере проверяют входные данные
 6. **CSRF-защита** — cookie-based сессии с SameSite
 
 ### Изоляция данных
-Каждый пользователь видит только свои персонажей. Поле `userId` (из OIDC `sub` claim) используется во всех запросах как обязательный фильтр.
+Каждый пользователь видит только своих персонажей. Поле `userId` (из Google profile.id через `sub` claim) используется во всех запросах как обязательный фильтр.
 
 ---
 
@@ -684,7 +688,7 @@ expire TIMESTAMP    Время истечения
 
 | # | Функция | Статус |
 |---|---|---|
-| 1 | Авторизация через Replit (Google/email) | ✅ |
+| 1 | Авторизация через Google OAuth 2.0 | ✅ |
 | 2 | Создание/удаление нескольких персонажей | ✅ |
 | 3 | 6 характеристик с автомодификаторами | ✅ |
 | 4 | 18 навыков с владением и экспертизой | ✅ |
@@ -731,7 +735,7 @@ expire TIMESTAMP    Время истечения
 
 5. **Богатая D&D-справка** — 13 классов, 10 рас с подрасами, 29 единиц оружия, 13 типов доспехов, полная таблица опыта. Всё на русском.
 
-6. **Безопасность данных** — изоляция по userId на уровне storage, OIDC-аутентификация, серверная валидация через Zod.
+6. **Безопасность данных** — изоляция по userId на уровне storage, Google OAuth 2.0, серверная валидация через Zod.
 
 ### Области для улучшения
 
@@ -767,7 +771,11 @@ expire TIMESTAMP    Время истечения
 
 ### Локальная разработка
 ```bash
-npm run dev    # Запуск Express + Vite на порте 5000
+# Без базы данных и Google OAuth (данные в памяти, авто-вход)
+npm run dev:local
+
+# С PostgreSQL (задать DATABASE_URL в .env)
+npm run dev:local
 ```
 
 ### Production-сборка
@@ -777,18 +785,33 @@ npm start      # Запуск Express из dist/index.cjs
 ```
 
 ### Переменные окружения
-| Переменная | Назначение |
-|---|---|
-| `DATABASE_URL` | Строка подключения PostgreSQL |
-| `SESSION_SECRET` | Ключ подписи cookie сессий |
-| `REPLIT_DOMAINS` | Домены Replit (для OIDC) |
+| Переменная | Назначение | Обязательна |
+|---|---|---|
+| `DATABASE_URL` | Строка подключения PostgreSQL (`postgresql://user:pass@host/db`) | Нет (без неё — MemStorage) |
+| `SESSION_SECRET` | Ключ подписи cookie сессий (≥32 символов) | При `LOCAL_DEV != true` |
+| `GOOGLE_CLIENT_ID` | Client ID из Google Cloud Console | При `LOCAL_DEV != true` |
+| `GOOGLE_CLIENT_SECRET` | Client Secret из Google Cloud Console | При `LOCAL_DEV != true` |
+| `LOCAL_DEV` | `true` — авто-вход, без Google, без БД | Нет |
+| `PORT` | HTTP-порт (по умолчанию 5000) | Нет |
+
+### Настройка Google OAuth
+
+1. Перейдите в [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services** → **Credentials**
+2. Создайте **OAuth 2.0 Client ID** (тип: *Web application*)
+3. Добавьте **Authorized redirect URI**:
+   - Локально: `http://localhost:5000/api/callback`
+   - Production: `https://yourdomain.com/api/callback`
+4. Скопируйте **Client ID** и **Client Secret** в `.env`
+5. Уберите `LOCAL_DEV=true` из `.env`
 
 ### База данных
 ```bash
-npm run db:push   # Синхронизация схемы Drizzle → PostgreSQL
+npm run db:push   # Синхронизация схемы Drizzle → PostgreSQL (создаёт таблицы)
 ```
+
+Таблицы создаются автоматически при первом запуске (`createTableIfMissing: true` для `sessions`).
 
 ---
 
-*Документация сгенерирована по состоянию кодовой базы на 29 марта 2026 года.*
+*Документация актуальна по состоянию кодовой базы на 29 марта 2026 года.*
 *Общий объём ключевых файлов: ~6 500 строк TypeScript/React/CSS.*

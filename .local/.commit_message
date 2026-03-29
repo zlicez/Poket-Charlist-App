@@ -1,0 +1,19 @@
+Add comprehensive project documentation (PROJECT_DOCUMENTATION.md)
+
+Full Russian-language documentation covering:
+- Project idea, purpose, target audience
+- Technology stack (frontend, backend, infrastructure)
+- Application architecture with diagrams
+- Complete project structure with file descriptions
+- Data model and entities (Character, Weapon, Equipment, etc.)
+- Business logic and processes (auth flow, edit/play modes, auto-calculations)
+- API routes documentation
+- Authentication and security mechanisms
+- UI components overview with line counts
+- Design system (color palette, card hierarchy, typography)
+- D&D 5e reference data catalog
+- Feature checklist (30 implemented features)
+- Code review with strengths and improvement areas
+- Deployment and environment setup
+
+Also updated replit.md with latest architecture changes.

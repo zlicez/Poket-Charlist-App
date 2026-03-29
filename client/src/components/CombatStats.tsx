@@ -40,23 +40,12 @@ export function HpTracker({
 
   return (
     <Card className="stat-card-primary p-3" data-testid="stat-hp">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <Heart className="w-5 h-5 text-negative" />
-          <span className="font-semibold text-sm">Хиты</span>
-        </div>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Badge variant="outline" className="text-xs font-mono">
-              {temp > 0 && <span className="text-info mr-1">+{temp}</span>}
-              {current}/{max}
-            </Badge>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Текущие / Максимальные хиты</p>
-            {temp > 0 && <p className="text-info">Временные хиты: {temp}</p>}
-          </TooltipContent>
-        </Tooltip>
+      <div className="flex items-center gap-2 mb-2">
+        <Heart className="w-5 h-5 text-negative" />
+        <span className="font-semibold text-sm">Хиты</span>
+        {temp > 0 && (
+          <span className="text-xs text-info font-mono ml-auto">+{temp} врем.</span>
+        )}
       </div>
 
       <div className="hp-bar mb-2">
@@ -83,7 +72,9 @@ export function HpTracker({
               type="number"
               inputMode="numeric"
               value={current}
-              onChange={(e) => onChange({ currentHp: parseInt(e.target.value) || 0 })}
+              min={0}
+              max={max}
+              onChange={(e) => onChange({ currentHp: Math.min(max, parseInt(e.target.value) || 0) })}
               className="h-10 text-center font-mono"
               data-testid="input-current-hp"
             />
@@ -169,13 +160,15 @@ export function DeathSavesTracker({
     <Card className={`stat-card p-3 transition-colors ${isStabilized ? 'ring-2 ring-positive/50' : ''} ${isDead ? 'ring-2 ring-negative/50' : ''}`} data-testid="stat-death-saves">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Skull className={`w-5 h-5 ${isDead ? 'text-negative' : isStabilized ? 'text-positive' : 'text-muted-foreground'}`} />
+          <Skull className={`w-5 h-5 shrink-0 ${isDead ? 'text-negative' : isStabilized ? 'text-positive' : 'text-muted-foreground'}`} />
           <span className="font-semibold text-sm">Спасброски от смерти</span>
-          {isDead ? (
-            <Badge variant="default" className="text-xs h-5 px-1.5 bg-negative text-primary-foreground">Мёртв</Badge>
-          ) : isStabilized ? (
-            <Badge variant="default" className="text-xs h-5 px-1.5 bg-positive text-primary-foreground">Стабилизирован</Badge>
-          ) : null}
+          <div className="w-[120px] shrink-0 flex items-center">
+            {isDead ? (
+              <Badge variant="default" className="text-xs h-5 px-1.5 bg-negative text-primary-foreground">Мёртв</Badge>
+            ) : isStabilized ? (
+              <Badge variant="default" className="text-xs h-5 px-1.5 bg-positive text-primary-foreground">Стабилизирован</Badge>
+            ) : null}
+          </div>
         </div>
         {!isEditing && (
           <Button 

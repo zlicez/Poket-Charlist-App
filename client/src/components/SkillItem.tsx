@@ -102,7 +102,7 @@ export function SkillItem({
             </div>
           )}
           
-          <span className={`text-sm flex-1 ${proficiency.proficient ? 'font-medium' : 'text-muted-foreground'}`}>
+          <span className={`text-sm flex-1 min-w-0 truncate ${proficiency.proficient ? 'font-medium' : 'text-muted-foreground'}`}>
             {name}
           </span>
           

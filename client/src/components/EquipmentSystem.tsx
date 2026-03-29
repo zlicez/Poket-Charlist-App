@@ -51,7 +51,8 @@ import {
   BASE_MISC,
   createEquipmentFromBase
 } from "@shared/schema";
-import type { Equipment, EquipmentCategory, BaseEquipmentItem } from "@shared/schema";
+import type { Equipment, EquipmentCategory, BaseEquipmentItem, Money } from "@shared/schema";
+import { MoneyBlock } from "./MoneyBlock";
 
 interface EquipmentSystemProps {
   equipment: Equipment[];
@@ -60,6 +61,8 @@ interface EquipmentSystemProps {
   isLocked?: boolean;
   onToggleLock?: () => void;
   proficiencyBonus?: number;
+  money?: Money;
+  onMoneyChange?: (money: Money) => void;
 }
 
 const CATEGORY_ICONS: Record<EquipmentCategory, React.ReactNode> = {
@@ -557,13 +560,15 @@ function SortableEquipmentItem({
 
 type TabValue = EquipmentCategory | "all";
 
-export function EquipmentSystem({ 
-  equipment, 
-  onChange, 
-  isEditing, 
-  isLocked = false, 
+export function EquipmentSystem({
+  equipment,
+  onChange,
+  isEditing,
+  isLocked = false,
   onToggleLock,
-  proficiencyBonus = 2
+  proficiencyBonus = 2,
+  money,
+  onMoneyChange,
 }: EquipmentSystemProps) {
   const [activeTab, setActiveTab] = useState<TabValue>("all");
   const canModify = isEditing || !isLocked;
@@ -851,6 +856,12 @@ export function EquipmentSystem({
           </TabsContent>
         ))}
       </Tabs>
+
+      {money !== undefined && onMoneyChange && (
+        <div className="mt-3 pt-3 border-t border-border">
+          <MoneyBlock flat money={money} onChange={onMoneyChange} isEditing={isEditing} />
+        </div>
+      )}
     </Card>
   );
 }

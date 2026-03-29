@@ -9,6 +9,7 @@ interface MoneyBlockProps {
   money: Money;
   onChange: (money: Money) => void;
   isEditing: boolean;
+  flat?: boolean;
 }
 
 const MONEY_TYPES: { key: keyof Money; label: string; coinColor: string; coinBg: string; fullName: string }[] = [
@@ -19,7 +20,7 @@ const MONEY_TYPES: { key: keyof Money; label: string; coinColor: string; coinBg:
   { key: "cp", label: "МЗ", coinColor: "text-orange-600 dark:text-orange-400", coinBg: "bg-gradient-to-b from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-900/50 border-orange-300 dark:border-orange-700", fullName: "Медь" },
 ];
 
-export function MoneyBlock({ money, onChange, isEditing }: MoneyBlockProps) {
+export function MoneyBlock({ money, onChange, isEditing, flat }: MoneyBlockProps) {
   const adjustMoney = (key: keyof Money, delta: number) => {
     const newValue = Math.max(0, (money[key] || 0) + delta);
     onChange({ ...money, [key]: newValue });
@@ -37,8 +38,8 @@ export function MoneyBlock({ money, onChange, isEditing }: MoneyBlockProps) {
     (money.sp || 0) * 0.1 + 
     (money.cp || 0) * 0.01;
 
-  return (
-    <Card className="stat-card p-3" data-testid="money-block">
+  const content = (
+    <div data-testid="money-block">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Coins className="w-5 h-5 text-accent" />
@@ -69,7 +70,7 @@ export function MoneyBlock({ money, onChange, isEditing }: MoneyBlockProps) {
                 <p>{fullName}</p>
               </TooltipContent>
             </Tooltip>
-            
+
             {isEditing ? (
               <Input
                 type="number"
@@ -116,6 +117,10 @@ export function MoneyBlock({ money, onChange, isEditing }: MoneyBlockProps) {
           </div>
         ))}
       </div>
-    </Card>
+    </div>
   );
+
+  if (flat) return content;
+
+  return <Card className="stat-card p-3">{content}</Card>;
 }

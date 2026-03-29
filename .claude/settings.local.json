@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(psql --version)",
+      "Bash(docker --version)",
+      "Bash(npm install:*)",
+      "Bash(curl -s http://localhost:5000/api/auth/user)",
+      "Bash(curl -s http://localhost:5000/api/characters)",
+      "Bash(find /d/CODE/LEARNING/POCKET CHARLIST/Pocket-Charlist/server -type f -name *)",
+      "Bash(npm run:*)"
+    ]
+  }
+}

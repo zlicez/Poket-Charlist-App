@@ -1,6 +1,7 @@
 import { type Character, type InsertCharacter, DEFAULT_SKILLS_PROFICIENCY, characters } from "@shared/schema";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
+import { randomUUID } from "crypto";
 
 function deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>): T {
   const result = { ...target };
@@ -111,4 +112,47 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+class MemStorage implements IStorage {
+  private chars = new Map<string, Character>();
+
+  async getCharacters(userId: string): Promise<Character[]> {
+    return Array.from(this.chars.values()).filter(c => c.userId === userId);
+  }
+
+  async getCharacter(id: string, userId: string): Promise<Character | undefined> {
+    const c = this.chars.get(id);
+    return c?.userId === userId ? c : undefined;
+  }
+
+  async createCharacter(character: InsertCharacter, userId: string): Promise<Character> {
+    const id = randomUUID();
+    const newChar = {
+      ...character,
+      id,
+      userId,
+      skills: character.skills || { ...DEFAULT_SKILLS_PROFICIENCY },
+    } as Character;
+    this.chars.set(id, newChar);
+    return newChar;
+  }
+
+  async updateCharacter(id: string, userId: string, updates: Partial<Character>): Promise<Character | undefined> {
+    const existing = await this.getCharacter(id, userId);
+    if (!existing) return undefined;
+    const { id: _, userId: __, ...updateData } = updates;
+    const updated = deepMerge(existing, updateData);
+    this.chars.set(id, updated);
+    return updated;
+  }
+
+  async deleteCharacter(id: string, userId: string): Promise<boolean> {
+    const c = this.chars.get(id);
+    if (!c || c.userId !== userId) return false;
+    this.chars.delete(id);
+    return true;
+  }
+}
+
+export const storage: IStorage = process.env.DATABASE_URL
+  ? new DatabaseStorage()
+  : new MemStorage();

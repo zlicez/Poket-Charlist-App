@@ -3,13 +3,17 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertCharacterSchema } from "@shared/schema";
 import { z } from "zod";
-import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  
+
+  // Use simple local auth when LOCAL_DEV=true, otherwise Google OAuth
+  const { setupAuth, registerAuthRoutes, isAuthenticated } = process.env.LOCAL_DEV
+    ? await import("./local-auth")
+    : await import("./google-auth");
+
   // Setup auth BEFORE registering other routes
   await setupAuth(app);
   registerAuthRoutes(app);

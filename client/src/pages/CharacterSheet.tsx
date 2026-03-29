@@ -12,7 +12,6 @@ import { SavingThrowsComponent } from "@/components/SavingThrows";
 import { WeaponsList } from "@/components/WeaponsList";
 import { FeaturesList } from "@/components/FeaturesList";
 import { EquipmentSystem } from "@/components/EquipmentSystem";
-import { MoneyBlock } from "@/components/MoneyBlock";
 import { ProficienciesSection } from "@/components/ProficienciesSection";
 import { DiceRoller, DiceRollerTrigger, rollDice, type DiceRoll } from "@/components/DiceRoller";
 import { useTheme } from "@/components/ThemeProvider";
@@ -35,7 +34,7 @@ import {
   type Money,
   type Equipment
 } from "@shared/schema";
-import { ArrowLeft, Moon, Sun, Save, StickyNote, User, Users, Flag, Swords, Shield, Backpack, Sparkles, Crosshair } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Save, Edit2, X, StickyNote, User, Users, Flag, Swords, Shield, Backpack, Sparkles, Crosshair } from "lucide-react";
 
 function deepMerge(target: any, source: any): any {
   const result = { ...target };
@@ -69,6 +68,7 @@ export default function CharacterSheet() {
   const [isDiceRollerOpen, setIsDiceRollerOpen] = useState(false);
   const [rollHistory, setRollHistory] = useState<DiceRoll[]>([]);
   const [localChanges, setLocalChanges] = useState<Partial<Character>>({});
+  const [newCharHintVisible, setNewCharHintVisible] = useState(true);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -339,19 +339,32 @@ export default function CharacterSheet() {
           </Button>
 
           <div className="flex items-center gap-1 sm:gap-2">
-            {isEditing && (
-              <Button 
-                size="sm" 
+            {isEditing ? (
+              <Button
+                variant="default"
+                size="sm"
                 onClick={saveChanges}
                 disabled={updateMutation.isPending}
-                data-testid="button-save"
+                className="gap-1.5"
+                data-testid="button-toggle-mode"
               >
-                <Save className="w-4 h-4 mr-1" />
+                <Save className="w-4 h-4" />
                 Сохранить
               </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditing(true)}
+                className="gap-1.5"
+                data-testid="button-toggle-mode"
+              >
+                <Edit2 className="w-4 h-4" />
+                Редактировать
+              </Button>
             )}
-            <DiceRollerTrigger 
-              onClick={() => setIsDiceRollerOpen(true)} 
+            <DiceRollerTrigger
+              onClick={() => setIsDiceRollerOpen(true)}
               rollCount={rollHistory.length}
             />
             <Button
@@ -399,7 +412,6 @@ export default function CharacterSheet() {
                 character={currentCharacter}
                 onChange={handleChange}
                 isEditing={isEditing}
-                onToggleMode={() => isEditing ? saveChanges() : setIsEditing(true)}
               />
             </div>
             <div className="flex flex-col gap-2 sm:gap-3 lg:w-[320px] xl:w-[360px] flex-shrink-0">
@@ -418,22 +430,32 @@ export default function CharacterSheet() {
             </div>
           </div>
 
-          {!isEditing && currentCharacter.equipment.length === 0 && currentCharacter.weapons.length === 0 && currentCharacter.features.length === 0 && (
-            <Card className="p-3 sm:p-4 border-info/30 bg-info/5" data-testid="new-character-hint">
-              <div className="flex items-start gap-3">
-                <Sparkles className="w-5 h-5 text-info shrink-0 mt-0.5" />
-                <div className="text-sm space-y-1">
-                  <p className="font-medium text-foreground">Новый персонаж? Начните настройку!</p>
-                  <p className="text-muted-foreground">Нажмите «Редактировать» чтобы задать характеристики, добавить оружие и снаряжение.</p>
-                </div>
-              </div>
-            </Card>
+          {!isEditing && newCharHintVisible &&
+            currentCharacter.equipment.length === 0 &&
+            currentCharacter.weapons.length === 0 &&
+            currentCharacter.features.length === 0 && (
+            <div
+              className="flex items-center gap-2 px-3 py-2 rounded-md border border-info/20 bg-info/5"
+              data-testid="new-character-hint"
+            >
+              <Sparkles className="w-4 h-4 text-info shrink-0" />
+              <span className="flex-1 text-xs text-muted-foreground">
+                Новый персонаж — нажмите <strong className="text-foreground">«Редактировать»</strong> чтобы задать характеристики и снаряжение.
+              </span>
+              <button
+                onClick={() => setNewCharHintVisible(false)}
+                className="text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded shrink-0"
+                aria-label="Закрыть подсказку"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-4">
-            <div id="section-abilities">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-4 lg:items-stretch">
+            <div id="section-abilities" className="flex flex-col gap-2 sm:gap-3">
               <div className="section-label">Характеристики и навыки</div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-2 sm:gap-3 auto-rows-fr">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-2 sm:gap-3 auto-rows-fr flex-1">
               {ABILITY_NAMES.map((ability) => (
                 <AbilityWithSkills
                   key={ability}
@@ -475,7 +497,7 @@ export default function CharacterSheet() {
               </div>
             </div>
 
-            <div className="space-y-2 sm:space-y-3" id="section-combat">
+            <div className="flex flex-col gap-2 sm:gap-3" id="section-combat">
               <div className="section-label">Боевые характеристики</div>
               <CombatStats
                 character={currentCharacter}
@@ -484,17 +506,19 @@ export default function CharacterSheet() {
                 hideDeathSaves
                 hideHp
               />
-              <SavingThrowsComponent
-                abilityScores={currentCharacter.abilityScores}
-                savingThrows={currentCharacter.savingThrows}
-                level={currentCharacter.level}
-                onChange={(savingThrows) => handleChange({ savingThrows })}
-                onRoll={rollSavingThrow}
-                isEditing={isEditing}
-              />
+              <div className="flex-1 min-h-0 flex flex-col [&>*]:flex-1">
+                <SavingThrowsComponent
+                  abilityScores={currentCharacter.abilityScores}
+                  savingThrows={currentCharacter.savingThrows}
+                  level={currentCharacter.level}
+                  onChange={(savingThrows) => handleChange({ savingThrows })}
+                  onRoll={rollSavingThrow}
+                  isEditing={isEditing}
+                />
+              </div>
             </div>
 
-            <div className="space-y-2 sm:space-y-3" id="section-equipment">
+            <div className="flex flex-col gap-2 sm:gap-3" id="section-equipment">
               <div className="section-label">Оружие и способности</div>
               <WeaponsList
                 weapons={currentCharacter.weapons}
@@ -506,13 +530,13 @@ export default function CharacterSheet() {
                 onToggleLock={() => handleChange({ weaponsLocked: !currentCharacter.weaponsLocked })}
                 equippedFromInventory={currentCharacter.equipment}
                 strMod={calculateModifier(
-                  currentCharacter.abilityScores.STR + 
-                  (racialBonuses.STR || 0) + 
+                  currentCharacter.abilityScores.STR +
+                  (racialBonuses.STR || 0) +
                   (currentCharacter.customAbilityBonuses?.STR || 0)
                 )}
                 dexMod={calculateModifier(
-                  currentCharacter.abilityScores.DEX + 
-                  (racialBonuses.DEX || 0) + 
+                  currentCharacter.abilityScores.DEX +
+                  (racialBonuses.DEX || 0) +
                   (currentCharacter.customAbilityBonuses?.DEX || 0)
                 )}
                 proficiencyBonus={getProficiencyBonus(currentCharacter.level)}
@@ -525,14 +549,16 @@ export default function CharacterSheet() {
                 isLocked={currentCharacter.featuresLocked ?? false}
                 onToggleLock={() => handleChange({ featuresLocked: !currentCharacter.featuresLocked })}
               />
-              <ProficienciesSection
-                proficiencies={currentCharacter.proficiencies ?? { languages: [], weapons: [], armor: [], tools: [] }}
-                onChange={(proficiencies) => handleChange({ proficiencies })}
-                isEditing={isEditing}
-                race={currentCharacter.race}
-                className={currentCharacter.class}
-                subrace={currentCharacter.subrace}
-              />
+              <div className="flex-1 min-h-0 flex flex-col [&>*]:flex-1">
+                <ProficienciesSection
+                  proficiencies={currentCharacter.proficiencies ?? { languages: [], weapons: [], armor: [], tools: [] }}
+                  onChange={(proficiencies) => handleChange({ proficiencies })}
+                  isEditing={isEditing}
+                  race={currentCharacter.race}
+                  className={currentCharacter.class}
+                  subrace={currentCharacter.subrace}
+                />
+              </div>
             </div>
           </div>
 
@@ -540,11 +566,6 @@ export default function CharacterSheet() {
             <div className="section-label">Инвентарь и снаряжение</div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-4">
               <div className="lg:col-span-2 space-y-2 sm:space-y-3">
-                <MoneyBlock
-                  money={currentCharacter.money ?? { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }}
-                  onChange={(money) => handleChange({ money })}
-                  isEditing={isEditing}
-                />
                 <EquipmentSystem
                   equipment={currentCharacter.equipment}
                   onChange={(equipment) => handleChange({ equipment })}
@@ -552,6 +573,8 @@ export default function CharacterSheet() {
                   isLocked={currentCharacter.equipmentLocked ?? false}
                   onToggleLock={() => handleChange({ equipmentLocked: !currentCharacter.equipmentLocked })}
                   proficiencyBonus={getProficiencyBonus(currentCharacter.level)}
+                  money={currentCharacter.money ?? { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }}
+                  onMoneyChange={(money) => handleChange({ money })}
                 />
               </div>
 

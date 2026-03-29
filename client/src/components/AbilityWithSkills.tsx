@@ -84,7 +84,7 @@ export function AbilityWithSkills({
             <div
               className={`
                 flex flex-col items-center justify-center
-                w-[76px] sm:w-[84px] shrink-0
+                w-[68px] sm:w-[76px] shrink-0
                 py-3 px-2 rounded-lg
                 ability-block
                 ${!isEditing ? 'cursor-pointer hover-elevate' : ''}
@@ -185,7 +185,7 @@ export function AbilityWithSkills({
                   className={`
                     flex items-center gap-2 
                     py-1.5 px-2 rounded
-                    min-h-[40px] sm:min-h-[28px]
+                    min-h-[40px] sm:min-h-[26px]
                     ${!isEditing ? 'cursor-pointer active:bg-ability-proficient-bg' : ''}
                     ${proficiency.proficient ? 'bg-ability-proficient-bg' : ''}
                   `}
@@ -218,7 +218,7 @@ export function AbilityWithSkills({
                   </button>
                   
                   <span className={`
-                    text-xs sm:text-sm flex-1 truncate
+                    text-xs sm:text-sm flex-1 min-w-0 truncate
                     ${proficiency.proficient ? 'font-medium text-foreground' : 'text-muted-foreground'}
                   `}>
                     {skill.name}

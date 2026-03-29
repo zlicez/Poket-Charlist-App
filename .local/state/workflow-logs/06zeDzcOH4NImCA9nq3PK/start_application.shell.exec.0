@@ -1,0 +1,328 @@
+
+> rest-express@1.0.0 dev
+> NODE_ENV=development tsx server/index.ts
+
+[1G[0K12:46:03 PM [express] serving on port 5000
+
+A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+12:46:12 PM [express] GET /api/auth/user 304 in 17ms :: {"id":"53451077","email":"mixan9000@gmail.com","firstName":"Michael","lastName":null,"profileImageUrl":null,"createdAt":"2026-01-22T06:49:26.160Z","updatedAt":"2026-03-27T10:31:26.940Z"}
+12:46:12 PM [express] GET /api/characters 304 in 6ms :: [{"id":"cf613719-a584-4066-aa74-92448fe901e5","userId":"53451077","name":"Уил","race":"Полуэльф","class":"Чародей","level":2,"maxHp":10,"money":{"cp":0,"ep":4,"gp":66,"pp":0,"sp":0},"notes":"","speed":30,"allies":"","skills":{"Магия":{"expertise":false,"proficient":false},"Обман":{"expertise":false,"proficient":false},"Анализ":{"expertise":false,"proficient":false},"История":{"expertise":false,"proficient":false},"Природа":{"expertise":false,"proficient":false},"Религия":{"expertise":false,"proficient":false},"Атлетика":{"expertise":false,"proficient":true},"Медицина":{"expertise":false,"proficient":true},"Выживание":{"expertise":false,"proficient":false},"Убеждение":{"expertise":false,"proficient":false},"Акробатика":{"expertise":false,"proficient":true},"Восприятие":{"expertise":false,"proficient":false},"Скрытность":{"expertise":false,"proficient":false},"Выступление":{"expertise":false,"proficient":false},"Запугивание":{"expertise":true,"proficient":true},"Ловкость рук":{"expertise":false,"proficient":false},"Проницательность":{"expertise":false,"proficient":false},"Уход за животными":{"expertise":false,"proficient":false}},"tempHp":0,"hitDice":"2d6","weapons":[],"factions":"","features":[],"alignment":"Нейтрально-добрый","currentHp":10,"equipment":[{"id":"fcdebb75-2713-4468-bf63-f89a5059bf97","name":"Воровские инструменты","weight":1,"category":"tool","equipped":false,"quantity":1,"attackBonus":0,"description":"Для взлома замков и обезвреживания ловушек"},{"id":"7d303bc8-ba75-42c2-8641-ea974a60debb","name":"Стёганый","weight":10,"isArmor":true,"category":"armor","equipped":false,"quantity":1,"armorType":"light","armorBaseAC":11,"attackBonus":0,"description":"Помеха скрытности","armorMaxDexBonus":null},{"id":"572a37fa-c7ca-44de-a810-0b3f2f347d79","name":"Ррр","damage":"1d6","category":"weapon","equipped":true,"isWeapon":true,"quantity":1,"damageType":"рубящий","attackBonus":0,"weaponProperties":"Универсальное"},{"id":"c424ea24-bbba-4436-9b42-16775f8d32e2","name":"Рацион (1 день)","weight":2,"category":"food","equipped":false,"quantity":1,"attackBonus":0,"description":"Сухой паёк на один день"},{"id":"cdf9dbd9-6a79-4fca-8e8f-ac700910a217","name":"Зелье лечения","weight":0.5,"category":"potion","equipped":false,"quantity":1,"attackBonus":0,"description":"Восстанавливает 2d4+2 хитов"},{"id":"dfcbf2e1-ef2c-4578-9a7a-06762647a19e","name":"Факел","weight":1,"category":"misc","equipped":false,"quantity":1,"attackBonus":0,"description":"Свет 20/40 футов, горит 1 час"},{"id":"4d5deb1a-d64e-4929-af29-82200d4abb69","name":"Булава","damage":"1d6","weight":4,"category":"weapon","equipped":true,"isWeapon":true,"quantity":1,"abilityMod":"str","damageType":"дробящий","attackBonus":0}],"appearance":"","armorClass":10,"background":"","deathSaves":{"failures":0,"successes":0},"experience":10,"initiative":0,"savingThrows":{"CHA":true,"CON":true,"DEX":true,"INT":false,"STR":false,"WIS":false},"abilityScores":{"CHA":9,"CON":14,"DEX":10,"INT":10,"STR":15,"WIS":12},"customACBonus":0,"proficiencies":{"armor":[],"tools":[],"weapons":["Простое оружие","Боевой посох","Булава","Дубинка","Кинжал","Копьё","Лёгкий молот","Метательное копьё","Ручной топор","Серп","Палица","Лёгкий арбалет","Дротик","Короткий лук","Праща","Воинское оружие","Длинный меч","Короткий меч","Рапира","Скимитар","Боевой топор","Боевой молот","Моргенштерн"],"languages":["Общий","Гейский"]},"weaponsLocked":false,"featuresLocked":false,"equipmentLocked":true,"hitDiceRemaining":2,"proficiencyBonus":2,"customAbilityBonuses":{"CHA":0,"CON":0,"DEX":0,"INT":0,"STR":0,"WIS":0},"customInitiativeBonus":0},{"id":"b6aed196-82c9-4498-92fe-7da29088739a","userId":"53451077","name":"Новый персонаж","race":"Эльф","class":"Изобретатель","level":1,"maxHp":10,"money":{"cp":5,"ep":5,"gp":12,"pp":0,"sp":5},"notes":"","speed":30,"allies":"","skills":{"Магия":{"expertise":false,"proficient":false},"Обман":{"expertise":false,"proficient":false},"Анализ":{"expertise":false,"proficient":false},"История":{"expertise":false,"proficient":false},"Природа":{"expertise":false,"proficient":false},"Религия":{"expertise":false,"proficient":false},"Атлетика":{"expertise":false,"proficient":false},"Медицина":{"expertise":false,"proficient":false},"Выживание":{"expertise":false,"proficient":false},"Убеждение":{"expertise":false,"proficient":false},"Акробатика":{"expertise":false,"proficient":false},"Восприятие":{"expertise":false,"proficient":false},"Скрытность":{"expertise":false,"proficient":false},"Выступление":{"expertise":false,"proficient":false},"Запугивание":{"expertise":false,"proficient":false},"Ловкость рук":{"expertise":false,"proficient":false},"Проницательность":{"expertise":false,"proficient":false},"Уход за животными":{"expertise":false,"proficient":false}},"tempHp":0,"hitDice":"1d8","subrace":"Высший эльф","weapons":[],"factions":"","features":[],"alignment":"Истинно нейтральный","currentHp":10,"equipment":[{"id":"0dd8a274-7ac5-4fcd-ba1f-487aed009478","name":"Трезубец","damage":"1d6","weight":4,"category":"weapon","equipped":true,"isWeapon":true,"quantity":1,"abilityMod":"str","damageType":"колющий","attackBonus":0,"weaponProperties":"метательное, универсальное (1d8)"},{"id":"68a9de51-0499-4dae-a8a5-e9d76554276d","name":"Копьё","damage":"1d6","weight":3,"category":"weapon","equipped":true,"isWeapon":true,"quantity":1,"abilityMod":"str","damageType":"колющий","attackBonus":0,"weaponProperties":"метательное, универсальное (1d8)"},{"id":"a4ef3f31-22a1-442f-8305-624bca1bf7c1","name":"Кольчуга","weight":45,"isArmor":true,"category":"armor","equipped":true,"quantity":1,"armorType":"heavy","armorBaseAC":16,"attackBonus":0,"description":"Помеха скрытности","armorMaxDexBonus":0},{"id":"ab8e0f7c-f9d8-471a-bb24-5922e4cf3b03","name":"Рацион (1 день)","weight":2,"category":"food","equipped":false,"quantity":7,"attackBonus":0,"description":"Сухой паёк на один день"},{"id":"8145c870-1bbd-4cb1-9401-59cda46306a3","name":"Зелье превосходного лечения","weight":0.5,"category":"potion","equipped":false,"quantity":1,"attackBonus":0,"description":"Восстанавливает 8d4+8 хитов"}],"appearance":"","armorClass":10,"background":"","deathSaves":{"failures":0,"successes":0},"experience":250,"initiative":0,"savingThrows":{"CHA":false,"CON":true,"DEX":false,"INT":true,"STR":false,"WIS":false},"abilityScores":{"CHA":10,"CON":10,"DEX":10,"INT":10,"STR":15,"WIS":10},"customACBonus":0,"proficiencies":{"armor":[],"tools":[],"weapons":["Воинское оружие"],"languages":["Общий"]},"weaponsLocked":false,"featuresLocked":false,"equipmentLocked":false,"hitDiceRemaining":1,"proficiencyBonus":2,"customAbilityBonuses":{"CHA":0,"CON":0,"DEX":0,"INT":0,"STR":0,"WIS":0},"customInitiativeBonus":0},{"id":"282e67c7-e882-4658-b60a-bcbda47eee87","userId":"53451077","name":"Новый персонаж","race":"Человек","class":"Воин","level":1,"maxHp":10,"money":{"cp":0,"ep":0,"gp":0,"pp":0,"sp":0},"notes":"","speed":30,"allies":"","skills":{"Магия":{"expertise":false,"proficient":false},"Обман":{"expertise":false,"proficient":false},"Анализ":{"expertise":false,"proficient":false},"История":{"expertise":false,"proficient":false},"Природа":{"expertise":false,"proficient":false},"Религия":{"expertise":false,"proficient":false},"Атлетика":{"expertise":false,"proficient":false},"Медицина":{"expertise":false,"proficient":false},"Выживание":{"expertise":false,"proficient":false},"Убеждение":{"expertise":false,"proficient":false},"Акробатика":{"expertise":false,"proficient":false},"Восприятие":{"expertise":false,"proficient":false},"Скрытность":{"expertise":false,"proficient":false},"Выступление":{"expertise":false,"proficient":false},"Запугивание":{"expertise":false,"proficient":false},"Ловкость рук":{"expertise":false,"proficient":false},"Проницательность":{"expertise":false,"proficient":false},"Уход за животными":{"expertise":false,"proficient":false}},"tempHp":0,"hitDice":"1d10","weapons":[],"factions":"","features":[],"alignment":"Истинно нейтральный","currentHp":10,"equipment":[],"appearance":"","armorClass":10,"background":"","deathSaves":{"failures":0,"successes":0},"experience":0,"initiative":0,"savingThrows":{"CHA":false,"CON":true,"DEX":false,"INT":false,"STR":true,"WIS":false},"abilityScores":{"CHA":10,"CON":10,"DEX":10,"INT":10,"STR":10,"WIS":10},"customACBonus":0,"proficiencies":{"armor":[],"tools":[],"weapons":[],"languages":["Общий"]},"weaponsLocked":false,"featuresLocked":false,"equipmentLocked":false,"hitDiceRemaining":1,"proficiencyBonus":2,"customAbilityBonuses":{"CHA":0,"CON":0,"DEX":0,"INT":0,"STR":0,"WIS":0},"customInitiativeBonus":0},{"id":"c821de51-443b-43ce-81b3-36deec9185ba","userId":"53451077","name":"Боря","race":"Эльф","class":"Паладин","level":10,"maxHp":30,"money":{"cp":0,"ep":3,"gp":5,"pp":0,"sp":0},"notes":"","speed":30,"allies":"","skills":{"Магия":{"expertise":true,"proficient":true},"Обман":{"expertise":false,"proficient":false},"Анализ":{"expertise":false,"proficient":true},"История":{"expertise":false,"proficient":false},"Природа":{"expertise":false,"proficient":false},"Религия":{"expertise":true,"proficient":true},"Атлетика":{"expertise":true,"proficient":true},"Медицина":{"expertise":false,"proficient":false},"Выживание":{"expertise":false,"proficient":false},"Убеждение":{"expertise":false,"proficient":false},"Акробатика":{"expertise":false,"proficient":true},"Восприятие":{"expertise":false,"proficient":false},"Скрытность":{"expertise":true,"proficient":true},"Выступление":{"expertise":false,"proficient":false},"Запугивание":{"expertise":false,"proficient":false},"Ловкость рук":{"expertise":false,"proficient":false},"Проницательность":{"expertise":false,"proficient":false},"Уход за животными":{"expertise":true,"proficient":true}},"tempHp":0,"hitDice":"10d10","subrace":"Лесной эльф","weapons":[],"factions":"","features":[],"alignment":"Истинно нейтральный","currentHp":13,"equipment":[{"id":"06b51ad1-921d-43f6-92a7-dff2f4e06487","name":"Скимитар","damage":"1d6","weight":3,"category":"weapon","equipped":true,"isWeapon":true,"quantity":1,"isFinesse":true,"abilityMod":"dex","damageType":"рубящий","attackBonus":0,"weaponProperties":"лёгкое, фехтовальное"},{"id":"53b6f434-c0c3-45ec-ab8a-b0cabde6c42a","name":"Кираса","weight":20,"isArmor":true,"category":"armor","equipped":true,"quantity":1,"armorType":"medium","armorBaseAC":15,"attackBonus":0,"armorMaxDexBonus":2},{"id":"ddd6b1e8-0fa1-43fd-a833-8eacc4afd52d","name":"Вино (бутылка)","weight":1.5,"category":"food","equipped":false,"quantity":2,"attackBonus":0,"description":"Обычное вино"},{"id":"592313bc-254b-417e-a59e-a4d1abd37866","name":"Рацион (1 день)","weight":2,"category":"food","equipped":false,"quantity":5,"attackBonus":0,"description":"Сухой паёк на один день"},{"id":"57a6fbc0-fe7e-4133-8a87-23e85eb73df2","name":"Инструменты кузнеца","weight":8,"category":"tool","equipped":false,"quantity":1,"attackBonus":0,"description":"Для работы с металлом"}],"appearance":"","armorClass":10,"background":"","deathSaves":{"failures":0,"successes":0},"experience":0,"initiative":0,"savingThrows":{"CHA":true,"CON":false,"DEX":false,"INT":false,"STR":false,"WIS":true},"abilityScores":{"CHA":10,"CON":10,"DEX":15,"INT":10,"STR":10,"WIS":10},"customACBonus":0,"proficiencies":{"armor":[],"tools":[],"weapons":["Скимитар"],"languages":["Общий"]},"weaponsLocked":false,"featuresLocked":false,"equipmentLocked":true,"hitDiceRemaining":10,"proficiencyBonus":4,"customAbilityBonuses":{"CHA":0,"CON":0,"DEX":0,"INT":0,"STR":0,"WIS":0},"customInitiativeBonus":0}]
+12:46:16 PM [express] GET /api/characters/b6aed196-82c9-4498-92fe-7da29088739a 200 in 6ms :: {"id":"b6aed196-82c9-4498-92fe-7da29088739a","userId":"53451077","name":"Новый персонаж","race":"Эльф","class":"Изобретатель","level":1,"maxHp":10,"money":{"cp":5,"ep":5,"gp":12,"pp":0,"sp":5},"notes":"","speed":30,"allies":"","skills":{"Магия":{"expertise":false,"proficient":false},"Обман":{"expertise":false,"proficient":false},"Анализ":{"expertise":false,"proficient":false},"История":{"expertise":false,"proficient":false},"Природа":{"expertise":false,"proficient":false},"Религия":{"expertise":false,"proficient":false},"Атлетика":{"expertise":false,"proficient":false},"Медицина":{"expertise":false,"proficient":false},"Выживание":{"expertise":false,"proficient":false},"Убеждение":{"expertise":false,"proficient":false},"Акробатика":{"expertise":false,"proficient":false},"Восприятие":{"expertise":false,"proficient":false},"Скрытность":{"expertise":false,"proficient":false},"Выступление":{"expertise":false,"proficient":false},"Запугивание":{"expertise":false,"proficient":false},"Ловкость рук":{"expertise":false,"proficient":false},"Проницательность":{"expertise":false,"proficient":false},"Уход за животными":{"expertise":false,"proficient":false}},"tempHp":0,"hitDice":"1d8","subrace":"Высший эльф","weapons":[],"factions":"","features":[],"alignment":"Истинно нейтральный","currentHp":10,"equipment":[{"id":"0dd8a274-7ac5-4fcd-ba1f-487aed009478","name":"Трезубец","damage":"1d6","weight":4,"category":"weapon","equipped":true,"isWeapon":true,"quantity":1,"abilityMod":"str","damageType":"колющий","attackBonus":0,"weaponProperties":"метательное, универсальное (1d8)"},{"id":"68a9de51-0499-4dae-a8a5-e9d76554276d","name":"Копьё","damage":"1d6","weight":3,"category":"weapon","equipped":true,"isWeapon":true,"quantity":1,"abilityMod":"str","damageType":"колющий","attackBonus":0,"weaponProperties":"метательное, универсальное (1d8)"},{"id":"a4ef3f31-22a1-442f-8305-624bca1bf7c1","name":"Кольчуга","weight":45,"isArmor":true,"category":"armor","equipped":true,"quantity":1,"armorType":"heavy","armorBaseAC":16,"attackBonus":0,"description":"Помеха скрытности","armorMaxDexBonus":0},{"id":"ab8e0f7c-f9d8-471a-bb24-5922e4cf3b03","name":"Рацион (1 день)","weight":2,"category":"food","equipped":false,"quantity":7,"attackBonus":0,"description":"Сухой паёк на один день"},{"id":"8145c870-1bbd-4cb1-9401-59cda46306a3","name":"Зелье превосходного лечения","weight":0.5,"category":"potion","equipped":false,"quantity":1,"attackBonus":0,"description":"Восстанавливает 8d4+8 хитов"}],"appearance":"","armorClass":10,"background":"","deathSaves":{"failures":0,"successes":0},"experience":250,"initiative":0,"savingThrows":{"CHA":false,"CON":true,"DEX":false,"INT":true,"STR":false,"WIS":false},"abilityScores":{"CHA":10,"CON":10,"DEX":10,"INT":10,"STR":15,"WIS":10},"customACBonus":0,"proficiencies":{"armor":[],"tools":[],"weapons":["Воинское оружие"],"languages":["Общий"]},"weaponsLocked":false,"featuresLocked":false,"equipmentLocked":false,"hitDiceRemaining":1,"proficiencyBonus":2,"customAbilityBonuses":{"CHA":0,"CON":0,"DEX":0,"INT":0,"STR":0,"WIS":0},"customInitiativeBonus":0}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[1;1H[0J[2m12:46:22 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/CombatStats.tsx[22m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[1;1H[0J[2m12:46:27 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/CombatStats.tsx[22m [33m(x2)[39m
+[2m12:46:28 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [33mhmr invalidate [39m[2m/src/components/CombatStats.tsx[22m Could not Fast Refresh (new export)
+[2m12:46:28 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/CharacterSheet.tsx[22m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[1;1H[0J[2m12:46:30 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/CombatStats.tsx[22m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[1;1H[0J[2m12:46:36 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/CombatStats.tsx[22m [33m(x2)[39m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[1;1H[0J[2m12:46:44 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/CharacterSheet.tsx, /src/index.css[22m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[1;1H[0J[2m12:46:57 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/CharacterSheet.tsx, /src/index.css[22m [33m(x2)[39m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[1;1H[0J[2m12:47:05 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/CharacterSheet.tsx, /src/index.css[22m [33m(x3)[39m
+[replit-cartographer] Error processing /home/runner/workspace/client/src/pages/CharacterSheet.tsx: SyntaxError: Expected corresponding JSX closing tag for <main>. (646:8)
+    at toParseError [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parse-error.ts:95:45[90m)[39m
+    at raise [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/tokenizer/index.ts:1503:19[90m)[39m
+    at jsxParseElementAt [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/plugins/jsx/index.ts:527:18[90m)[39m
+    at jsxParseElementAt [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/plugins/jsx/index.ts:483:34[90m)[39m
+    at jsxParseElement [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/plugins/jsx/index.ts:559:19[90m)[39m
+    at parseExprAtom [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/plugins/jsx/index.ts:573:21[90m)[39m
+    at parseExprSubscripts [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/expression.ts:734:23[90m)[39m
+    at parseUpdate [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/expression.ts:713:21[90m)[39m
+    at parseMaybeUnary [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/expression.ts:675:23[90m)[39m
+    at parseMaybeUnary [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/plugins/typescript/index.ts:3855:20[90m)[39m
+    at parseMaybeUnaryOrPrivate [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/expression.ts:409:14[90m)[39m
+    at parseExprOps [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/expression.ts:421:23[90m)[39m
+    at parseMaybeConditional [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/expression.ts:376:23[90m)[39m
+    at parseMaybeAssign [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/expression.ts:301:21[90m)[39m
+    at fn [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/plugins/typescript/index.ts:3708:23[90m)[39m
+    at tryParse [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/util.ts:174:20[90m)[39m
+    at parseMaybeAssign [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/plugins/typescript/index.ts:3707:20[90m)[39m
+    at callback [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/expression.ts:257:12[90m)[39m
+    at allowInAnd [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/expression.ts:3192:12[90m)[39m
+    at parseMaybeAssignAllowIn [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/expression.ts:256:17[90m)[39m
+    at parseMaybeAssignAllowInOrVoidPattern [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/expression.ts:3306:17[90m)[39m
+    at parseParenAndDistinguishExpression [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/expression.ts:1813:16[90m)[39m
+    at parseExprAtom [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/expression.ts:1162:21[90m)[39m
+    at parseExprAtom [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/plugins/jsx/index.ts:583:22[90m)[39m
+    at parseExprSubscripts [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/expression.ts:734:23[90m)[39m
+    at parseUpdate [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/expression.ts:713:21[90m)[39m
+    at parseMaybeUnary [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/expression.ts:675:23[90m)[39m
+    at parseMaybeUnary [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/plugins/typescript/index.ts:3855:20[90m)[39m
+    at parseMaybeUnaryOrPrivate [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/expression.ts:409:14[90m)[39m
+    at parseExprOps [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/expression.ts:421:23[90m)[39m
+    at parseMaybeConditional [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/expression.ts:376:23[90m)[39m
+    at parseMaybeAssign [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/expression.ts:301:21[90m)[39m
+    at parseMaybeAssign [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/plugins/typescript/index.ts:3727:22[90m)[39m
+    at parseExpressionBase [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/expression.ts:226:23[90m)[39m
+    at callback [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/expression.ts:217:39[90m)[39m
+    at allowInAnd [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/expression.ts:3187:16[90m)[39m
+    at parseExpression [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/expression.ts:217:17[90m)[39m
+    at parseReturnStatement [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/statement.ts:1110:28[90m)[39m
+    at parseStatementContent [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/statement.ts:538:21[90m)[39m
+    at parseStatementContent [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/plugins/typescript/index.ts:3185:20[90m)[39m
+    at parseStatementLike [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/statement.ts:477:17[90m)[39m
+    at parseStatementListItem [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/statement.ts:426:17[90m)[39m
+    at parseBlockOrModuleBlockBody [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/statement.ts:1439:16[90m)[39m
+    at parseBlockBody [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/statement.ts:1412:10[90m)[39m
+    at parseBlock [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/statement.ts:1380:10[90m)[39m
+    at parseFunctionBody [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/expression.ts:2616:24[90m)[39m
+    at parseFunctionBodyAndFinish [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/expression.ts:2585:10[90m)[39m
+    at parseFunctionBodyAndFinish [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/plugins/typescript/index.ts:2646:20[90m)[39m
+    at callback [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/statement.ts:1690:12[90m)[39m
+    at withSmartMixTopicForbiddingContext [90m(/home/runner/workspace/[39mnode_modules/[4m@babel/parser[24m/src/parser/expression.ts:3166:14[90m)[39m {
+  code: [32m'BABEL_PARSER_SYNTAX_ERROR'[39m,
+  reasonCode: [32m'MissingClosingTagElement'[39m,
+  loc: Position { line: [33m646[39m, column: [33m8[39m, index: [33m26472[39m },
+  pos: [33m26472[39m,
+  syntaxPlugin: [32m'jsx'[39m
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[1;1H[0J[2m12:47:05 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: /home/runner/workspace/client/src/pages/CharacterSheet.tsx: Expected corresponding JSX closing tag for <main>. (646:8)
+
+[0m [90m 644 |[31m             [33m<[31m[33m/[31m[33mdiv[31m[33m>[31m
+ [90m 645 |[31m           [33m<[31m[33m/[31m[33mdiv[31m[33m>[31m
+[31m[1m>[22m[31m[90m 646 |[31m         [33m<[31m[33m/[31m[33mdiv[31m[33m>[31m
+ [90m     |[31m         [31m[1m^[22m[31m
+ [90m 647 |[31m       [33m<[31m[33m/[31m[33mmain[31m[33m>[31m
+ [90m 648 |[31m
+ [90m 649 |[31m       [33m<[31m[33mDiceRoller[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36m/home/runner/workspace/client/src/pages/CharacterSheet.tsx[39m:646:8
+[33m  644 |              </div>
+  645 |            </div>
+  646 |          </div>
+      |          ^
+  647 |        </main>
+  648 |  [39m
+      at toParseError (/home/runner/workspace/node_modules/@babel/parser/src/parse-error.ts:95:45)
+      at raise (/home/runner/workspace/node_modules/@babel/parser/src/tokenizer/index.ts:1503:19)
+      at jsxParseElementAt (/home/runner/workspace/node_modules/@babel/parser/src/plugins/jsx/index.ts:527:18)
+      at jsxParseElementAt (/home/runner/workspace/node_modules/@babel/parser/src/plugins/jsx/index.ts:483:34)
+      at jsxParseElement (/home/runner/workspace/node_modules/@babel/parser/src/plugins/jsx/index.ts:559:19)
+      at parseExprAtom (/home/runner/workspace/node_modules/@babel/parser/src/plugins/jsx/index.ts:573:21)
+      at parseExprSubscripts (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:734:23)
+      at parseUpdate (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:713:21)
+      at parseMaybeUnary (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:675:23)
+      at parseMaybeUnary (/home/runner/workspace/node_modules/@babel/parser/src/plugins/typescript/index.ts:3855:20)
+      at parseMaybeUnaryOrPrivate (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:409:14)
+      at parseExprOps (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:421:23)
+      at parseMaybeConditional (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:376:23)
+      at parseMaybeAssign (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:301:21)
+      at fn (/home/runner/workspace/node_modules/@babel/parser/src/plugins/typescript/index.ts:3708:23)
+      at tryParse (/home/runner/workspace/node_modules/@babel/parser/src/parser/util.ts:174:20)
+      at parseMaybeAssign (/home/runner/workspace/node_modules/@babel/parser/src/plugins/typescript/index.ts:3707:20)
+      at callback (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:257:12)
+      at allowInAnd (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:3192:12)
+      at parseMaybeAssignAllowIn (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:256:17)
+      at parseMaybeAssignAllowInOrVoidPattern (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:3306:17)
+      at parseParenAndDistinguishExpression (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:1813:16)
+      at parseExprAtom (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:1162:21)
+      at parseExprAtom (/home/runner/workspace/node_modules/@babel/parser/src/plugins/jsx/index.ts:583:22)
+      at parseExprSubscripts (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:734:23)
+      at parseUpdate (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:713:21)
+      at parseMaybeUnary (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:675:23)
+      at parseMaybeUnary (/home/runner/workspace/node_modules/@babel/parser/src/plugins/typescript/index.ts:3855:20)
+      at parseMaybeUnaryOrPrivate (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:409:14)
+      at parseExprOps (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:421:23)
+      at parseMaybeConditional (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:376:23)
+      at parseMaybeAssign (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:301:21)
+      at parseMaybeAssign (/home/runner/workspace/node_modules/@babel/parser/src/plugins/typescript/index.ts:3727:22)
+      at parseExpressionBase (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:226:23)
+      at callback (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:217:39)
+      at allowInAnd (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:3187:16)
+      at parseExpression (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:217:17)
+      at parseReturnStatement (/home/runner/workspace/node_modules/@babel/parser/src/parser/statement.ts:1110:28)
+      at parseStatementContent (/home/runner/workspace/node_modules/@babel/parser/src/parser/statement.ts:538:21)
+      at parseStatementContent (/home/runner/workspace/node_modules/@babel/parser/src/plugins/typescript/index.ts:3185:20)
+      at parseStatementLike (/home/runner/workspace/node_modules/@babel/parser/src/parser/statement.ts:477:17)
+      at parseStatementListItem (/home/runner/workspace/node_modules/@babel/parser/src/parser/statement.ts:426:17)
+      at parseBlockOrModuleBlockBody (/home/runner/workspace/node_modules/@babel/parser/src/parser/statement.ts:1439:16)
+      at parseBlockBody (/home/runner/workspace/node_modules/@babel/parser/src/parser/statement.ts:1412:10)
+      at parseBlock (/home/runner/workspace/node_modules/@babel/parser/src/parser/statement.ts:1380:10)
+      at parseFunctionBody (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:2616:24)
+      at parseFunctionBodyAndFinish (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:2585:10)
+      at parseFunctionBodyAndFinish (/home/runner/workspace/node_modules/@babel/parser/src/plugins/typescript/index.ts:2646:20)
+      at callback (/home/runner/workspace/node_modules/@babel/parser/src/parser/statement.ts:1690:12)
+      at withSmartMixTopicForbiddingContext (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:3166:14)
+[1G[0K⠙[1G[0K

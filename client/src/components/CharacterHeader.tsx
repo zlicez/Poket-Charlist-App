@@ -15,7 +15,7 @@ import {
   DrawerDescription,
   DrawerFooter,
 } from "@/components/ui/drawer";
-import { Edit2, Play, User, Sparkles, Scroll, BookOpen, Info, Settings2 } from "lucide-react";
+import { User, Sparkles, Scroll, BookOpen, Info, Settings2 } from "lucide-react";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { 
   CLASSES, 
@@ -239,10 +239,9 @@ interface CharacterHeaderProps {
   character: Character;
   onChange: (updates: Partial<Character>) => void;
   isEditing: boolean;
-  onToggleMode: () => void;
 }
 
-export function CharacterHeader({ character, onChange, isEditing, onToggleMode }: CharacterHeaderProps) {
+export function CharacterHeader({ character, onChange, isEditing }: CharacterHeaderProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const isDesktop = useMediaQuery("(min-width: 640px)");
   const profBonus = getProficiencyBonus(character.level);
@@ -473,24 +472,6 @@ export function CharacterHeader({ character, onChange, isEditing, onToggleMode }
                 Параметры
               </Button>
             )}
-            <Button
-              variant={isEditing ? "default" : "outline"}
-              onClick={onToggleMode}
-              className="gap-1.5 h-10 px-3 sm:px-4"
-              data-testid="button-toggle-mode"
-            >
-              {isEditing ? (
-                <>
-                  <Play className="w-4 h-4" />
-                  Играть
-                </>
-              ) : (
-                <>
-                  <Edit2 className="w-4 h-4" />
-                  Редактировать
-                </>
-              )}
-            </Button>
           </div>
         </div>
       </div>
