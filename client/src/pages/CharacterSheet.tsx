@@ -388,7 +388,9 @@ export default function CharacterSheet() {
               { id: "section-abilities", label: "Характеристики", icon: Swords },
               { id: "section-combat", label: "Бой", icon: Shield },
               { id: "section-equipment", label: "Оружие", icon: Crosshair },
-              { id: "section-spells", label: "Заклинания", icon: BookOpen },
+              ...(isEditing || currentCharacter.spellcasting || CLASS_DATA[currentCharacter.class]?.spellcastingAbility
+                ? [{ id: "section-spells", label: "Заклинания", icon: BookOpen }]
+                : []),
               { id: "section-inventory", label: "Инвентарь", icon: Backpack },
             ].map(({ id, label, icon: Icon }) => (
               <button
