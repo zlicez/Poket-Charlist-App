@@ -1,4 +1,12 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import {
+  cacheCharacters,
+  cacheCharacter,
+  getCachedCharacters,
+  getCachedCharacter,
+  addPendingChange,
+  removeCachedCharacter,
+} from "./offline-db";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -12,15 +20,57 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const res = await fetch(url, {
-    method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: data ? { "Content-Type": "application/json" } : {},
+      body: data ? JSON.stringify(data) : undefined,
+      credentials: "include",
+    });
 
-  await throwIfResNotOk(res);
-  return res;
+    await throwIfResNotOk(res);
+
+    if (method === "PATCH" && url.match(/\/api\/characters\/\d+$/)) {
+      try {
+        const clone = res.clone();
+        const updated = await clone.json();
+        if (updated?.id) {
+          cacheCharacter(updated).catch(() => {});
+        }
+      } catch {}
+    }
+
+    if (method === "DELETE" && url.match(/\/api\/characters\/\d+$/)) {
+      const idMatch = url.match(/\/api\/characters\/(\d+)$/);
+      if (idMatch) {
+        removeCachedCharacter(idMatch[1]).catch(() => {});
+      }
+    }
+
+    return res;
+  } catch (err) {
+    if (!navigator.onLine && method !== "GET") {
+      await addPendingChange({
+        method,
+        url,
+        body: data,
+        timestamp: Date.now(),
+      });
+
+      if (method === "DELETE" && url.match(/\/api\/characters\/\d+$/)) {
+        const idMatch = url.match(/\/api\/characters\/(\d+)$/);
+        if (idMatch) {
+          removeCachedCharacter(idMatch[1]).catch(() => {});
+        }
+      }
+
+      return new Response(JSON.stringify({ queued: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    throw err;
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -29,16 +79,42 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey.join("/") as string, {
-      credentials: "include",
-    });
+    const url = queryKey.join("/") as string;
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+    try {
+      const res = await fetch(url, {
+        credentials: "include",
+      });
+
+      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+        return null;
+      }
+
+      await throwIfResNotOk(res);
+      const data = await res.json();
+
+      if (url === "/api/characters" && Array.isArray(data)) {
+        cacheCharacters(data).catch(() => {});
+      } else if (url.match(/^\/api\/characters\/\d+$/) && data?.id) {
+        cacheCharacter(data).catch(() => {});
+      }
+
+      return data;
+    } catch (err) {
+      if (!navigator.onLine || (err instanceof TypeError && (err as TypeError).message.includes("fetch"))) {
+        if (url === "/api/characters") {
+          const cached = await getCachedCharacters();
+          if (cached.length > 0) return cached as T;
+        }
+
+        const charMatch = url.match(/^\/api\/characters\/(\d+)$/);
+        if (charMatch) {
+          const cached = await getCachedCharacter(charMatch[1]);
+          if (cached) return cached as T;
+        }
+      }
+      throw err;
     }
-
-    await throwIfResNotOk(res);
-    return await res.json();
   };
 
 export const queryClient = new QueryClient({
