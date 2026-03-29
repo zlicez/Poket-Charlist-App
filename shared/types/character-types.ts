@@ -153,6 +153,14 @@ export const spellcastingSchema = z.object({
 
 export type Spellcasting = z.infer<typeof spellcastingSchema>;
 
+export const classEntrySchema = z.object({
+  name: z.string(),
+  level: z.number().min(1).max(20),
+  subclass: z.string().optional(),
+});
+
+export type ClassEntry = z.infer<typeof classEntrySchema>;
+
 export const characterSchema = z.object({
   id: z.string(),
   userId: z.string().optional(),
@@ -163,6 +171,7 @@ export const characterSchema = z.object({
   race: z.string(),
   subrace: z.string().optional(),
   level: z.number().min(1).max(20).default(1),
+  classes: z.array(classEntrySchema).optional(),
   background: z.string().optional(),
   alignment: z.string().optional(),
   experience: z.number().min(0).default(0),
@@ -414,6 +423,43 @@ export function createEquipmentFromBase(baseItem: BaseEquipmentItem, quantity: n
   };
 }
 
+export function getCharacterClasses(character: { class: string; level: number; subclass?: string; classes?: ClassEntry[] }): ClassEntry[] {
+  if (character.classes && character.classes.length > 0) {
+    return character.classes;
+  }
+  return [{ name: character.class, level: character.level, subclass: character.subclass }];
+}
+
+export function getTotalLevel(classes: ClassEntry[]): number {
+  return Math.min(20, classes.reduce((sum, c) => sum + c.level, 0));
+}
+
+export function formatClassesDisplay(classes: ClassEntry[]): string {
+  if (classes.length <= 1) {
+    return classes[0]?.name || "";
+  }
+  return classes.map(c => `${c.name} ${c.level}`).join(" / ");
+}
+
+export function getMulticlassHitDice(classes: ClassEntry[]): { dice: string; count: number }[] {
+  const result: { dice: string; count: number }[] = [];
+  for (const entry of classes) {
+    const classData = CLASS_DATA[entry.name];
+    const dice = classData?.hitDice || "d10";
+    const existing = result.find(r => r.dice === dice);
+    if (existing) {
+      existing.count += entry.level;
+    } else {
+      result.push({ dice, count: entry.level });
+    }
+  }
+  return result;
+}
+
+export function hasAnyCasterClass(classes: ClassEntry[]): boolean {
+  return classes.some(c => CLASS_DATA[c.name]?.spellcastingAbility);
+}
+
 export const DEFAULT_SKILLS_PROFICIENCY: Record<string, SkillProficiency> = Object.fromEntries(
   SKILLS.map(skill => [skill.name, { proficient: false, expertise: false }])
 );
@@ -429,6 +475,7 @@ export function createDefaultCharacter(): InsertCharacter {
     class: defaultClass,
     race: "Человек",
     level: 1,
+    classes: [{ name: defaultClass, level: 1 }],
     background: "",
     alignment: "Истинно нейтральный",
     experience: 0,

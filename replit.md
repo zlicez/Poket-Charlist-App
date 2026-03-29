@@ -4,6 +4,7 @@
 A web application for managing Dungeons & Dragons 5th Edition character sheets. Features automatic calculations, built-in dice rolling, and an intuitive fantasy-themed interface. Russian-language UI.
 
 ## Features
+- **Multiclass Support**: Characters can have multiple classes with individual levels; total level, hit dice, proficiency bonus, and saving throws auto-calculated; add/remove classes in edit mode
 - **Interactive Character Sheet**: Full character management with all D&D 5e stats
 - **6 Ability Scores**: STR, DEX, CON, INT, WIS, CHA with auto-calculated modifiers and racial bonuses
 - **18 Skills**: With proficiency and expertise tracking, grouped by ability

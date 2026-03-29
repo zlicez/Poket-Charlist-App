@@ -29,6 +29,8 @@ import {
   formatModifier,
   getProficiencyBonus,
   getRacialBonuses,
+  getCharacterClasses,
+  getTotalLevel,
 } from "@shared/schema";
 import type { Character, Spell, Spellcasting, AbilityName } from "@shared/schema";
 
@@ -496,7 +498,9 @@ function SpellCard({
 }
 
 export function SpellsSection({ character, onChange, isEditing }: SpellsSectionProps) {
-  const classData = CLASS_DATA[character.class];
+  const charClasses = getCharacterClasses(character);
+  const casterClass = charClasses.find(c => CLASS_DATA[c.name]?.spellcastingAbility);
+  const classData = casterClass ? CLASS_DATA[casterClass.name] : CLASS_DATA[character.class];
   const classSpellAbility = classData?.spellcastingAbility;
 
   const resolvedDefault: Spellcasting = {
@@ -507,7 +511,8 @@ export function SpellsSection({ character, onChange, isEditing }: SpellsSectionP
     ? { ...character.spellcasting, ability: character.spellcasting.ability ?? classSpellAbility ?? "INT" }
     : resolvedDefault;
 
-  const profBonus = getProficiencyBonus(character.level);
+  const totalLevel = getTotalLevel(charClasses);
+  const profBonus = getProficiencyBonus(totalLevel);
 
   const racialBonuses = getRacialBonuses(character.race, character.subrace);
   const abilityScore =

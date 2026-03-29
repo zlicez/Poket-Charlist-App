@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Shield, Zap, Footprints, Heart, Skull, Plus, Minus, Dice6, Check, X, RotateCcw } from "lucide-react";
-import { calculateModifier, formatModifier, calculateAC, CLASS_DATA, getRacialBonuses } from "@shared/schema";
+import { calculateModifier, formatModifier, calculateAC, CLASS_DATA, getRacialBonuses, getCharacterClasses, getMulticlassHitDice, getTotalLevel } from "@shared/schema";
 import type { Character, DeathSaves, ArmorData } from "@shared/schema";
 
 interface HpTrackerProps {
@@ -247,7 +247,9 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
   const racialBonuses = getRacialBonuses(character.race, character.subrace);
   const totalDex = character.abilityScores.DEX + (racialBonuses.DEX || 0) + (character.customAbilityBonuses?.DEX || 0);
   const dexMod = calculateModifier(totalDex);
-  const classData = CLASS_DATA[character.class];
+  const charClasses = getCharacterClasses(character);
+  const totalLevel = getTotalLevel(charClasses);
+  const multiHitDice = getMulticlassHitDice(charClasses);
   
   const equippedArmor = character.equipment.find(e => e.equipped && e.isArmor && e.armorType !== "shield");
   const hasShield = character.equipment.some(e => e.equipped && e.isArmor && e.armorType === "shield");
@@ -378,13 +380,17 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
           <div className="flex items-center gap-2 mb-2">
             <Dice6 className="w-5 h-5 text-accent" />
             <span className="font-semibold text-sm">Кубики хитов</span>
-            <Badge variant="secondary" className="ml-auto text-xs font-mono">
-              {classData ? classData.hitDice : 'd10'}
-            </Badge>
+            <div className="ml-auto flex gap-1">
+              {multiHitDice.map((hd, i) => (
+                <Badge key={i} variant="secondary" className="text-xs font-mono">
+                  {hd.count}{hd.dice}
+                </Badge>
+              ))}
+            </div>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground font-mono">
-              {character.hitDiceRemaining} / {character.level}
+              {character.hitDiceRemaining} / {totalLevel}
             </span>
             {!isEditing && (
               <div className="flex gap-2">
@@ -402,8 +408,8 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
                   variant="outline"
                   size="icon"
                   className="h-10 w-10 sm:h-9 sm:w-9"
-                  onClick={() => onChange({ hitDiceRemaining: Math.min(character.level, character.hitDiceRemaining + 1) })}
-                  disabled={character.hitDiceRemaining >= character.level}
+                  onClick={() => onChange({ hitDiceRemaining: Math.min(totalLevel, character.hitDiceRemaining + 1) })}
+                  disabled={character.hitDiceRemaining >= totalLevel}
                   data-testid="button-hit-dice-plus"
                 >
                   <Plus className="w-4 h-4" />

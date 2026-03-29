@@ -29,6 +29,9 @@ import {
   getProficiencyBonus,
   formatModifier,
   getRacialBonuses,
+  getCharacterClasses,
+  getTotalLevel,
+  hasAnyCasterClass,
   type Character, 
   type AbilityName,
   type SkillProficiency,
@@ -388,7 +391,7 @@ export default function CharacterSheet() {
               { id: "section-abilities", label: "Характеристики", icon: Swords },
               { id: "section-combat", label: "Бой", icon: Shield },
               { id: "section-equipment", label: "Оружие", icon: Crosshair },
-              ...(isEditing || currentCharacter.spellcasting || CLASS_DATA[currentCharacter.class]?.spellcastingAbility
+              ...(isEditing || currentCharacter.spellcasting || hasAnyCasterClass(getCharacterClasses(currentCharacter))
                 ? [{ id: "section-spells", label: "Заклинания", icon: BookOpen }]
                 : []),
               { id: "section-inventory", label: "Инвентарь", icon: Backpack },
@@ -567,7 +570,7 @@ export default function CharacterSheet() {
             </div>
           </div>
 
-          {(isEditing || currentCharacter.spellcasting || CLASS_DATA[currentCharacter.class]?.spellcastingAbility) && (
+          {(isEditing || currentCharacter.spellcasting || hasAnyCasterClass(getCharacterClasses(currentCharacter))) && (
             <div id="section-spells">
               <div className="section-label">Заклинания</div>
               <SpellsSection

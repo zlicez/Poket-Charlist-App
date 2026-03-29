@@ -3,6 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { User, Heart, Shield, Trash2 } from "lucide-react";
+import { getCharacterClasses, formatClassesDisplay, getTotalLevel } from "@shared/schema";
 import type { Character } from "@shared/schema";
 
 interface CharacterCardProps {
@@ -14,6 +15,9 @@ interface CharacterCardProps {
 
 export function CharacterCard({ character, onClick, onDelete, isSelected }: CharacterCardProps) {
   const hpPercent = Math.round((character.currentHp / character.maxHp) * 100);
+  const charClasses = getCharacterClasses(character);
+  const totalLevel = getTotalLevel(charClasses);
+  const classLabel = charClasses.length > 1 ? formatClassesDisplay(charClasses) : charClasses[0]?.name || character.class;
   
   return (
     <Card 
@@ -39,8 +43,8 @@ export function CharacterCard({ character, onClick, onDelete, isSelected }: Char
           </h3>
           <div className="flex flex-wrap items-center gap-1.5 mt-1">
             <Badge variant="secondary" className="text-xs">{character.race}</Badge>
-            <Badge variant="outline" className="text-xs">{character.class}</Badge>
-            <Badge className="text-xs">Ур. {character.level}</Badge>
+            <Badge variant="outline" className="text-xs">{classLabel}</Badge>
+            <Badge className="text-xs">Ур. {totalLevel}</Badge>
           </div>
         </div>
 

@@ -15,7 +15,7 @@ import {
   DrawerDescription,
   DrawerFooter,
 } from "@/components/ui/drawer";
-import { User, Sparkles, Scroll, BookOpen, Info, Settings2 } from "lucide-react";
+import { User, Sparkles, Scroll, BookOpen, Info, Settings2, Plus, Trash2 } from "lucide-react";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { 
   CLASSES, 
@@ -27,9 +27,12 @@ import {
   getProficiencyBonus, 
   formatModifier,
   getXPProgress,
-  XP_THRESHOLDS
+  XP_THRESHOLDS,
+  getCharacterClasses,
+  getTotalLevel,
+  formatClassesDisplay,
 } from "@shared/schema";
-import type { Character, AbilityName } from "@shared/schema";
+import type { Character, AbilityName, ClassEntry } from "@shared/schema";
 
 function formatAbilityBonuses(bonuses: Partial<Record<AbilityName, number>>): string {
   return Object.entries(bonuses)
@@ -100,19 +103,110 @@ function ClassTooltipContent({ className }: { className: string }) {
   );
 }
 
+function MulticlassEditor({
+  classes,
+  onClassesChange,
+}: {
+  classes: ClassEntry[];
+  onClassesChange: (classes: ClassEntry[]) => void;
+}) {
+  const totalLevel = getTotalLevel(classes);
+
+  const handleClassNameChange = (index: number, newName: string) => {
+    const updated = classes.map((c, i) => i === index ? { ...c, name: newName } : c);
+    onClassesChange(updated);
+  };
+
+  const handleClassLevelChange = (index: number, newLevel: number) => {
+    const otherLevelsTotal = classes.reduce((sum, c, i) => i === index ? sum : sum + c.level, 0);
+    const maxForThis = Math.max(1, 20 - otherLevelsTotal);
+    const level = Math.max(1, Math.min(maxForThis, newLevel));
+    const updated = classes.map((c, i) => i === index ? { ...c, level } : c);
+    onClassesChange(updated);
+  };
+
+  const addClass = () => {
+    if (totalLevel >= 20) return;
+    const usedClasses = new Set(classes.map(c => c.name));
+    const available = CLASSES.filter(c => !usedClasses.has(c));
+    if (available.length === 0) return;
+    onClassesChange([...classes, { name: available[0], level: 1 }]);
+  };
+
+  const removeClass = (index: number) => {
+    if (classes.length <= 1) return;
+    onClassesChange(classes.filter((_, i) => i !== index));
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <label className="text-xs text-muted-foreground">Классы (общий ур. {totalLevel})</label>
+        {totalLevel < 20 && classes.length < CLASSES.length && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={addClass}
+            className="h-7 text-xs gap-1"
+            data-testid="button-add-class"
+          >
+            <Plus className="w-3 h-3" />
+            Добавить класс
+          </Button>
+        )}
+      </div>
+      {classes.map((entry, index) => (
+        <div key={index} className="flex items-center gap-2">
+          <Select value={entry.name} onValueChange={(v) => handleClassNameChange(index, v)}>
+            <SelectTrigger className="flex-1 h-10 text-sm" data-testid={`select-class-${index}`}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CLASSES.map((cls) => (
+                <SelectItem key={cls} value={cls} disabled={cls !== entry.name && classes.some(c => c.name === cls)}>
+                  {cls}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={20}
+            value={entry.level}
+            onChange={(e) => handleClassLevelChange(index, parseInt(e.target.value) || 1)}
+            className="w-16 h-10 text-center font-bold"
+            data-testid={`input-class-level-${index}`}
+          />
+          {classes.length > 1 && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => removeClass(index)}
+              className="h-10 w-10 shrink-0 text-muted-foreground hover:text-destructive"
+              data-testid={`button-remove-class-${index}`}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function EditingFields({ 
   character, 
   onChange, 
-  handleClassChange, 
+  handleClassesChange, 
   handleRaceChange, 
-  handleLevelChange, 
   subraces 
 }: { 
   character: Character;
   onChange: (updates: Partial<Character>) => void;
-  handleClassChange: (newClass: string) => void;
+  handleClassesChange: (classes: ClassEntry[]) => void;
   handleRaceChange: (newRace: string) => void;
-  handleLevelChange: (newLevel: number) => void;
   subraces: string[];
 }) {
   return (
@@ -128,33 +222,18 @@ function EditingFields({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Раса</label>
-          <Select value={character.race} onValueChange={handleRaceChange}>
-            <SelectTrigger className="h-10 text-sm" data-testid="select-race">
-              <SelectValue placeholder="Раса" />
-            </SelectTrigger>
-            <SelectContent>
-              {RACES.map((race) => (
-                <SelectItem key={race} value={race}>{race}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Класс</label>
-          <Select value={character.class} onValueChange={handleClassChange}>
-            <SelectTrigger className="h-10 text-sm" data-testid="select-class">
-              <SelectValue placeholder="Класс" />
-            </SelectTrigger>
-            <SelectContent>
-              {CLASSES.map((cls) => (
-                <SelectItem key={cls} value={cls}>{cls}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div>
+        <label className="text-xs text-muted-foreground mb-1 block">Раса</label>
+        <Select value={character.race} onValueChange={handleRaceChange}>
+          <SelectTrigger className="h-10 text-sm" data-testid="select-race">
+            <SelectValue placeholder="Раса" />
+          </SelectTrigger>
+          <SelectContent>
+            {RACES.map((race) => (
+              <SelectItem key={race} value={race}>{race}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {subraces.length > 0 && (
@@ -174,32 +253,22 @@ function EditingFields({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Уровень</label>
-          <Input
-            type="number"
-            inputMode="numeric"
-            min={1}
-            max={20}
-            value={character.level}
-            onChange={(e) => handleLevelChange(parseInt(e.target.value) || 1)}
-            className="h-10 text-center text-lg font-bold"
-            data-testid="input-level"
-          />
-        </div>
-        <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Опыт (XP)</label>
-          <Input
-            type="number"
-            inputMode="numeric"
-            min={0}
-            value={character.experience}
-            onChange={(e) => onChange({ experience: parseInt(e.target.value) || 0 })}
-            className="h-10"
-            data-testid="input-experience"
-          />
-        </div>
+      <MulticlassEditor
+        classes={getCharacterClasses(character)}
+        onClassesChange={handleClassesChange}
+      />
+
+      <div>
+        <label className="text-xs text-muted-foreground mb-1 block">Опыт (XP)</label>
+        <Input
+          type="number"
+          inputMode="numeric"
+          min={0}
+          value={character.experience}
+          onChange={(e) => onChange({ experience: parseInt(e.target.value) || 0 })}
+          className="h-10"
+          data-testid="input-experience"
+        />
       </div>
 
       <div>
@@ -244,43 +313,54 @@ interface CharacterHeaderProps {
 export function CharacterHeader({ character, onChange, isEditing }: CharacterHeaderProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const isDesktop = useMediaQuery("(min-width: 640px)");
-  const profBonus = getProficiencyBonus(character.level);
-  const classData = CLASS_DATA[character.class];
+  const charClasses = getCharacterClasses(character);
+  const totalLevel = getTotalLevel(charClasses);
+  const profBonus = getProficiencyBonus(totalLevel);
+  const primaryClassData = CLASS_DATA[charClasses[0]?.name];
   const raceData = RACE_DATA[character.race];
   const subraces = raceData?.subraces ? Object.keys(raceData.subraces) : [];
-  const xpProgress = getXPProgress(character.experience, character.level);
+  const xpProgress = getXPProgress(character.experience, totalLevel);
+  const classDisplayLabel = charClasses.length > 1 ? formatClassesDisplay(charClasses) : character.class;
 
-  const handleClassChange = (newClass: string) => {
-    const newClassData = CLASS_DATA[newClass];
-    if (newClassData) {
-      const savingThrows = {
-        STR: newClassData.savingThrows.includes("STR"),
-        DEX: newClassData.savingThrows.includes("DEX"),
-        CON: newClassData.savingThrows.includes("CON"),
-        INT: newClassData.savingThrows.includes("INT"),
-        WIS: newClassData.savingThrows.includes("WIS"),
-        CHA: newClassData.savingThrows.includes("CHA"),
+  const handleClassesChange = (newClasses: ClassEntry[]) => {
+    const newTotalLevel = getTotalLevel(newClasses);
+    const primaryClass = newClasses[0];
+    const primaryData = CLASS_DATA[primaryClass.name];
+
+    const savingThrows = primaryData ? {
+      STR: primaryData.savingThrows.includes("STR"),
+      DEX: primaryData.savingThrows.includes("DEX"),
+      CON: primaryData.savingThrows.includes("CON"),
+      INT: primaryData.savingThrows.includes("INT"),
+      WIS: primaryData.savingThrows.includes("WIS"),
+      CHA: primaryData.savingThrows.includes("CHA"),
+    } : character.savingThrows;
+
+    const updates: Partial<Character> = {
+      classes: newClasses,
+      class: primaryClass.name,
+      subclass: primaryClass.subclass,
+      level: newTotalLevel,
+      savingThrows,
+      proficiencyBonus: getProficiencyBonus(newTotalLevel),
+      hitDiceRemaining: newTotalLevel,
+    };
+
+    const casterClass = newClasses.find(c => CLASS_DATA[c.name]?.spellcastingAbility);
+    if (casterClass) {
+      const casterData = CLASS_DATA[casterClass.name]!;
+      const existingSpellcasting = character.spellcasting ?? {
+        ability: casterData.spellcastingAbility!,
+        spellSlots: Array.from({ length: 9 }, () => ({ max: 0, used: 0 })),
+        spells: [],
       };
-      const updates: Partial<Character> = { 
-        class: newClass,
-        hitDice: `${character.level}${newClassData.hitDice}`,
-        savingThrows,
+      updates.spellcasting = {
+        ...existingSpellcasting,
+        ability: casterData.spellcastingAbility!,
       };
-      if (newClassData.spellcastingAbility) {
-        const existingSpellcasting = character.spellcasting ?? {
-          ability: newClassData.spellcastingAbility,
-          spellSlots: Array.from({ length: 9 }, () => ({ max: 0, used: 0 })),
-          spells: [],
-        };
-        updates.spellcasting = {
-          ...existingSpellcasting,
-          ability: newClassData.spellcastingAbility,
-        };
-      }
-      onChange(updates);
-    } else {
-      onChange({ class: newClass });
     }
+
+    onChange(updates);
   };
 
   const handleRaceChange = (newRace: string) => {
@@ -289,17 +369,6 @@ export function CharacterHeader({ character, onChange, isEditing }: CharacterHea
       race: newRace, 
       subrace: undefined,
       speed: newRaceData?.speed || 30
-    });
-  };
-
-  const handleLevelChange = (newLevel: number) => {
-    const level = Math.min(20, Math.max(1, newLevel));
-    const newProfBonus = getProficiencyBonus(level);
-    onChange({ 
-      level,
-      proficiencyBonus: newProfBonus,
-      hitDice: classData ? `${level}${classData.hitDice}` : `${level}d10`,
-      hitDiceRemaining: level
     });
   };
 
@@ -331,68 +400,50 @@ export function CharacterHeader({ character, onChange, isEditing }: CharacterHea
 
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               {isEditing && isDesktop ? (
-                <div className="flex flex-wrap gap-2 w-full">
-                  <div className="flex items-center gap-1 flex-1 min-w-[100px]">
-                    <Select value={character.race} onValueChange={handleRaceChange}>
-                      <SelectTrigger className="flex-1 h-10 text-sm" data-testid="select-race">
-                        <SelectValue placeholder="Раса" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {RACES.map((race) => (
-                          <SelectItem key={race} value={race}>{race}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {character.race && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="flex-shrink-0" data-testid="button-race-info">
-                            <Info className="h-4 w-4 text-muted-foreground" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" className="p-3">
-                          <RaceTooltipContent raceName={character.race} subraceName={character.subrace} />
-                        </TooltipContent>
-                      </Tooltip>
+                <div className="flex flex-col gap-2 w-full">
+                  <div className="flex flex-wrap gap-2">
+                    <div className="flex items-center gap-1 flex-1 min-w-[100px]">
+                      <Select value={character.race} onValueChange={handleRaceChange}>
+                        <SelectTrigger className="flex-1 h-10 text-sm" data-testid="select-race">
+                          <SelectValue placeholder="Раса" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {RACES.map((race) => (
+                            <SelectItem key={race} value={race}>{race}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {character.race && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="flex-shrink-0" data-testid="button-race-info">
+                              <Info className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="p-3">
+                            <RaceTooltipContent raceName={character.race} subraceName={character.subrace} />
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+                    {subraces.length > 0 && (
+                      <Select value={character.subrace || "none"} onValueChange={(value) => onChange({ subrace: value === "none" ? undefined : value })}>
+                        <SelectTrigger className="flex-1 min-w-[100px] h-10 text-sm" data-testid="select-subrace">
+                          <SelectValue placeholder="Подраса" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Нет</SelectItem>
+                          {subraces.map((subrace) => (
+                            <SelectItem key={subrace} value={subrace}>{subrace}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     )}
                   </div>
-                  {subraces.length > 0 && (
-                    <Select value={character.subrace || "none"} onValueChange={(value) => onChange({ subrace: value === "none" ? undefined : value })}>
-                      <SelectTrigger className="flex-1 min-w-[100px] h-10 text-sm" data-testid="select-subrace">
-                        <SelectValue placeholder="Подраса" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Нет</SelectItem>
-                        {subraces.map((subrace) => (
-                          <SelectItem key={subrace} value={subrace}>{subrace}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                  <div className="flex items-center gap-1 flex-1 min-w-[100px]">
-                    <Select value={character.class} onValueChange={handleClassChange}>
-                      <SelectTrigger className="flex-1 h-10 text-sm" data-testid="select-class">
-                        <SelectValue placeholder="Класс" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CLASSES.map((cls) => (
-                          <SelectItem key={cls} value={cls}>{cls}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {character.class && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="flex-shrink-0" data-testid="button-class-info">
-                            <Info className="h-4 w-4 text-muted-foreground" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" className="p-3">
-                          <ClassTooltipContent className={character.class} />
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-                  </div>
+                  <MulticlassEditor
+                    classes={charClasses}
+                    onClassesChange={handleClassesChange}
+                  />
                 </div>
               ) : (
                 <>
@@ -408,23 +459,20 @@ export function CharacterHeader({ character, onChange, isEditing }: CharacterHea
                       <RaceTooltipContent raceName={character.race} subraceName={character.subrace} />
                     </TooltipContent>
                   </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="cursor-help" data-testid="badge-class">
-                        <Badge variant="outline" className="text-xs">
-                          {character.class}
-                        </Badge>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="p-3">
-                      <ClassTooltipContent className={character.class} />
-                    </TooltipContent>
-                  </Tooltip>
-                  {classData && (
-                    <Badge variant="outline" className="text-xs hidden sm:inline-flex">
-                      {classData.hitDice}
-                    </Badge>
-                  )}
+                  {charClasses.map((entry, i) => (
+                    <Tooltip key={i}>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-help" data-testid={`badge-class-${i}`}>
+                          <Badge variant="outline" className="text-xs">
+                            {charClasses.length > 1 ? `${entry.name} ${entry.level}` : entry.name}
+                          </Badge>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="p-3">
+                        <ClassTooltipContent className={entry.name} />
+                      </TooltipContent>
+                    </Tooltip>
+                  ))}
                 </>
               )}
             </div>
@@ -437,24 +485,20 @@ export function CharacterHeader({ character, onChange, isEditing }: CharacterHea
               <TooltipTrigger asChild>
                 <div className="text-center min-w-[50px]" data-testid="stat-level">
                   <div className="text-xs text-muted-foreground">Уровень</div>
-                  {isEditing && isDesktop ? (
-                    <Input
-                      type="number"
-                      inputMode="numeric"
-                      min={1}
-                      max={20}
-                      value={character.level}
-                      onChange={(e) => handleLevelChange(parseInt(e.target.value) || 1)}
-                      className="w-14 h-10 text-center text-lg font-bold"
-                      data-testid="input-level"
-                    />
-                  ) : (
-                    <div className="text-xl sm:text-2xl font-bold">{character.level}</div>
-                  )}
+                  <div className="text-xl sm:text-2xl font-bold">{totalLevel}</div>
                 </div>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Уровень персонажа от 1 до 20</p>
+                {charClasses.length > 1 ? (
+                  <div className="space-y-1">
+                    <p>Общий уровень: {totalLevel}</p>
+                    {charClasses.map((c, i) => (
+                      <p key={i} className="text-xs text-muted-foreground">{c.name}: {c.level}</p>
+                    ))}
+                  </div>
+                ) : (
+                  <p>Уровень персонажа от 1 до 20</p>
+                )}
               </TooltipContent>
             </Tooltip>
 
@@ -495,8 +539,8 @@ export function CharacterHeader({ character, onChange, isEditing }: CharacterHea
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>Опыт: {character.experience.toLocaleString()} XP</span>
                 <span>
-                  {character.level < 20 
-                    ? `До ${character.level + 1} уровня: ${(xpProgress.next - character.experience).toLocaleString()} XP`
+                  {totalLevel < 20 
+                    ? `До ${totalLevel + 1} уровня: ${(xpProgress.next - character.experience).toLocaleString()} XP`
                     : 'Максимальный уровень'
                   }
                 </span>
@@ -573,9 +617,8 @@ export function CharacterHeader({ character, onChange, isEditing }: CharacterHea
               <EditingFields
                 character={character}
                 onChange={onChange}
-                handleClassChange={handleClassChange}
+                handleClassesChange={handleClassesChange}
                 handleRaceChange={handleRaceChange}
-                handleLevelChange={handleLevelChange}
                 subraces={subraces}
               />
               <DrawerFooter>
