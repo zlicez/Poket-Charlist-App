@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import {
   ABILITY_LABELS,
   ABILITY_NAMES,
@@ -17,7 +17,6 @@ import {
 
 declare module "jspdf" {
   interface jsPDF {
-    autoTable: (options: any) => jsPDF;
     lastAutoTable: { finalY: number };
   }
 }
@@ -249,7 +248,7 @@ export function exportCharacterToPDF(character: Character): void {
       w.properties || "",
     ]);
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: y,
       head: [["Название", "Атака", "Урон", "Тип", "Свойства"]],
       body: weaponRows,
@@ -317,7 +316,7 @@ export function exportCharacterToPDF(character: Character): void {
       [s.concentration ? "К" : "", s.ritual ? "Р" : ""].filter(Boolean).join(", ") || "—",
     ]);
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: y,
       head: [["Ур.", "Название", "Время", "Дистанция", "К/Р"]],
       body: spellRows,
@@ -358,7 +357,7 @@ export function exportCharacterToPDF(character: Character): void {
         eq.description || "",
       ]);
 
-      doc.autoTable({
+      autoTable(doc, {
         startY: y,
         head: [["Предмет", "Кол-во", "Описание"]],
         body: eqRows,
