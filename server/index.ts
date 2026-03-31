@@ -89,8 +89,10 @@ app.use((req, res, next) => {
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
+  // Avoid forcing IPv4-only binding so localhost can work in environments
+  // that prefer IPv6 (::1) while still remaining reachable over IPv4.
   const port = parseInt(process.env.PORT || "5000", 10);
-  const listenOptions: Record<string, unknown> = { port, host: "0.0.0.0" };
+  const listenOptions: Record<string, unknown> = { port };
   if (process.platform !== "win32") listenOptions.reusePort = true;
   httpServer.listen(listenOptions, () => {
     log(`serving on port ${port}`);

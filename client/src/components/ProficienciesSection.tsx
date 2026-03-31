@@ -175,7 +175,7 @@ function ProficiencyCategory({
           <Button variant="ghost" size="sm" className="gap-2 p-1 h-auto" data-testid={`toggle-${category}`}>
             {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
             <Icon className="w-4 h-4 text-primary" />
-            <span className="font-medium">{label}</span>
+            <span className="text-sm font-medium">{label}</span>
             <Badge variant="secondary" className="ml-1">{items.length}</Badge>
           </Button>
         </CollapsibleTrigger>
@@ -191,7 +191,7 @@ function ProficiencyCategory({
       <CollapsibleContent>
         <div className="flex flex-wrap gap-1.5 mt-2 pl-6">
           {items.length === 0 ? (
-            <p className="text-sm text-muted-foreground italic">Нет владений</p>
+            <p className="text-xs text-muted-foreground italic">Нет владений</p>
           ) : (
             items.map((item) => (
               <Badge 
@@ -241,11 +241,11 @@ export function ProficienciesSection({ proficiencies, onChange, isEditing, race,
   };
 
   return (
-    <Card className="p-4" data-testid="proficiencies-section">
-      <div className="flex items-center justify-between mb-4">
+    <Card className="stat-card p-2 sm:p-3" data-testid="proficiencies-section">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <BookOpen className="w-5 h-5 text-primary" />
-          <h3 className="font-semibold text-lg">Владения</h3>
+          <BookOpen className="w-4 h-4 text-accent" />
+          <h3 className="font-semibold text-sm">Владения</h3>
         </div>
         {autoProfs.darkvision && (
           <Tooltip>
@@ -334,7 +334,7 @@ function ProficiencyCategoryWithAuto({
           <Button variant="ghost" size="sm" className="gap-2 p-1 h-auto" data-testid={`toggle-auto-${category}`}>
             {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
             <Icon className="w-4 h-4 text-primary" />
-            <span className="font-medium">{label}</span>
+            <span className="text-sm font-medium">{label}</span>
             <Badge variant="secondary" className="ml-1">{totalCount}</Badge>
           </Button>
         </CollapsibleTrigger>
@@ -350,7 +350,7 @@ function ProficiencyCategoryWithAuto({
       <CollapsibleContent>
         <div className="flex flex-wrap gap-1.5 mt-2 pl-6">
           {totalCount === 0 ? (
-            <p className="text-sm text-muted-foreground italic">Нет владений</p>
+            <p className="text-xs text-muted-foreground italic">Нет владений</p>
           ) : (
             <>
               {autoItems.map((item) => (

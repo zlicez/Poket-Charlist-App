@@ -188,7 +188,7 @@ export function DeathSavesTracker({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <Check className="w-4 h-4 text-positive" />
-            <span className="text-sm font-medium">Успехи</span>
+            <span className="text-xs font-medium">Успехи</span>
           </div>
           <div className="flex gap-2">
             {[0, 1, 2].map((i) => {
@@ -215,7 +215,7 @@ export function DeathSavesTracker({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <X className="w-4 h-4 text-negative" />
-            <span className="text-sm font-medium">Провалы</span>
+            <span className="text-xs font-medium">Провалы</span>
           </div>
           <div className="flex gap-2">
             {[0, 1, 2].map((i) => {
@@ -389,7 +389,7 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
             </div>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground font-mono">
+            <span className="text-xs text-muted-foreground font-mono">
               {character.hitDiceRemaining} / {totalLevel}
             </span>
             {!isEditing && (

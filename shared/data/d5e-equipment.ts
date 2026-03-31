@@ -26,7 +26,7 @@ export const ARMOR_LIST: ArmorData[] = [
 ];
 
 export const EQUIPMENT_CATEGORIES = [
-  "weapon", "armor", "food", "potion", "tool", "misc", "trash"
+  "weapon", "armor", "food", "potion", "tool", "misc"
 ] as const;
 
 export type EquipmentCategory = typeof EQUIPMENT_CATEGORIES[number];
@@ -34,11 +34,10 @@ export type EquipmentCategory = typeof EQUIPMENT_CATEGORIES[number];
 export const CATEGORY_LABELS: Record<EquipmentCategory, string> = {
   weapon: "Оружие",
   armor: "Доспехи",
-  food: "Еда",
+  food: "Провиант",
   potion: "Зелья",
   tool: "Инструменты",
   misc: "Прочее",
-  trash: "Мусор",
 };
 
 export interface BaseEquipmentItem {

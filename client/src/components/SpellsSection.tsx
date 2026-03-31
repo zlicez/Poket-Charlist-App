@@ -61,6 +61,7 @@ function SpellLibraryDialog({
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState("all");
   const [schoolFilter, setSchoolFilter] = useState("all");
+  const [classFilter, setClassFilter] = useState("all");
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 300);
@@ -77,14 +78,25 @@ function SpellLibraryDialog({
     ).sort((a, b) => a.localeCompare(b, "ru"));
   }, []);
 
+  const classOptions = useMemo(() => {
+    return Array.from(
+      new Set(
+        spellLibrary
+          .flatMap((spell) => spell.classes ?? [])
+          .filter(Boolean),
+      ),
+    ).sort((a, b) => a.localeCompare(b, "ru"));
+  }, []);
+
   const filtered = useMemo(() => {
     return spellLibrary.filter((s) => {
       if (debouncedSearch.trim() && !s.name.toLowerCase().includes(debouncedSearch.trim().toLowerCase())) return false;
       if (levelFilter !== "all" && s.level !== Number(levelFilter)) return false;
       if (schoolFilter !== "all" && s.school !== schoolFilter) return false;
+      if (classFilter !== "all" && !s.classes?.includes(classFilter)) return false;
       return true;
     });
-  }, [debouncedSearch, levelFilter, schoolFilter]);
+  }, [debouncedSearch, levelFilter, schoolFilter, classFilter]);
 
   const handleAdd = (entry: SpellEntry) => {
     onAdd({
@@ -109,6 +121,7 @@ function SpellLibraryDialog({
       setDebouncedSearch("");
       setLevelFilter("all");
       setSchoolFilter("all");
+      setClassFilter("all");
     }
   };
 
@@ -180,6 +193,20 @@ function SpellLibraryDialog({
               </SelectContent>
             </Select>
           </div>
+
+          <Select value={classFilter} onValueChange={setClassFilter}>
+            <SelectTrigger className="h-9 text-xs" data-testid="select-spell-library-class">
+              <SelectValue placeholder="Класс" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Все классы</SelectItem>
+              {classOptions.map((cls) => (
+                <SelectItem key={cls} value={cls}>
+                  {cls}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Results list */}
@@ -785,7 +812,7 @@ export function SpellsSection({ character, onChange, isEditing }: SpellsSectionP
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <BookOpen className="w-4 h-4 text-accent" />
-          <h3 className="font-semibold text-xs sm:text-sm">Заклинания</h3>
+          <h3 className="font-semibold text-sm">Заклинания</h3>
         </div>
         {isEditing && (
           <div className="flex items-center gap-1">

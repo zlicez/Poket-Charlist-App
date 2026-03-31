@@ -82,7 +82,7 @@ export const equipmentSchema = z.object({
   quantity: z.number().default(1),
   weight: z.number().optional(),
   description: z.string().optional(),
-  category: z.enum(["weapon", "armor", "food", "potion", "tool", "misc", "trash"]).default("misc"),
+  category: z.enum(["weapon", "armor", "food", "potion", "tool", "misc"]).default("misc"),
   isArmor: z.boolean().optional(),
   armorType: z.enum(["none", "light", "medium", "heavy", "shield"]).optional(),
   armorBaseAC: z.number().optional(),

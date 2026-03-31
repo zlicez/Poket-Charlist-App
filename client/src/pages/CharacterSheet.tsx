@@ -7,7 +7,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CharacterHeader } from "@/components/CharacterHeader";
 import { AbilityWithSkills } from "@/components/AbilityWithSkills";
 import { CombatStats, DeathSavesTracker, HpTracker } from "@/components/CombatStats";
-import { SavingThrowsComponent } from "@/components/SavingThrows";
 import { WeaponsList } from "@/components/WeaponsList";
 import { FeaturesList } from "@/components/FeaturesList";
 import { EquipmentSystem } from "@/components/EquipmentSystem";
@@ -334,27 +333,29 @@ function CharacterSheetContent() {
 
       {/* ── Section navigation ── */}
       <nav className="sticky top-[49px] sm:top-[53px] z-40 bg-background/95 backdrop-blur border-b" data-testid="section-nav">
-        <div className="max-w-7xl mx-auto px-1 sm:px-4 overflow-x-auto scrollbar-hide">
-          <div className="flex gap-0.5 sm:gap-1 py-1">
-            {[
-              { id: "section-abilities", label: "Характеристики", icon: Swords },
-              { id: "section-combat",    label: "Бой",            icon: Shield },
-              { id: "section-equipment", label: "Оружие",         icon: Crosshair },
-              ...(isEditing || character.spellcasting || hasAnyCasterClass(getCharacterClasses(character))
-                ? [{ id: "section-spells", label: "Заклинания", icon: BookOpen }]
-                : []),
-              { id: "section-inventory", label: "Инвентарь", icon: Backpack },
-            ].map(({ id: sectionId, label, icon: Icon }) => (
-              <button
-                key={sectionId}
-                onClick={() => document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap"
-                data-testid={`nav-${sectionId}`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {label}
-              </button>
-            ))}
+        <div className="max-w-7xl mx-auto nav-scroll-container">
+          <div className="overflow-x-auto scrollbar-hide px-1 sm:px-4">
+            <div className="flex gap-1 py-1.5">
+              {[
+                { id: "section-abilities", label: "Характеристики", icon: Swords },
+                { id: "section-combat",    label: "Бой",            icon: Shield },
+                { id: "section-equipment", label: "Оружие",         icon: Crosshair },
+                ...(isEditing || character.spellcasting || hasAnyCasterClass(getCharacterClasses(character))
+                  ? [{ id: "section-spells", label: "Заклинания", icon: BookOpen }]
+                  : []),
+                { id: "section-inventory", label: "Инвентарь", icon: Backpack },
+              ].map(({ id: sectionId, label, icon: Icon }) => (
+                <button
+                  key={sectionId}
+                  onClick={() => document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                  className="flex items-center gap-1.5 px-3 py-2 text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap min-h-[40px]"
+                  data-testid={`nav-${sectionId}`}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </nav>
@@ -411,7 +412,7 @@ function CharacterSheetContent() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-4 lg:items-stretch">
             <div id="section-abilities" className="flex flex-col gap-2 sm:gap-3">
               <div className="section-label">Характеристики и навыки</div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-2 sm:gap-3 auto-rows-fr flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-2 sm:gap-3 flex-1">
                 {ABILITY_NAMES.map((ability) => (
                   <AbilityWithSkills
                     key={ability}
@@ -441,7 +442,12 @@ function CharacterSheetContent() {
                     onSkillProficiencyChange={(skillName, proficiency) =>
                       handleChange({ skills: { [skillName]: proficiency } })
                     }
+                    savingThrowProficient={!!character.savingThrows[ability]}
+                    onSavingThrowProficiencyChange={() =>
+                      handleChange({ savingThrows: { ...character.savingThrows, [ability]: !character.savingThrows[ability] } })
+                    }
                     onRollAbility={() => rollAbility(ability)}
+                    onRollSavingThrow={() => rollSavingThrow(ability)}
                     onRollSkill={(skillName) => {
                       const skill = SKILLS_BY_ABILITY[ability].find((s) => s.name === skillName);
                       if (skill) rollSkill(skillName, skill.ability);
@@ -461,16 +467,6 @@ function CharacterSheetContent() {
                 hideDeathSaves
                 hideHp
               />
-              <div className="flex-1 min-h-0 flex flex-col [&>*]:flex-1">
-                <SavingThrowsComponent
-                  abilityScores={character.abilityScores}
-                  savingThrows={character.savingThrows}
-                  level={character.level}
-                  onChange={(savingThrows) => handleChange({ savingThrows })}
-                  onRoll={rollSavingThrow}
-                  isEditing={isEditing}
-                />
-              </div>
             </div>
 
             <div className="flex flex-col gap-2 sm:gap-3" id="section-equipment">

@@ -205,7 +205,7 @@ export function WeaponsList({
       <div className="flex items-center justify-between mb-2 sm:mb-3">
         <div className="flex items-center gap-2">
           <Swords className="w-4 h-4 text-accent" />
-          <h3 className="font-semibold text-xs sm:text-sm">Оружие</h3>
+          <h3 className="font-semibold text-sm">Оружие</h3>
           {hasEquippedWeapons && (
             <Badge variant="secondary" className="text-xs h-4 px-1.5">
               {equippedWeapons.length} экип.
@@ -236,7 +236,7 @@ export function WeaponsList({
       </div>
 
       {allWeapons.length === 0 ? (
-        <div className="text-center py-4 text-muted-foreground text-sm">
+        <div className="text-center py-4 text-muted-foreground text-xs">
           {isEditing ? "Нажмите \"Добавить\" или экипируйте оружие в снаряжении" : "Нет оружия"}
         </div>
       ) : (
