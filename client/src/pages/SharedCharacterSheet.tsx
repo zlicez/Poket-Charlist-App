@@ -6,7 +6,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CharacterHeader } from "@/components/CharacterHeader";
 import { AbilityWithSkills } from "@/components/AbilityWithSkills";
 import { CombatStats, DeathSavesTracker, HpTracker } from "@/components/CombatStats";
-import { SavingThrowsComponent } from "@/components/SavingThrows";
 import { WeaponsList } from "@/components/WeaponsList";
 import { FeaturesList } from "@/components/FeaturesList";
 import { EquipmentSystem } from "@/components/EquipmentSystem";
@@ -148,7 +147,7 @@ export default function SharedCharacterSheet() {
           </div>
 
           <div id="section-abilities" className="scroll-mt-28">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 auto-rows-fr">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
               {ABILITY_NAMES.map((ability) => (
                 <AbilityWithSkills
                   key={ability}
@@ -159,10 +158,13 @@ export default function SharedCharacterSheet() {
                   subrace={character.subrace}
                   level={character.level}
                   skills={character.skills}
+                  savingThrowProficient={!!character.savingThrows[ability]}
                   onScoreChange={noop}
                   onCustomBonusChange={noop}
                   onSkillProficiencyChange={noop}
+                  onSavingThrowProficiencyChange={noop}
                   onRollAbility={noop}
+                  onRollSavingThrow={noop}
                   onRollSkill={noop}
                   isEditing={false}
                 />
@@ -171,23 +173,13 @@ export default function SharedCharacterSheet() {
           </div>
 
           <div id="section-combat" className="scroll-mt-28">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-3">
-              <CombatStats
-                character={character}
-                onChange={noop}
-                isEditing={false}
-                hideHp
-                hideDeathSaves
-              />
-              <SavingThrowsComponent
-                abilityScores={character.abilityScores}
-                savingThrows={character.savingThrows}
-                level={character.level}
-                onChange={noop}
-                onRoll={noop}
-                isEditing={false}
-              />
-            </div>
+            <CombatStats
+              character={character}
+              onChange={noop}
+              isEditing={false}
+              hideHp
+              hideDeathSaves
+            />
           </div>
 
           <div id="section-equipment" className="scroll-mt-28 space-y-2 sm:space-y-3">

@@ -18,8 +18,8 @@ import {
   ResponsiveDialogFooter,
 } from "@/components/ui/responsive-dialog";
 import { 
-  Backpack, Plus, Trash2, Package, Shield, ShieldCheck, Lock, Unlock, 
-  Sword, Apple, FlaskConical, Wrench, Trash, Search,
+  Backpack, Plus, Trash2, Package, Shield, ShieldCheck, Lock, Unlock,
+  Sword, Apple, FlaskConical, Wrench, Search,
   Minus, ChevronDown, ChevronRight, Sparkles, GripVertical
 } from "lucide-react";
 import { 
@@ -72,7 +72,6 @@ const CATEGORY_ICONS: Record<EquipmentCategory, React.ReactNode> = {
   potion: <FlaskConical className="w-3.5 h-3.5 sm:w-4 sm:h-4" />,
   tool: <Wrench className="w-3.5 h-3.5 sm:w-4 sm:h-4" />,
   misc: <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4" />,
-  trash: <Trash className="w-3.5 h-3.5 sm:w-4 sm:h-4" />,
 };
 
 const CATEGORY_ITEMS: Record<EquipmentCategory, BaseEquipmentItem[]> = {
@@ -82,7 +81,6 @@ const CATEGORY_ITEMS: Record<EquipmentCategory, BaseEquipmentItem[]> = {
   potion: BASE_POTIONS,
   tool: BASE_TOOLS,
   misc: BASE_MISC,
-  trash: [],
 };
 
 function AddFromCatalogDialog({ 
@@ -492,7 +490,7 @@ function SortableEquipmentItem({
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1 flex-wrap">
-          <span className={`text-xs sm:text-sm font-medium truncate ${item.equipped ? 'text-accent' : ''}`}>
+          <span className={`text-sm font-medium truncate ${item.equipped ? 'text-accent' : ''}`}>
             {item.name}
           </span>
           {item.quantity > 1 && (
@@ -605,23 +603,22 @@ export function EquipmentSystem({
       potion: [],
       tool: [],
       misc: [],
-      trash: [],
     };
-    
+
     equipment.forEach(item => {
-      const cat = item.category || "misc";
+      const cat = (item.category && item.category in result ? item.category : "misc") as EquipmentCategory;
       result[cat].push(item);
     });
-    
+
     return result;
   }, [equipment]);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<EquipmentCategory, number> = {
-      weapon: 0, armor: 0, food: 0, potion: 0, tool: 0, misc: 0, trash: 0,
+      weapon: 0, armor: 0, food: 0, potion: 0, tool: 0, misc: 0,
     };
     equipment.forEach(item => {
-      const cat = item.category || "misc";
+      const cat = (item.category && item.category in counts ? item.category : "misc") as EquipmentCategory;
       counts[cat] += item.quantity;
     });
     return counts;
@@ -682,7 +679,7 @@ export function EquipmentSystem({
       <div className="flex items-center justify-between mb-2 sm:mb-3 gap-2">
         <div className="flex items-center gap-2">
           <Backpack className="w-4 h-4 text-accent" />
-          <h3 className="font-semibold text-xs sm:text-sm">Снаряжение</h3>
+          <h3 className="font-semibold text-sm">Снаряжение</h3>
           <Badge variant="outline" className="text-xs">
             {totalWeight.toFixed(1)} ф.
           </Badge>
@@ -726,39 +723,37 @@ export function EquipmentSystem({
       )}
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
-        <div className="overflow-x-auto scrollbar-hide -mx-2 px-2 sm:mx-0 sm:px-0">
-          <TabsList className="w-max sm:w-full h-auto p-0.5 sm:p-1 mb-2 flex gap-0">
-            <TabsTrigger 
-              value="all"
-              className="px-1.5 sm:px-2 py-1.5 sm:flex-1 min-w-[36px] sm:min-w-0 min-h-[40px] sm:min-h-0 text-[11px] sm:text-xs gap-0.5 sm:gap-1 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
-              data-testid="tab-all"
+        <TabsList className="w-full h-auto p-0.5 sm:p-1 mb-2 flex gap-0">
+          <TabsTrigger
+            value="all"
+            className="flex-1 min-w-0 px-1 sm:px-2 py-1.5 min-h-[40px] sm:min-h-0 text-[11px] sm:text-xs gap-0.5 sm:gap-1 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
+            data-testid="tab-all"
+          >
+            <Backpack className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Всё</span>
+            {equipment.length > 0 && (
+              <Badge variant="outline" className="h-4 px-1 text-[10px] sm:text-xs ml-0.5 hidden sm:inline-flex">
+                {equipment.reduce((sum, e) => sum + e.quantity, 0)}
+              </Badge>
+            )}
+          </TabsTrigger>
+          {EQUIPMENT_CATEGORIES.map((cat) => (
+            <TabsTrigger
+              key={cat}
+              value={cat}
+              className="flex-1 min-w-0 px-1 sm:px-2 py-1.5 min-h-[40px] sm:min-h-0 text-[11px] sm:text-xs gap-0.5 sm:gap-1 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
+              data-testid={`tab-${cat}`}
             >
-              <Backpack className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="hidden sm:inline">Всё</span>
-              {equipment.length > 0 && (
+              {CATEGORY_ICONS[cat]}
+              <span className="hidden sm:inline">{CATEGORY_LABELS[cat]}</span>
+              {categoryCounts[cat] > 0 && (
                 <Badge variant="outline" className="h-4 px-1 text-[10px] sm:text-xs ml-0.5 hidden sm:inline-flex">
-                  {equipment.reduce((sum, e) => sum + e.quantity, 0)}
+                  {categoryCounts[cat]}
                 </Badge>
               )}
             </TabsTrigger>
-            {EQUIPMENT_CATEGORIES.map((cat) => (
-              <TabsTrigger 
-                key={cat} 
-                value={cat}
-                className="px-1.5 sm:px-2 py-1.5 sm:flex-1 min-w-[36px] sm:min-w-0 min-h-[40px] sm:min-h-0 text-[11px] sm:text-xs gap-0.5 sm:gap-1 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
-                data-testid={`tab-${cat}`}
-              >
-                {CATEGORY_ICONS[cat]}
-                <span className="hidden sm:inline">{CATEGORY_LABELS[cat]}</span>
-                {categoryCounts[cat] > 0 && (
-                  <Badge variant="outline" className="h-4 px-1 text-[10px] sm:text-xs ml-0.5 hidden sm:inline-flex">
-                    {categoryCounts[cat]}
-                  </Badge>
-                )}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
+          ))}
+        </TabsList>
 
         <TabsContent value="all" className="mt-0">
           {equipment.length === 0 ? (
@@ -816,7 +811,7 @@ export function EquipmentSystem({
                 <p>Добавьте {CATEGORY_LABELS[cat].toLowerCase()}</p>
                 {canModify && CATEGORY_ITEMS[cat].length > 0 && (
                   <p className="text-xs mt-1">
-                    Выберите из каталога или создайте свой
+                    Выберите из каталога или создайте
                   </p>
                 )}
               </div>

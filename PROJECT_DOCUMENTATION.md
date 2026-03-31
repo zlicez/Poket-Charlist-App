@@ -47,14 +47,13 @@ flowchart LR
 - Один аккаунт на один email.
 - Account dialog для добавления или смены пароля.
 - Публичный read-only шаринг персонажа.
-- Библиотека заклинаний из `spells_library.json` с фильтрами по уровню и школе.
+- Библиотека заклинаний из `spells_library.json` с фильтрами по уровню, школе и классу.
+- `ConnectionStatus` смонтирован в `App.tsx`: отображает статус сети, счётчик pending changes и кнопку ручной синхронизации.
 - Частичная оффлайн-поддержка через service worker, IndexedDB-кэш и очередь отложенных изменений.
 
 ### Ограничения
 - Нет email verification.
 - Нет reset пароля по email.
-- Фильтр библиотеки заклинаний по классам пока не реализован.
-- `ConnectionStatus` и ручной offline-sync UI написаны, но не подключены в основной интерфейс.
 - Оффлайн-поддержка best-effort: это не полностью завершённый offline-first режим.
 - Versioning персонажей и server-side conflict detection отсутствуют.
 
@@ -895,11 +894,7 @@ Pending queue не делает reconcile/rebase:
 - по названию
 - по уровню
 - по школе
-
-Пока не поддерживается:
-- фильтр по классам
-
-Это текущий limitation, а не скрытый TODO.
+- по классу (выпадающий список, использует поле `classes` из SpellEntry)
 
 ## 12. Оффлайн-поддержка
 
@@ -920,7 +915,6 @@ Pending queue не делает reconcile/rebase:
 - `client/src/lib/offline-sync.ts` умеет повторно отправлять queued changes
 
 ### Чего сейчас нет в основном UI
-- `ConnectionStatus.tsx` существует, но не смонтирован.
 - Нет полного conflict-aware UX для queued changes.
 - Нет полноценного diff/review шага перед replay отложенных PATCH-запросов.
 
