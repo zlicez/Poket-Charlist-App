@@ -68,13 +68,13 @@ export default function SharedCharacterSheet() {
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="p-6 text-center max-w-md">
           <Share2 className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-          <h2 className="text-xl font-bold mb-2">РџРµСЂСЃРѕРЅР°Р¶ РЅРµ РЅР°Р№РґРµРЅ</h2>
+          <h2 className="text-xl font-bold mb-2">Персонаж не найден</h2>
           <p className="text-muted-foreground mb-4">
-            РЎСЃС‹Р»РєР° РЅРµРґРµР№СЃС‚РІРёС‚РµР»СЊРЅР° РёР»Рё РґРѕСЃС‚СѓРї Р±С‹Р» РѕС‚РєР»СЋС‡С‘РЅ РІР»Р°РґРµР»СЊС†РµРј.
+            Ссылка недействительна или доступ был отключён владельцем.
           </p>
           <Button onClick={() => setLocation("/")} data-testid="button-go-home">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            РќР° РіР»Р°РІРЅСѓСЋ
+            На главную
           </Button>
         </Card>
       </div>
@@ -85,17 +85,17 @@ export default function SharedCharacterSheet() {
   const noop = () => {};
   const showSpellsSection = !!character.spellcasting || hasAnyCasterClass(getCharacterClasses(character));
   const sectionNavItems = [
-    { id: "section-combat", label: "Р‘РѕР№", icon: Shield },
-    { id: "section-equipment", label: "РћСЂСѓР¶РёРµ", icon: Crosshair },
-    ...(showSpellsSection ? [{ id: "section-spells", label: "Р—Р°РєР»РёРЅР°РЅРёСЏ", icon: BookOpen }] : []),
-    { id: "section-abilities", label: "РҐР°СЂР°РєС‚РµСЂРёСЃС‚РёРєРё", icon: Swords },
-    { id: "section-inventory", label: "РРЅРІРµРЅС‚Р°СЂСЊ", icon: Backpack },
+    { id: "section-combat", label: "Бой", icon: Shield },
+    { id: "section-equipment", label: "Оружие", icon: Crosshair },
+    ...(showSpellsSection ? [{ id: "section-spells", label: "Заклинания", icon: BookOpen }] : []),
+    { id: "section-abilities", label: "Характеристики", icon: Swords },
+    { id: "section-inventory", label: "Инвентарь", icon: Backpack },
   ];
   const referenceSections = [
-    { key: "notes" as const, label: "Р—Р°РјРµС‚РєРё", icon: StickyNote },
-    { key: "appearance" as const, label: "Р’РЅРµС€РЅРѕСЃС‚СЊ", icon: User },
-    { key: "allies" as const, label: "РЎРѕСЋР·РЅРёРєРё", icon: Users },
-    { key: "factions" as const, label: "Р¤СЂР°РєС†РёРё", icon: Flag },
+    { key: "notes" as const, label: "Заметки", icon: StickyNote },
+    { key: "appearance" as const, label: "Внешность", icon: User },
+    { key: "allies" as const, label: "Союзники", icon: Users },
+    { key: "factions" as const, label: "Фракции", icon: Flag },
   ].filter(({ key }) => !!character[key]);
 
   return (
@@ -104,7 +104,7 @@ export default function SharedCharacterSheet() {
         <div className="max-w-7xl mx-auto px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Share2 className="w-4 h-4" />
-            <span className="hidden sm:inline">РћР±С‰РёР№ РґРѕСЃС‚СѓРї (С‚РѕР»СЊРєРѕ РїСЂРѕСЃРјРѕС‚СЂ)</span>
+            <span className="hidden sm:inline">Общий доступ (только просмотр)</span>
           </div>
 
           <Button
@@ -121,7 +121,7 @@ export default function SharedCharacterSheet() {
       <main className="max-w-7xl mx-auto p-2 sm:p-4">
         <div className="space-y-4 sm:space-y-5">
           <section id="section-combat" className="space-y-3 sm:space-y-4">
-            <div className="section-label">Р‘РѕРµРІРѕР№ РѕР±Р·РѕСЂ</div>
+            <div className="section-label">Боевой обзор</div>
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.95fr)] gap-3 sm:gap-4">
               <div className="min-w-0">
                 <CharacterHeader
@@ -175,7 +175,7 @@ export default function SharedCharacterSheet() {
           </nav>
 
           <section id="section-equipment" className="space-y-3">
-            <div className="section-label">РћСЂСѓР¶РёРµ Рё РєР»СЋС‡РµРІС‹Рµ РґРµР№СЃС‚РІРёСЏ</div>
+            <div className="section-label">Оружие и ключевые действия</div>
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] gap-3 sm:gap-4">
               <WeaponsList
                 weapons={character.weapons}
@@ -210,7 +210,7 @@ export default function SharedCharacterSheet() {
 
           {showSpellsSection && (
             <section id="section-spells" className="space-y-3">
-              <div className="section-label">Р—Р°РєР»РёРЅР°РЅРёСЏ</div>
+              <div className="section-label">Заклинания</div>
               <SpellsSection
                 character={character}
                 isEditing={false}
@@ -220,7 +220,7 @@ export default function SharedCharacterSheet() {
           )}
 
           <section id="section-abilities" className="space-y-3">
-            <div className="section-label">РҐР°СЂР°РєС‚РµСЂРёСЃС‚РёРєРё, СЃРїР°СЃР±СЂРѕСЃРєРё Рё РЅР°РІС‹РєРё</div>
+            <div className="section-label">Характеристики, спасброски и навыки</div>
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
               {ABILITY_NAMES.map((ability) => (
                 <AbilityWithSkills
@@ -247,7 +247,7 @@ export default function SharedCharacterSheet() {
           </section>
 
           <section id="section-inventory" className="space-y-3">
-            <div className="section-label">РРЅРІРµРЅС‚Р°СЂСЊ Рё СЃРїСЂР°РІРѕС‡РЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ</div>
+            <div className="section-label">Инвентарь и справочная информация</div>
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.2fr)_minmax(300px,0.8fr)] gap-3 sm:gap-4">
               <EquipmentSystem
                 equipment={character.equipment}

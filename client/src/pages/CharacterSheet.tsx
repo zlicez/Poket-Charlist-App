@@ -129,7 +129,7 @@ function CharacterSheetContent() {
     if (!character) return;
     const mod = getAbilityModifier(ability);
     addRoll(rollDice(
-      `РџСЂРѕРІРµСЂРєР° ${ABILITY_LABELS[ability].ru}`,
+      `Проверка ${ABILITY_LABELS[ability].ru}`,
       "1d20",
       mod,
       [`${ABILITY_LABELS[ability].ru} ${formatModifier(mod)}`],
@@ -147,10 +147,10 @@ function CharacterSheetContent() {
 
     if (proficiency.expertise) {
       totalMod += profBonus * 2;
-      sources.push(`Р­РєСЃРїРµСЂС‚РЅРѕСЃС‚СЊ +${profBonus * 2}`);
+      sources.push(`Экспертность +${profBonus * 2}`);
     } else if (proficiency.proficient) {
       totalMod += profBonus;
-      sources.push(`Р’Р»Р°РґРµРЅРёРµ +${profBonus}`);
+      sources.push(`Владение +${profBonus}`);
     }
 
     addRoll(rollDice(skillName, "1d20", totalMod, sources));
@@ -167,36 +167,36 @@ function CharacterSheetContent() {
 
     if (isProficient) {
       totalMod += profBonus;
-      sources.push(`Р’Р»Р°РґРµРЅРёРµ +${profBonus}`);
+      sources.push(`Владение +${profBonus}`);
     }
 
-    addRoll(rollDice(`РЎРїР°СЃР±СЂРѕСЃРѕРє ${ABILITY_LABELS[ability].ru}`, "1d20", totalMod, sources));
+    addRoll(rollDice(`Спасбросок ${ABILITY_LABELS[ability].ru}`, "1d20", totalMod, sources));
   };
 
   const rollWeaponAttack = (weapon: Weapon, totalAttackBonus: number, isProficient = true) => {
     if (!character) return;
     const profBonus = isProficient ? getProficiencyBonus(character.level) : 0;
-    const abilityLabel = weapon.abilityMod === "dex" ? "Р›РћР’" : "РЎРР›";
+    const abilityLabel = weapon.abilityMod === "dex" ? "ЛОВ" : "СИЛ";
     const abilityMod = weapon.abilityMod === "dex"
       ? calculateModifier(character.abilityScores.DEX)
       : calculateModifier(character.abilityScores.STR);
 
     addRoll(rollDice(
-      `РђС‚Р°РєР°: ${weapon.name}${!isProficient ? " (Р±РµР· РІР»Р°Рґ.)" : ""}`,
+      `Атака: ${weapon.name}${!isProficient ? " (без влад.)" : ""}`,
       "1d20",
       totalAttackBonus,
       [
         `${abilityLabel} ${formatModifier(abilityMod)}`,
-        `РњР°СЃС‚РµСЂСЃС‚РІРѕ +${profBonus}`,
-        weapon.attackBonus !== 0 ? `Р‘РѕРЅСѓСЃ ${formatModifier(weapon.attackBonus)}` : "",
+        `Мастерство +${profBonus}`,
+        weapon.attackBonus !== 0 ? `Бонус ${formatModifier(weapon.attackBonus)}` : "",
       ].filter(Boolean),
     ));
   };
 
   const rollWeaponDamage = (weapon: Weapon, damageModifier: number) => {
-    const abilityLabel = weapon.abilityMod === "dex" ? "Р›РћР’" : "РЎРР›";
+    const abilityLabel = weapon.abilityMod === "dex" ? "ЛОВ" : "СИЛ";
     addRoll(rollDice(
-      `РЈСЂРѕРЅ: ${weapon.name}`,
+      `Урон: ${weapon.name}`,
       weapon.damage,
       damageModifier,
       [
@@ -224,13 +224,13 @@ function CharacterSheetContent() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="p-6 text-center max-w-md">
-          <h2 className="text-xl font-bold mb-2">РџРµСЂСЃРѕРЅР°Р¶ РЅРµ РЅР°Р№РґРµРЅ</h2>
+          <h2 className="text-xl font-bold mb-2">Персонаж не найден</h2>
           <p className="text-muted-foreground mb-4">
-            Р’РѕР·РјРѕР¶РЅРѕ, РѕРЅ Р±С‹Р» СѓРґР°Р»С‘РЅ РёР»Рё РЅРёРєРѕРіРґР° РЅРµ СЃСѓС‰РµСЃС‚РІРѕРІР°Р».
+            Возможно, он был удалён или никогда не существовал.
           </p>
           <Button onClick={() => setLocation("/")} data-testid="button-go-home">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Рљ СЃРїРёСЃРєСѓ РїРµСЂСЃРѕРЅР°Р¶РµР№
+            К списку персонажей
           </Button>
         </Card>
       </div>
@@ -240,17 +240,17 @@ function CharacterSheetContent() {
   const racialBonuses = getRacialBonuses(character.race, character.subrace);
   const showSpellsSection = isEditing || !!character.spellcasting || hasAnyCasterClass(getCharacterClasses(character));
   const sectionNavItems = [
-    { id: "section-combat", label: "Р‘РѕР№", icon: Shield },
-    { id: "section-equipment", label: "РћСЂСѓР¶РёРµ", icon: Crosshair },
-    ...(showSpellsSection ? [{ id: "section-spells", label: "Р—Р°РєР»РёРЅР°РЅРёСЏ", icon: BookOpen }] : []),
-    { id: "section-abilities", label: "РҐР°СЂР°РєС‚РµСЂРёСЃС‚РёРєРё", icon: Swords },
-    { id: "section-inventory", label: "РРЅРІРµРЅС‚Р°СЂСЊ", icon: Backpack },
+    { id: "section-combat", label: "Бой", icon: Shield },
+    { id: "section-equipment", label: "Оружие", icon: Crosshair },
+    ...(showSpellsSection ? [{ id: "section-spells", label: "Заклинания", icon: BookOpen }] : []),
+    { id: "section-abilities", label: "Характеристики", icon: Swords },
+    { id: "section-inventory", label: "Инвентарь", icon: Backpack },
   ];
   const referenceSections = [
-    { key: "notes" as const, label: "Р—Р°РјРµС‚РєРё", icon: StickyNote, rows: 6, placeholder: "Р—Р°РїРёСЃРё Рѕ РїРµСЂСЃРѕРЅР°Р¶Рµ, РєРІРµСЃС‚Р°С…...", testId: "textarea-notes" },
-    { key: "appearance" as const, label: "Р’РЅРµС€РЅРѕСЃС‚СЊ", icon: User, rows: 3, placeholder: "Р РѕСЃС‚, С‚РµР»РѕСЃР»РѕР¶РµРЅРёРµ, РѕСЃРѕР±С‹Рµ РїСЂРёРјРµС‚С‹...", testId: "textarea-appearance" },
-    { key: "allies" as const, label: "РЎРѕСЋР·РЅРёРєРё", icon: Users, rows: 3, placeholder: "Р”СЂСѓР·СЊСЏ, СЃРѕСЋР·РЅРёРєРё...", testId: "textarea-allies" },
-    { key: "factions" as const, label: "Р¤СЂР°РєС†РёРё", icon: Flag, rows: 3, placeholder: "Р“РёР»СЊРґРёРё, РѕСЂРґРµРЅС‹...", testId: "textarea-factions" },
+    { key: "notes" as const, label: "Заметки", icon: StickyNote, rows: 6, placeholder: "Записи о персонаже, квестах...", testId: "textarea-notes" },
+    { key: "appearance" as const, label: "Внешность", icon: User, rows: 3, placeholder: "Рост, телосложение, особые приметы...", testId: "textarea-appearance" },
+    { key: "allies" as const, label: "Союзники", icon: Users, rows: 3, placeholder: "Друзья, союзники...", testId: "textarea-allies" },
+    { key: "factions" as const, label: "Фракции", icon: Flag, rows: 3, placeholder: "Гильдии, ордены...", testId: "textarea-factions" },
   ];
 
   return (
@@ -272,7 +272,7 @@ function CharacterSheetContent() {
                 data-testid="button-toggle-mode"
               >
                 <Save className="w-4 h-4" />
-                РЎРѕС…СЂР°РЅРёС‚СЊ
+                Сохранить
               </Button>
             ) : (
               <Button
@@ -283,7 +283,7 @@ function CharacterSheetContent() {
                 data-testid="button-toggle-mode"
               >
                 <Edit2 className="w-4 h-4" />
-                Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ
+                Редактировать
               </Button>
             )}
 
@@ -303,22 +303,22 @@ function CharacterSheetContent() {
                   onClick={async () => {
                     const { exportCharacterToPDF } = await import("@/lib/pdf-export");
                     exportCharacterToPDF(character);
-                    toast({ title: "PDF РіРµРЅРµСЂРёСЂСѓРµС‚СЃСЏ..." });
+                    toast({ title: "PDF генерируется..." });
                   }}
                   data-testid="button-export-pdf"
                 >
                   <FileText className="w-4 h-4 mr-2" />
-                  Р­РєСЃРїРѕСЂС‚ РІ PDF
+                  Экспорт в PDF
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => {
                     exportCharacterToJSON(character);
-                    toast({ title: "JSON СЃРѕС…СЂР°РЅС‘РЅ" });
+                    toast({ title: "JSON сохранён" });
                   }}
                   data-testid="button-export-json"
                 >
                   <FileJson className="w-4 h-4 mr-2" />
-                  Р­РєСЃРїРѕСЂС‚ РІ JSON
+                  Экспорт в JSON
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -351,7 +351,7 @@ function CharacterSheetContent() {
       <main className="max-w-7xl mx-auto p-2 sm:p-4">
         <div className="space-y-4 sm:space-y-5">
           <section id="section-combat" className="space-y-3 sm:space-y-4">
-            <div className="section-label">Р‘РѕРµРІРѕР№ РѕР±Р·РѕСЂ</div>
+            <div className="section-label">Боевой обзор</div>
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.95fr)] gap-3 sm:gap-4">
               <div className="min-w-0">
                 <CharacterHeader character={character} onChange={handleChange} isEditing={isEditing} />
@@ -411,12 +411,12 @@ function CharacterSheetContent() {
               >
                 <Sparkles className="w-4 h-4 text-info shrink-0" />
                 <span className="flex-1 text-xs text-muted-foreground">
-                  РќРѕРІС‹Р№ РїРµСЂСЃРѕРЅР°Р¶ вЂ” РЅР°Р¶РјРёС‚Рµ <strong className="text-foreground">В«Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊВ»</strong>, С‡С‚РѕР±С‹ Р·Р°РґР°С‚СЊ С…Р°СЂР°РєС‚РµСЂРёСЃС‚РёРєРё Рё СЃРЅР°СЂСЏР¶РµРЅРёРµ.
+                  Новый персонаж - нажмите <strong className="text-foreground">«Редактировать»</strong>, чтобы задать характеристики и снаряжение.
                 </span>
                 <button
                   onClick={() => setNewCharHintVisible(false)}
                   className="rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground shrink-0"
-                  aria-label="Р—Р°РєСЂС‹С‚СЊ РїРѕРґСЃРєР°Р·РєСѓ"
+                  aria-label="Закрыть подсказку"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -424,7 +424,7 @@ function CharacterSheetContent() {
             )}
 
           <section id="section-equipment" className="space-y-3">
-            <div className="section-label">РћСЂСѓР¶РёРµ Рё РєР»СЋС‡РµРІС‹Рµ РґРµР№СЃС‚РІРёСЏ</div>
+            <div className="section-label">Оружие и ключевые действия</div>
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] gap-3 sm:gap-4">
               <WeaponsList
                 weapons={character.weapons}
@@ -460,13 +460,13 @@ function CharacterSheetContent() {
 
           {showSpellsSection && (
             <section id="section-spells" className="space-y-3">
-              <div className="section-label">Р—Р°РєР»РёРЅР°РЅРёСЏ</div>
+              <div className="section-label">Заклинания</div>
               <SpellsSection character={character} onChange={handleChange} isEditing={isEditing} />
             </section>
           )}
 
           <section id="section-abilities" className="space-y-3">
-            <div className="section-label">РҐР°СЂР°РєС‚РµСЂРёСЃС‚РёРєРё, СЃРїР°СЃР±СЂРѕСЃРєРё Рё РЅР°РІС‹РєРё</div>
+            <div className="section-label">Характеристики, спасброски и навыки</div>
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
               {ABILITY_NAMES.map((ability) => (
                 <AbilityWithSkills
@@ -514,7 +514,7 @@ function CharacterSheetContent() {
           </section>
 
           <section id="section-inventory" className="space-y-3">
-            <div className="section-label">РРЅРІРµРЅС‚Р°СЂСЊ Рё СЃРїСЂР°РІРѕС‡РЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ</div>
+            <div className="section-label">Инвентарь и справочная информация</div>
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.2fr)_minmax(300px,0.8fr)] gap-3 sm:gap-4">
               <EquipmentSystem
                 equipment={character.equipment}
@@ -553,7 +553,7 @@ function CharacterSheetContent() {
                       />
                     ) : (
                       <div className={`tx-l4 whitespace-pre-wrap ${rows === 6 ? "min-h-[96px]" : "min-h-[52px]"}`}>
-                        {character[key] || `РќРµС‚ ${key === "notes" ? "Р·Р°РјРµС‚РѕРє" : key === "appearance" ? "РѕРїРёСЃР°РЅРёСЏ" : "Р·Р°РїРёСЃРµР№"}`}
+                        {character[key] || `Нет ${key === "notes" ? "заметок" : key === "appearance" ? "описания" : "записей"}`}
                       </div>
                     )}
                   </Card>
@@ -575,12 +575,12 @@ function CharacterSheetContent() {
       <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>РџРѕРґРµР»РёС‚СЊСЃСЏ РїРµСЂСЃРѕРЅР°Р¶РµРј</DialogTitle>
+            <DialogTitle>Поделиться персонажем</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <Label htmlFor="share-toggle" className="text-sm">
-                РћР±С‰РёР№ РґРѕСЃС‚СѓРї РїРѕ СЃСЃС‹Р»РєРµ
+                Общий доступ по ссылке
               </Label>
               <Switch
                 id="share-toggle"
@@ -592,7 +592,7 @@ function CharacterSheetContent() {
             {shareData?.isShared && shareUrl && (
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground">
-                  Р›СЋР±РѕР№, Сѓ РєРѕРіРѕ РµСЃС‚СЊ СЌС‚Р° СЃСЃС‹Р»РєР°, СЃРјРѕР¶РµС‚ РїСЂРѕСЃРјР°С‚СЂРёРІР°С‚СЊ Р»РёСЃС‚ РїРµСЂСЃРѕРЅР°Р¶Р° (Р±РµР· РІРѕР·РјРѕР¶РЅРѕСЃС‚Рё СЂРµРґР°РєС‚РёСЂРѕРІР°РЅРёСЏ).
+                  Любой, у кого есть эта ссылка, сможет просматривать лист персонажа без возможности редактирования.
                 </p>
                 <div className="flex gap-2">
                   <Input value={shareUrl} readOnly className="text-xs" data-testid="input-share-url" />
@@ -609,7 +609,7 @@ function CharacterSheetContent() {
             )}
             {!shareData?.isShared && (
               <p className="text-xs text-muted-foreground">
-                Р’РєР»СЋС‡РёС‚Рµ РѕР±С‰РёР№ РґРѕСЃС‚СѓРї, С‡С‚РѕР±С‹ РїРѕР»СѓС‡РёС‚СЊ СЃСЃС‹Р»РєСѓ РґР»СЏ РїСЂРѕСЃРјРѕС‚СЂР° Р»РёСЃС‚Р° РїРµСЂСЃРѕРЅР°Р¶Р°.
+                Включите общий доступ, чтобы получить ссылку для просмотра листа персонажа.
               </p>
             )}
           </div>

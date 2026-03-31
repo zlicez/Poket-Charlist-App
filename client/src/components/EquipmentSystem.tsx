@@ -726,35 +726,35 @@ export function EquipmentSystem({
         <div className="nav-scroll-container -mx-2 sm:mx-0 mb-3">
           <div className="overflow-x-auto scrollbar-hide px-2 sm:px-0">
             <TabsList className="inline-flex w-max min-w-full sm:min-w-0 h-auto rounded-xl border border-border/60 bg-muted/50 p-1 gap-1">
-          <TabsTrigger
-            value="all"
-            className="shrink-0 rounded-lg px-3 py-2.5 min-h-[44px] text-xs gap-1.5 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
-            data-testid="tab-all"
-          >
-            <Backpack className="w-4 h-4" />
-            <span className="hidden sm:inline">Всё</span>
-            {equipment.length > 0 && (
-              <Badge variant="outline" className="h-4 px-1 text-[10px] sm:text-xs ml-0.5 hidden sm:inline-flex">
-                {equipment.reduce((sum, e) => sum + e.quantity, 0)}
-              </Badge>
-            )}
-          </TabsTrigger>
-          {EQUIPMENT_CATEGORIES.map((cat) => (
-            <TabsTrigger
-              key={cat}
-              value={cat}
-              className="shrink-0 rounded-lg px-3 py-2.5 min-h-[44px] text-xs gap-1.5 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
-              data-testid={`tab-${cat}`}
-            >
-              {CATEGORY_ICONS[cat]}
-              <span className="hidden sm:inline">{CATEGORY_LABELS[cat]}</span>
-              {categoryCounts[cat] > 0 && (
-                <Badge variant="outline" className="h-4 px-1 text-[10px] sm:text-xs ml-0.5 hidden sm:inline-flex">
-                  {categoryCounts[cat]}
-                </Badge>
-              )}
-            </TabsTrigger>
-          ))}
+              <TabsTrigger
+                value="all"
+                className="shrink-0 rounded-lg px-3 py-2.5 min-h-[44px] text-xs gap-1.5 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
+                data-testid="tab-all"
+              >
+                <Backpack className="w-4 h-4" />
+                <span>Всё</span>
+                {equipment.length > 0 && (
+                  <Badge variant="outline" className="h-5 px-1.5 text-[10px] sm:text-xs">
+                    {equipment.reduce((sum, e) => sum + e.quantity, 0)}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              {EQUIPMENT_CATEGORIES.map((cat) => (
+                <TabsTrigger
+                  key={cat}
+                  value={cat}
+                  className="shrink-0 rounded-lg px-3 py-2.5 min-h-[44px] text-xs gap-1.5 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
+                  data-testid={`tab-${cat}`}
+                >
+                  {CATEGORY_ICONS[cat]}
+                  <span>{CATEGORY_LABELS[cat]}</span>
+                  {categoryCounts[cat] > 0 && (
+                    <Badge variant="outline" className="h-5 px-1.5 text-[10px] sm:text-xs">
+                      {categoryCounts[cat]}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              ))}
             </TabsList>
           </div>
         </div>

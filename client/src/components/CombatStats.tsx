@@ -277,13 +277,13 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
             <Card className="stat-card-primary p-3" data-testid="stat-ac">
               <div className="flex items-center gap-2">
                 <Shield className="w-4 h-4 text-accent shrink-0" />
-                <span className="tx-l4">РљР”</span>
+                <span className="tx-l4">КД</span>
               </div>
               <div className="mt-3 space-y-2">
                 <div className="tx-l1 font-mono">{calculatedAC}</div>
                 {isEditing ? (
                   <div className="space-y-1">
-                    <label className="tx-l4">Р‘РѕРЅСѓСЃ</label>
+                    <label className="tx-l4">Бонус</label>
                     <Input
                       type="number"
                       inputMode="numeric"
@@ -295,19 +295,19 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
                   </div>
                 ) : (
                   <div className="tx-l4 truncate">
-                    {armorData ? armorData.name : "Р‘РµР· Р±СЂРѕРЅРё"}
-                    {hasShield ? " + Р©РёС‚" : ""}
+                    {armorData ? armorData.name : "Без брони"}
+                    {hasShield ? " + Щит" : ""}
                   </div>
                 )}
               </div>
             </Card>
           </TooltipTrigger>
           <TooltipContent>
-            <p>РљР»Р°СЃСЃ Р”РѕСЃРїРµС…Р°</p>
+            <p>Класс Доспеха</p>
             <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
-              <p>Р‘Р°Р·РѕРІС‹Р№: {armorData ? armorData.baseAC : 10}</p>
-              <p>Р›РћР’: {formatModifier(dexMod)}</p>
-              {hasShield && <p>Р©РёС‚: +2</p>}
+              <p>Базовый: {armorData ? armorData.baseAC : 10}</p>
+              <p>ЛОВ: {formatModifier(dexMod)}</p>
+              {hasShield && <p>Щит: +2</p>}
             </div>
           </TooltipContent>
         </Tooltip>
@@ -317,7 +317,7 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
             <Card className="stat-card-primary p-3" data-testid="stat-initiative">
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-accent shrink-0" />
-                <span className="tx-l4">РРЅРёС†РёР°С‚РёРІР°</span>
+                <span className="tx-l4">Инициатива</span>
               </div>
               <div className="mt-3 space-y-2">
                 <div className={`tx-l1 font-mono ${calculatedInitiative >= 0 ? 'text-positive' : 'text-negative'}`}>
@@ -325,7 +325,7 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
                 </div>
                 {isEditing ? (
                   <div className="space-y-1">
-                    <label className="tx-l4">Р‘РѕРЅСѓСЃ</label>
+                    <label className="tx-l4">Бонус</label>
                     <Input
                       type="number"
                       inputMode="numeric"
@@ -336,16 +336,16 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
                     />
                   </div>
                 ) : (
-                  <div className="tx-l4">Р›РћР’: {formatModifier(dexMod)}</div>
+                  <div className="tx-l4">ЛОВ: {formatModifier(dexMod)}</div>
                 )}
               </div>
             </Card>
           </TooltipTrigger>
           <TooltipContent>
-            <p>РРЅРёС†РёР°С‚РёРІР° РѕРїСЂРµРґРµР»СЏРµС‚ РїРѕСЂСЏРґРѕРє РґРµР№СЃС‚РІРёР№ РІ Р±РѕСЋ</p>
+            <p>Инициатива определяет порядок действий в бою</p>
             <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
-              <p>РњРѕРґРёС„РёРєР°С‚РѕСЂ Р›РћР’: {formatModifier(dexMod)}</p>
-              {(character.customInitiativeBonus || 0) !== 0 && <p>Р‘РѕРЅСѓСЃ: {formatModifier(character.customInitiativeBonus || 0)}</p>}
+              <p>Модификатор ЛОВ: {formatModifier(dexMod)}</p>
+              {(character.customInitiativeBonus || 0) !== 0 && <p>Бонус: {formatModifier(character.customInitiativeBonus || 0)}</p>}
             </div>
           </TooltipContent>
         </Tooltip>
@@ -355,7 +355,7 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
             <Card className="stat-card-primary p-3" data-testid="stat-speed">
               <div className="flex items-center gap-2">
                 <Footprints className="w-4 h-4 text-accent shrink-0" />
-                <span className="tx-l4">РЎРєРѕСЂРѕСЃС‚СЊ</span>
+                <span className="tx-l4">Скорость</span>
               </div>
               <div className="mt-3 space-y-2">
                 {isEditing ? (
@@ -370,19 +370,19 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
                 ) : (
                   <div className="tx-l1 font-mono">{character.speed}</div>
                 )}
-                <div className="tx-l4">С„СѓС‚РѕРІ Р·Р° С…РѕРґ</div>
+                <div className="tx-l4">футов за ход</div>
               </div>
             </Card>
           </TooltipTrigger>
           <TooltipContent>
-            <p>РЎРєРѕСЂРѕСЃС‚СЊ (С„СѓС‚РѕРІ/С…РѕРґ)</p>
+            <p>Скорость (футов/ход)</p>
           </TooltipContent>
         </Tooltip>
 
         <Card className="stat-card p-3" data-testid="stat-hit-dice">
           <div className="flex items-center gap-2">
             <Dice6 className="w-4 h-4 text-accent shrink-0" />
-            <span className="tx-l4">РљСѓР±РёРєРё С…РёС‚РѕРІ</span>
+            <span className="tx-l4">Кубики хитов</span>
           </div>
           <div className="mt-3 space-y-3">
             <div className="tx-l1 font-mono">
