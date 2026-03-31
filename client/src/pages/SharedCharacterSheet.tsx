@@ -21,7 +21,21 @@ import {
   hasAnyCasterClass,
   type Character,
 } from "@shared/schema";
-import { Moon, Sun, ArrowLeft, Swords, Shield, Crosshair, BookOpen, Backpack, Share2, StickyNote, User, Users, Flag } from "lucide-react";
+import {
+  Moon,
+  Sun,
+  ArrowLeft,
+  Swords,
+  Shield,
+  Crosshair,
+  BookOpen,
+  Backpack,
+  Share2,
+  StickyNote,
+  User,
+  Users,
+  Flag,
+} from "lucide-react";
 
 export default function SharedCharacterSheet() {
   const { token } = useParams<{ token: string }>();
@@ -29,7 +43,7 @@ export default function SharedCharacterSheet() {
   const { theme, toggleTheme } = useTheme();
 
   const { data: character, isLoading, error } = useQuery<Character>({
-    queryKey: ['/api/shared', token],
+    queryKey: ["/api/shared", token],
     enabled: !!token,
   });
 
@@ -54,13 +68,13 @@ export default function SharedCharacterSheet() {
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="p-6 text-center max-w-md">
           <Share2 className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-          <h2 className="text-xl font-bold mb-2">Персонаж не найден</h2>
+          <h2 className="text-xl font-bold mb-2">РџРµСЂСЃРѕРЅР°Р¶ РЅРµ РЅР°Р№РґРµРЅ</h2>
           <p className="text-muted-foreground mb-4">
-            Ссылка недействительна или доступ был отключён владельцем.
+            РЎСЃС‹Р»РєР° РЅРµРґРµР№СЃС‚РІРёС‚РµР»СЊРЅР° РёР»Рё РґРѕСЃС‚СѓРї Р±С‹Р» РѕС‚РєР»СЋС‡С‘РЅ РІР»Р°РґРµР»СЊС†РµРј.
           </p>
           <Button onClick={() => setLocation("/")} data-testid="button-go-home">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            На главную
+            РќР° РіР»Р°РІРЅСѓСЋ
           </Button>
         </Card>
       </div>
@@ -69,85 +83,145 @@ export default function SharedCharacterSheet() {
 
   const racialBonuses = getRacialBonuses(character.race, character.subrace);
   const noop = () => {};
+  const showSpellsSection = !!character.spellcasting || hasAnyCasterClass(getCharacterClasses(character));
+  const sectionNavItems = [
+    { id: "section-combat", label: "Р‘РѕР№", icon: Shield },
+    { id: "section-equipment", label: "РћСЂСѓР¶РёРµ", icon: Crosshair },
+    ...(showSpellsSection ? [{ id: "section-spells", label: "Р—Р°РєР»РёРЅР°РЅРёСЏ", icon: BookOpen }] : []),
+    { id: "section-abilities", label: "РҐР°СЂР°РєС‚РµСЂРёСЃС‚РёРєРё", icon: Swords },
+    { id: "section-inventory", label: "РРЅРІРµРЅС‚Р°СЂСЊ", icon: Backpack },
+  ];
+  const referenceSections = [
+    { key: "notes" as const, label: "Р—Р°РјРµС‚РєРё", icon: StickyNote },
+    { key: "appearance" as const, label: "Р’РЅРµС€РЅРѕСЃС‚СЊ", icon: User },
+    { key: "allies" as const, label: "РЎРѕСЋР·РЅРёРєРё", icon: Users },
+    { key: "factions" as const, label: "Р¤СЂР°РєС†РёРё", icon: Flag },
+  ].filter(({ key }) => !!character[key]);
 
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between gap-1 sm:gap-2">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Share2 className="w-4 h-4" />
-            <span className="hidden sm:inline">Общий доступ (только просмотр)</span>
+            <span className="hidden sm:inline">РћР±С‰РёР№ РґРѕСЃС‚СѓРї (С‚РѕР»СЊРєРѕ РїСЂРѕСЃРјРѕС‚СЂ)</span>
           </div>
 
-          <div className="flex items-center gap-1 sm:gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleTheme}
-              data-testid="button-theme-toggle"
-            >
-              {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            data-testid="button-theme-toggle"
+          >
+            {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </Button>
         </div>
       </header>
 
-      <nav className="sticky top-[49px] sm:top-[53px] z-40 bg-background/95 backdrop-blur border-b" data-testid="section-nav">
-        <div className="max-w-7xl mx-auto px-1 sm:px-4 overflow-x-auto scrollbar-hide">
-          <div className="flex gap-0.5 sm:gap-1 py-1">
-            {[
-              { id: "section-abilities", label: "Характеристики", icon: Swords },
-              { id: "section-combat", label: "Бой", icon: Shield },
-              { id: "section-equipment", label: "Оружие", icon: Crosshair },
-              ...(character.spellcasting || hasAnyCasterClass(getCharacterClasses(character))
-                ? [{ id: "section-spells", label: "Заклинания", icon: BookOpen }]
-                : []),
-              { id: "section-inventory", label: "Инвентарь", icon: Backpack },
-            ].map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                onClick={() => {
-                  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap"
-                data-testid={`nav-${id}`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </nav>
-
       <main className="max-w-7xl mx-auto p-2 sm:p-4">
-        <div className="space-y-3 sm:space-y-4">
-          <div className="flex flex-col lg:flex-row gap-2 sm:gap-4">
-            <div className="flex-1 min-w-0">
-              <CharacterHeader
-                character={character}
-                onChange={noop}
-                isEditing={false}
-              />
+        <div className="space-y-4 sm:space-y-5">
+          <section id="section-combat" className="space-y-3 sm:space-y-4">
+            <div className="section-label">Р‘РѕРµРІРѕР№ РѕР±Р·РѕСЂ</div>
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.95fr)] gap-3 sm:gap-4">
+              <div className="min-w-0">
+                <CharacterHeader
+                  character={character}
+                  onChange={noop}
+                  isEditing={false}
+                />
+              </div>
+              <div className="space-y-3">
+                <HpTracker
+                  current={character.currentHp}
+                  max={character.maxHp}
+                  temp={character.tempHp}
+                  onChange={noop}
+                  isEditing={false}
+                />
+                <CombatStats
+                  character={character}
+                  onChange={noop}
+                  isEditing={false}
+                  hideHp
+                  hideDeathSaves
+                />
+                <DeathSavesTracker
+                  deathSaves={character.deathSaves}
+                  onChange={noop}
+                  isEditing={false}
+                />
+              </div>
             </div>
-            <div className="flex flex-col gap-2 sm:gap-3 lg:w-[320px] xl:w-[360px] flex-shrink-0">
-              <HpTracker
-                current={character.currentHp}
-                max={character.maxHp}
-                temp={character.tempHp}
-                onChange={noop}
-                isEditing={false}
-              />
-              <DeathSavesTracker
-                deathSaves={character.deathSaves}
-                onChange={noop}
-                isEditing={false}
-              />
-            </div>
-          </div>
+          </section>
 
-          <div id="section-abilities" className="scroll-mt-28">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+          <nav className="sticky top-[49px] sm:top-[53px] z-40 border-b bg-background/95 backdrop-blur" data-testid="section-nav">
+            <div className="-mx-2 sm:mx-0 nav-scroll-container">
+              <div className="overflow-x-auto scrollbar-hide px-2 sm:px-0">
+                <div className="flex gap-2 py-2">
+                  {sectionNavItems.map(({ id, label, icon: Icon }) => (
+                    <button
+                      key={id}
+                      onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                      className="section-nav-chip"
+                      data-testid={`nav-${id}`}
+                    >
+                      <Icon className="w-4 h-4 shrink-0" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </nav>
+
+          <section id="section-equipment" className="space-y-3">
+            <div className="section-label">РћСЂСѓР¶РёРµ Рё РєР»СЋС‡РµРІС‹Рµ РґРµР№СЃС‚РІРёСЏ</div>
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] gap-3 sm:gap-4">
+              <WeaponsList
+                weapons={character.weapons}
+                onChange={noop}
+                onRollAttack={noop}
+                onRollDamage={noop}
+                isEditing={false}
+                isLocked={true}
+                equippedFromInventory={character.equipment}
+                strMod={calculateModifier(
+                  character.abilityScores.STR +
+                  (racialBonuses.STR || 0) +
+                  (character.customAbilityBonuses?.STR || 0)
+                )}
+                dexMod={calculateModifier(
+                  character.abilityScores.DEX +
+                  (racialBonuses.DEX || 0) +
+                  (character.customAbilityBonuses?.DEX || 0)
+                )}
+                proficiencyBonus={getProficiencyBonus(character.level)}
+                proficiencies={character.proficiencies}
+              />
+
+              <FeaturesList
+                features={character.features}
+                onChange={noop}
+                isEditing={false}
+                isLocked={true}
+              />
+            </div>
+          </section>
+
+          {showSpellsSection && (
+            <section id="section-spells" className="space-y-3">
+              <div className="section-label">Р—Р°РєР»РёРЅР°РЅРёСЏ</div>
+              <SpellsSection
+                character={character}
+                isEditing={false}
+                onChange={noop}
+              />
+            </section>
+          )}
+
+          <section id="section-abilities" className="space-y-3">
+            <div className="section-label">РҐР°СЂР°РєС‚РµСЂРёСЃС‚РёРєРё, СЃРїР°СЃР±СЂРѕСЃРєРё Рё РЅР°РІС‹РєРё</div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
               {ABILITY_NAMES.map((ability) => (
                 <AbilityWithSkills
                   key={ability}
@@ -170,101 +244,45 @@ export default function SharedCharacterSheet() {
                 />
               ))}
             </div>
-          </div>
+          </section>
 
-          <div id="section-combat" className="scroll-mt-28">
-            <CombatStats
-              character={character}
-              onChange={noop}
-              isEditing={false}
-              hideHp
-              hideDeathSaves
-            />
-          </div>
-
-          <div id="section-equipment" className="scroll-mt-28 space-y-2 sm:space-y-3">
-            <WeaponsList
-              weapons={character.weapons}
-              onChange={noop}
-              onRollAttack={noop}
-              onRollDamage={noop}
-              isEditing={false}
-              isLocked={true}
-              equippedFromInventory={character.equipment}
-              strMod={calculateModifier(
-                character.abilityScores.STR +
-                (racialBonuses.STR || 0) +
-                (character.customAbilityBonuses?.STR || 0)
-              )}
-              dexMod={calculateModifier(
-                character.abilityScores.DEX +
-                (racialBonuses.DEX || 0) +
-                (character.customAbilityBonuses?.DEX || 0)
-              )}
-              proficiencyBonus={getProficiencyBonus(character.level)}
-              proficiencies={character.proficiencies}
-            />
-
-            {character.features.length > 0 && (
-              <FeaturesList
-                features={character.features}
+          <section id="section-inventory" className="space-y-3">
+            <div className="section-label">РРЅРІРµРЅС‚Р°СЂСЊ Рё СЃРїСЂР°РІРѕС‡РЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ</div>
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.2fr)_minmax(300px,0.8fr)] gap-3 sm:gap-4">
+              <EquipmentSystem
+                equipment={character.equipment}
                 onChange={noop}
                 isEditing={false}
                 isLocked={true}
+                proficiencyBonus={getProficiencyBonus(character.level)}
+                money={character.money ?? { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }}
+                onMoneyChange={noop}
               />
-            )}
 
-            <ProficienciesSection
-              proficiencies={character.proficiencies ?? { languages: [], weapons: [], armor: [], tools: [] }}
-              onChange={noop}
-              isEditing={false}
-              race={character.race}
-              className={character.class}
-              subrace={character.subrace}
-            />
-          </div>
+              <div className="space-y-3">
+                <ProficienciesSection
+                  proficiencies={character.proficiencies ?? { languages: [], weapons: [], armor: [], tools: [] }}
+                  onChange={noop}
+                  isEditing={false}
+                  race={character.race}
+                  className={character.class}
+                  subrace={character.subrace}
+                />
 
-          {(character.spellcasting || hasAnyCasterClass(getCharacterClasses(character))) && (
-            <div id="section-spells" className="scroll-mt-28">
-              <SpellsSection
-                character={character}
-                isEditing={false}
-                onChange={noop}
-              />
+                {referenceSections.map(({ key, label, icon: Icon }) => (
+                  <Card key={key} className="stat-card-tertiary p-3">
+                    <div className="mb-2 flex items-center gap-2">
+                      <Icon className="w-4 h-4 text-accent" />
+                      <h3 className="tx-l3 font-semibold">{label}</h3>
+                    </div>
+                    <div className="tx-l4 whitespace-pre-wrap">
+                      {character[key]}
+                    </div>
+                  </Card>
+                ))}
+              </div>
             </div>
-          )}
-
-          <div id="section-inventory" className="scroll-mt-28 space-y-3">
-            <EquipmentSystem
-              equipment={character.equipment}
-              onChange={noop}
-              isEditing={false}
-              isLocked={true}
-              proficiencyBonus={getProficiencyBonus(character.level)}
-              money={character.money ?? { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }}
-              onMoneyChange={noop}
-            />
-          </div>
-
-          {character.appearance && (
-            <Card className="stat-card-tertiary p-2 sm:p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <User className="w-4 h-4 text-accent" />
-                <h3 className="font-semibold text-sm">Внешность</h3>
-              </div>
-              <p className="text-xs text-muted-foreground whitespace-pre-wrap">{character.appearance}</p>
-            </Card>
-          )}
-
-          {character.allies && (
-            <Card className="stat-card-tertiary p-2 sm:p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Users className="w-4 h-4 text-accent" />
-                <h3 className="font-semibold text-sm">Союзники и организации</h3>
-              </div>
-              <p className="text-xs text-muted-foreground whitespace-pre-wrap">{character.allies}</p>
-            </Card>
-          )}
+          </section>
         </div>
       </main>
     </div>
