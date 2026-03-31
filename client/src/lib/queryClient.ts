@@ -30,7 +30,7 @@ export async function apiRequest(
 
     await throwIfResNotOk(res);
 
-    if (method === "PATCH" && url.match(/\/api\/characters\/\d+$/)) {
+    if (method === "PATCH" && url.match(/\/api\/characters\/[^/]+$/)) {
       try {
         const clone = res.clone();
         const updated = await clone.json();
@@ -40,8 +40,8 @@ export async function apiRequest(
       } catch {}
     }
 
-    if (method === "DELETE" && url.match(/\/api\/characters\/\d+$/)) {
-      const idMatch = url.match(/\/api\/characters\/(\d+)$/);
+    if (method === "DELETE" && url.match(/\/api\/characters\/[^/]+$/)) {
+      const idMatch = url.match(/\/api\/characters\/([^/]+)$/);
       if (idMatch) {
         removeCachedCharacter(idMatch[1]).catch(() => {});
       }
@@ -57,8 +57,8 @@ export async function apiRequest(
         timestamp: Date.now(),
       });
 
-      if (method === "DELETE" && url.match(/\/api\/characters\/\d+$/)) {
-        const idMatch = url.match(/\/api\/characters\/(\d+)$/);
+      if (method === "DELETE" && url.match(/\/api\/characters\/[^/]+$/)) {
+        const idMatch = url.match(/\/api\/characters\/([^/]+)$/);
         if (idMatch) {
           removeCachedCharacter(idMatch[1]).catch(() => {});
         }
@@ -74,11 +74,12 @@ export async function apiRequest(
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: {
+export function getQueryFn<T>(options: {
   on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
+}): QueryFunction<T> {
+  const { on401: unauthorizedBehavior } = options;
+
+  return async ({ queryKey }) => {
     const url = queryKey.join("/") as string;
 
     try {
@@ -95,7 +96,7 @@ export const getQueryFn: <T>(options: {
 
       if (url === "/api/characters" && Array.isArray(data)) {
         cacheCharacters(data).catch(() => {});
-      } else if (url.match(/^\/api\/characters\/\d+$/) && data?.id) {
+      } else if (url.match(/^\/api\/characters\/[^/]+$/) && data?.id) {
         cacheCharacter(data).catch(() => {});
       }
 
@@ -107,7 +108,7 @@ export const getQueryFn: <T>(options: {
           if (cached.length > 0) return cached as T;
         }
 
-        const charMatch = url.match(/^\/api\/characters\/(\d+)$/);
+        const charMatch = url.match(/^\/api\/characters\/([^/]+)$/);
         if (charMatch) {
           const cached = await getCachedCharacter(charMatch[1]);
           if (cached) return cached as T;
@@ -116,6 +117,7 @@ export const getQueryFn: <T>(options: {
       throw err;
     }
   };
+}
 
 export const queryClient = new QueryClient({
   defaultOptions: {

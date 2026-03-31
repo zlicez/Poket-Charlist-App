@@ -1,817 +1,1136 @@
-# D&D 5e Character Sheet — Полная документация проекта
+# Pocket Charlist — техническая документация
 
-## Содержание
+## 1. Обзор проекта
 
-1. [Идея и назначение](#1-идея-и-назначение)
-2. [Технологический стек](#2-технологический-стек)
-3. [Архитектура приложения](#3-архитектура-приложения)
-4. [Структура проекта](#4-структура-проекта)
-5. [Модель данных и сущности](#5-модель-данных-и-сущности)
-6. [Бизнес-логика и процессы](#6-бизнес-логика-и-процессы)
-7. [API — серверные маршруты](#7-api--серверные-маршруты)
-8. [Аутентификация и безопасность](#8-аутентификация-и-безопасность)
-9. [Компоненты интерфейса](#9-компоненты-интерфейса)
-10. [Дизайн-система](#10-дизайн-система)
-11. [D&D 5e — справочные данные](#11-dd-5e--справочные-данные)
-12. [Функциональные возможности](#12-функциональные-возможности)
-13. [Ревью кода и архитектурные решения](#13-ревью-кода-и-архитектурные-решения)
-14. [Развёртывание и запуск](#14-развёртывание-и-запуск)
+Pocket Charlist — full-stack SPA для ведения листов персонажей D&D 5e. Приложение ориентировано на русскоязычный интерфейс, мобильное использование, быстрые игровые действия и минимизацию ручных расчётов.
 
----
+Ключевые сценарии:
+- создание и ведение нескольких персонажей
+- быстрый переход между edit/play режимами
+- автокалькуляции характеристик, КД, HP, spell save DC и attack bonus
+- броски кубов прямо из интерфейса
+- экспорт, импорт и публичный шаринг персонажей
+- единый аккаунт с входом через `email/password` и через Google
 
-## 1. Идея и назначение
+Для UI/UX-дизайнера есть отдельный простой onboarding-документ: [DESIGNER_PROJECT_GUIDE.md](./DESIGNER_PROJECT_GUIDE.md).
 
-**D&D 5e Character Sheet** — веб-приложение для создания и управления листами персонажей настольной ролевой игры Dungeons & Dragons 5-й редакции.
+## 2. Быстрый вход
 
-### Проблема
-Бумажные листы персонажей неудобны: расчёты выполняются вручную, данные теряются, а мобильные устройства используются всё чаще прямо за игровым столом.
+```mermaid
+flowchart LR
+  UI["React UI<br/>/ /character/:id /shared/:token"] --> State["TanStack Query<br/>use-auth / CharacterContext"]
+  State --> API["Express routes"]
+  API --> Auth["Auth layer<br/>session + Google/email"]
+  API --> Storage["IStorage<br/>DatabaseStorage / MemStorage"]
+  Storage --> DB["PostgreSQL<br/>characters.data JSONB"]
+  State --> Offline["IndexedDB + pending queue + service worker"]
+  Offline -. replay .-> API
+```
 
-### Решение
-Цифровой лист персонажа с:
-- **Автоматическими расчётами** — модификаторы, КД, хиты, бонус мастерства вычисляются на лету
-- **Встроенным кубомётом** — броски кубиков прямо из приложения
-- **Облачным хранением** — персонажи привязаны к аккаунту и доступны с любого устройства
-- **Мобильной оптимизацией** — удобное использование на телефоне прямо за игровым столом
-- **Русскоязычным интерфейсом** — все навыки, характеристики и интерфейс на русском языке
+Короткая mental map системы:
+- UI живёт в `client/` и держит пользовательское состояние через TanStack Query, `use-auth.ts` и `CharacterContext.tsx`.
+- Все защищённые действия идут в Express routes из `server/routes.ts`.
+- Аутентификация — cookie-based session auth. В production используется mixed auth через Google и `email/password`, в локальной разработке можно переключиться на bypass через `LOCAL_DEV`.
+- Основная сущность персонажа хранится в таблице `characters`, но почти весь payload персонажа лежит внутри `characters.data` как JSONB.
+- Частичная оффлайн-поддержка строится вокруг service worker, IndexedDB-кэша и очереди отложенных изменений.
 
-### Целевая аудитория
-- Игроки D&D 5e, предпочитающие цифровой формат
-- Русскоязычные игроки, которым важен родной язык в интерфейсе
-- Мастера, которым нужно быстро создавать NPC
+Если нужно понять write path за 30 секунд, смотрите так:
+1. UI вызывает `handleChange` или `saveChanges` в `CharacterContext`.
+2. Клиент делает `PATCH /api/characters/:id` через `apiRequest`.
+3. Сервер в `storage.updateCharacter()` читает текущего персонажа, делает `deepMerge`, затем пишет весь обновлённый JSONB обратно.
+4. При оффлайне не-GET запрос может попасть в pending queue и быть отправлен позже.
 
----
+## 3. Текущее состояние и ограничения
 
-## 2. Технологический стек
+### Реализовано
+- Смешанная авторизация: `email/password` + Google OAuth.
+- Один аккаунт на один email.
+- Account dialog для добавления или смены пароля.
+- Публичный read-only шаринг персонажа.
+- Библиотека заклинаний из `spells_library.json` с фильтрами по уровню и школе.
+- Частичная оффлайн-поддержка через service worker, IndexedDB-кэш и очередь отложенных изменений.
+
+### Ограничения
+- Нет email verification.
+- Нет reset пароля по email.
+- Фильтр библиотеки заклинаний по классам пока не реализован.
+- `ConnectionStatus` и ручной offline-sync UI написаны, но не подключены в основной интерфейс.
+- Оффлайн-поддержка best-effort: это не полностью завершённый offline-first режим.
+- Versioning персонажей и server-side conflict detection отсутствуют.
+
+## 4. Технологический стек
 
 ### Frontend
-| Технология | Версия | Назначение |
-|---|---|---|
-| React | 18.3 | UI-библиотека |
-| TypeScript | 5.6 | Типизация |
-| Tailwind CSS | 3.4 | Утилитарные стили |
-| Shadcn/UI | — | Компонентная библиотека (Radix UI) |
-| Wouter | 3.3 | Клиентский роутинг |
-| TanStack React Query | 5.60 | Кэширование запросов и состояние сервера |
-| Framer Motion | 11.13 | Анимации |
-| @dnd-kit | 6.3 / 10.0 | Drag-and-drop для инвентаря |
-| Lucide React | 0.453 | Иконки |
-| Vaul | 1.1 | Мобильные Drawer-компоненты |
-| React Hook Form | 7.55 | Управление формами |
+- React 18
+- TypeScript
+- Wouter
+- TanStack Query v5
+- Tailwind CSS
+- Shadcn UI / Radix UI
+- dnd-kit
+- Framer Motion
 
 ### Backend
-| Технология | Версия | Назначение |
-|---|---|---|
-| Express.js | 5.0 | HTTP-сервер |
-| TypeScript | 5.6 | Типизация |
-| Drizzle ORM | 0.39 | ORM для PostgreSQL |
-| Zod | 3.24 | Валидация данных |
-| Passport.js | 0.7 | Аутентификация |
-| passport-google-oauth20 | 2.0 | Аутентификация через Google OAuth 2.0 |
-| express-session | 1.18 | Управление сессиями |
-| connect-pg-simple | 10.0 | Хранение сессий в PostgreSQL |
+- Express 5
+- TypeScript
+- Drizzle ORM
+- Zod
+- Passport
+- express-session
+- connect-pg-simple
 
-### Инфраструктура
-| Компонент | Описание |
-|---|---|
-| PostgreSQL | База данных |
-| Vite | 7.3 — Сборщик и dev-сервер |
-| Google OAuth 2.0 | Аутентификация пользователей |
-| esbuild | Сборка production-билда |
+### Data / Infra
+- PostgreSQL для production storage и sessions
+- JSONB для хранения данных персонажа
+- IndexedDB для локального кэша и очереди pending changes
+- Service worker для кэширования части статических и GET-ресурсов
 
-### Шрифты
-- **Inter** — основной текст (--font-sans)
-- **Lora** — заголовки (--font-serif)
-- **JetBrains Mono** — числа, модификаторы, кубики (--font-mono)
+## 5. Архитектура и ключевые модули
 
----
+### Основные страницы
+- `/` — список персонажей для авторизованного пользователя или стартовый auth screen для гостя.
+- `/character/:id` — основной экран персонажа.
+- `/shared/:token` — публичная read-only версия персонажа.
 
-## 3. Архитектура приложения
+### Основные клиентские точки
+- `client/src/pages/CharactersList.tsx` — стартовая страница, список персонажей, import/create/delete, account dialog.
+- `client/src/pages/CharacterSheet.tsx` — лист персонажа, шаринг, экспорт, edit/play flow.
+- `client/src/context/CharacterContext.tsx` — загрузка персонажа, optimistic update, autosave, pending changes и share state.
+- `client/src/hooks/use-auth.ts` — текущий пользователь, login/register/password/logout.
+- `client/src/components/AuthScreen.tsx` — unified start screen для входа и регистрации.
+- `client/src/components/AccountDialog.tsx` — установка первого пароля или смена существующего.
+- `client/src/components/SpellsSection.tsx` — spellcasting UI и библиотека заклинаний.
 
-### Общая схема
+### Основные серверные точки
+- `server/routes.ts` — character/share endpoints и rate limits.
+- `server/google-auth.ts` — production auth с mixed auth логикой.
+- `server/local-auth.ts` — локальный auth bypass для разработки.
+- `server/password.ts` — `scrypt`-хеширование, verify и normalizing email.
+- `server/storage.ts` — `DatabaseStorage` и `MemStorage`.
+- `server/deep-merge.ts` — merge логика для server-side PATCH.
 
+### Shared-слой
+- `shared/schema.ts` — таблица `characters` и реэкспорт shared types.
+- `shared/models/auth.ts` — таблица `users`, auth user types.
+- `shared/types/character-types.ts` — основная доменная модель персонажа, Zod-схемы, default character и расчётные функции.
+- `shared/data/spells-library.ts` — нормализованная библиотека заклинаний из `spells_library.json`.
+
+## 6. Mental Model Character
+
+Персонаж в этом проекте — не просто “JSONB blob”, а одна сущность с пятью зонами ответственности.
+
+### 6.1 Пять зон модели
+
+#### 1. Relational envelope
+Это поля вокруг JSONB-записи в таблице `characters`:
+- `id`
+- `userId`
+- `name`
+- `shareToken`
+- `isShared`
+- `createdAt`
+- `updatedAt`
+
+Это отвечает за владение, шаринг, первичную идентификацию и метаданные хранения.
+
+#### 2. Core build
+Это “паспорт” и сборка персонажа внутри `characters.data`:
+- `class`, `subclass`, `classes`
+- `race`, `subrace`
+- `level`, `experience`
+- `background`, `alignment`
+- `abilityScores`, `customAbilityBonuses`
+- `savingThrows`
+- `skills`
+- `proficiencies`
+
+Именно здесь лежат ключевые игровые зависимости и большинство расчётов.
+
+#### 3. Combat state
+Это поля, которые чаще всего меняются во время игры:
+- `armorClass`, `customACBonus`
+- `initiative`, `customInitiativeBonus`
+- `maxHp`, `currentHp`, `tempHp`
+- `hitDice`, `hitDiceRemaining`
+- `deathSaves`
+- `spellcasting.spellSlots`
+
+Это самый “горячий” слой данных с точки зрения autosave, оффлайна и конфликтов.
+
+#### 4. Collections
+Это массивы и списки, где выше всего риск ошибок при merge и импорте:
+- `weapons`
+- `equipment`
+- `features`
+- `spellcasting.spells`
+- `classes`
+
+Массивы особенно важны, потому что в PATCH они не merge-ятся поэлементно, а заменяются целиком.
+
+#### 5. Private / freeform fields
+Это поля со свободным пользовательским текстом и UI-lock состоянием:
+- `notes`
+- `appearance`
+- `allies`
+- `factions`
+- `equipmentLocked`
+- `weaponsLocked`
+- `featuresLocked`
+
+Здесь меньше расчётной логики, но больше риска утечки в public-view и потери данных при неаккуратных изменениях allowlist-модели.
+
+### 6.2 Что меняется чаще всего
+
+Во время реальной игры чаще всего меняются:
+- `currentHp`
+- `tempHp`
+- `deathSaves`
+- `spellcasting.spellSlots`
+- подготовка заклинаний и состав `spellcasting.spells`
+- быстрые toggles вроде lock-полей и share state
+
+Именно эти поля первыми попадают под autosave, optimistic update и оффлайн-очередь.
+
+### 6.3 Какие поля критичны и связаны между собой
+
+Наиболее связанные и чувствительные зоны:
+- `class` и `classes`
+- `level` и `classes`
+- `abilityScores`, `customAbilityBonuses` и производные модификаторы
+- `savingThrows` и класс-профиценции
+- `maxHp`, `currentHp`, `hitDice`, `hitDiceRemaining`
+- `spellcasting.ability`, `spellcasting.spells`, `spellcasting.spellSlots`
+- `shareToken`, `isShared` и публичная проекция персонажа
+
+Если менять такие поля в изоляции, легко получить валидный JSON с неконсистентным игровым смыслом.
+
+### 6.4 Где чаще всего появляются баги
+
+Самые частые bug-prone зоны:
+- массивы объектов, потому что PATCH заменяет их целиком
+- связанные поля сборки персонажа, когда меняется одно поле без вторичного пересчёта или синхронизации
+- импорт внешнего JSON, где структура частично грязная, неполная или нестандартная
+- расхождение private/public модели, если новые поля не учтены в `publicCharacterSchema`
+- расхождение клиентского optimistic merge и итогового server merge
+
+## 7. Модель данных
+
+### Таблица `users`
+Определена в `shared/models/auth.ts`.
+
+Поля:
+- `id`
+- `email`
+- `googleId`
+- `passwordHash`
+- `firstName`
+- `lastName`
+- `profileImageUrl`
+- `createdAt`
+- `updatedAt`
+
+Важно:
+- `id` — внутренний app user id.
+- Для новых пользователей Google `profile.id` не используется как primary key.
+- При старте production auth выполняется runtime-backfill старых Google-only пользователей: `googleId = id`, если у записи нет `passwordHash`.
+
+### Таблица `characters`
+Определена в `shared/schema.ts`.
+
+Поля:
+- `id`
+- `userId`
+- `name`
+- `data` (`jsonb`)
+- `shareToken`
+- `isShared`
+- `createdAt`
+- `updatedAt`
+
+Практический смысл:
+- relational envelope лежит в колонках таблицы
+- полная игровая модель лежит в `data`
+- `updatedAt` обновляется в БД, но не используется как concurrency token и не участвует в optimistic locking
+
+### Публичная модель персонажа
+`publicCharacterSchema` определена в `shared/types/character-types.ts`.
+
+Из публичного ответа исключаются:
+- `userId`
+- `notes`
+
+`GET /api/shared/:token` использует allowlist-подход: наружу возвращается только разрешённый набор полей. Если в модель персонажа добавляется новое приватное поле, его нужно явно учесть в публичной схеме.
+
+### Ответ `GET /api/auth/user`
+Сервер отдаёт безопасную форму пользователя:
+- `id`
+- `email`
+- `firstName`
+- `lastName`
+- `profileImageUrl`
+- `createdAt`
+- `updatedAt`
+- `hasPassword`
+- `hasGoogle`
+
+## 8. Аутентификация и аккаунты
+
+### Общий подход
+Проект использует cookie-based session auth. В production доступны два способа входа:
+- Google OAuth
+- `email/password`
+
+Оба способа работают поверх одной пользовательской записи.
+
+### Auth behavior
+- Один email = один аккаунт.
+- Если локальный пользователь уже существует по email и входит через Google, `googleId` привязывается к этой же записи.
+- Если аккаунт создан через Google и не имеет `passwordHash`, пароль можно поставить только из уже авторизованного состояния.
+- Регистрация не должна анонимно “перехватывать” существующий Google-only аккаунт.
+
+### UI-поведение
+- Гость попадает на `AuthScreen` на `/`.
+- На стартовом экране есть табы “Вход” и “Регистрация”.
+- Кнопка Google остаётся альтернативным способом входа.
+- Управление паролем происходит через `AccountDialog`.
+- При `401` клиент возвращает пользователя на `/`, а не форсит новый Google-flow.
+
+### LOCAL_DEV
+`LOCAL_DEV` переключает только auth-режим:
+- production auth отключается
+- сервер использует `local-auth.ts`
+- `/api/auth/user` возвращает фиктивного локального пользователя
+
+Storage при этом выбирается отдельно:
+- если есть `DATABASE_URL`, используется PostgreSQL
+- если `DATABASE_URL` нет, используется `MemStorage`
+
+### Безопасность
+- Auth endpoints имеют отдельный IP-based rate limit: 10 попыток за 15 минут.
+- Пароли хранятся как salted hash через встроенный `crypto.scrypt`.
+- Email нормализуется как `trim().toLowerCase()`.
+
+Критичные mixed auth edge cases описаны отдельно в разделе 14.
+
+## 9. API reference
+
+### Общие правила
+- Все character endpoints и приватные auth endpoints работают с cookie-based session auth.
+- Публичным без логина является только `GET /api/shared/:token`, а также редиректные Google endpoints.
+- Character endpoints ограничены rate limit-ом `120 req/min` на пользователя.
+- Public shared endpoint ограничен rate limit-ом `30 req/min` по IP.
+- Auth endpoints ограничены rate limit-ом `10 попыток / 15 минут` по IP.
+- `PATCH /api/characters/:id` возвращает полный `Character`, а не diff.
+- `DELETE /api/characters/:id` возвращает `204 No Content`.
+
+### 9.1 Персонажи
+
+#### `GET /api/characters`
+- Auth: да
+- Возвращает: массив полных `Character`
+- Основные статусы: `200`, `401`, `429`
+
+Пример ответа:
+```json
+[
+  {
+    "id": "2fcd6a8e-0d24-45f0-90f9-f3c72f0f4fb1",
+    "userId": "user_123",
+    "name": "Новый персонаж",
+    "class": "Воин",
+    "race": "Человек",
+    "level": 1,
+    "currentHp": 10,
+    "maxHp": 10
+  }
+]
 ```
-┌─────────────────────────────────────────────────┐
-│                   КЛИЕНТ (React)                │
-│                                                  │
-│  Страницы:  CharactersList  ←→  CharacterSheet   │
-│                    │                    │         │
-│  Компоненты: CharacterHeader, CombatStats,       │
-│              AbilityWithSkills, WeaponsList,      │
-│              EquipmentSystem, DiceRoller, ...     │
-│                    │                    │         │
-│  Хуки:     useAuth    TanStack Query (кэш)       │
-│                    │                    │         │
-└────────────────────┼────────────────────┼────────┘
-                     │    HTTP (JSON)     │
-┌────────────────────┼────────────────────┼────────┐
-│                 СЕРВЕР (Express)                  │
-│                                                   │
-│  Middleware:   Google OAuth → isAuthenticated     │
-│                    │                               │
-│  Routes:  /api/characters  (CRUD)                 │
-│           /api/auth/user                          │
-│           /api/login, /api/callback, /api/logout  │
-│                    │                               │
-│  Storage:  DatabaseStorage (Drizzle ORM)          │
-│                    │                               │
-└────────────────────┼──────────────────────────────┘
-                     │
-┌────────────────────┼──────────────────────────────┐
-│              PostgreSQL                            │
-│                                                    │
-│  Таблицы:  characters  │  users  │  sessions       │
-└────────────────────────────────────────────────────┘
-```
 
-### Паттерн взаимодействия
-1. **SPA** — одностраничное приложение, маршрутизация на клиенте (Wouter)
-2. **REST API** — все данные передаются через JSON-эндпоинты
-3. **Optimistic updates** — TanStack Query кэширует данные, мутации инвалидируют кэш
-4. **Сессионная аутентификация** — cookie-based через Passport.js + Google OAuth 2.0
-5. **JSONB-хранение** — данные персонажа хранятся в одном JSONB-поле (гибкая схема)
+#### `GET /api/characters/:id`
+- Auth: да
+- Возвращает: полный `Character` текущего пользователя
+- Основные статусы: `200`, `401`, `404`, `429`
 
----
-
-## 4. Структура проекта
-
-```
-project-root/
-│
-├── client/src/                    # Frontend (React)
-│   ├── App.tsx                    # Корневой компонент, роутинг
-│   ├── main.tsx                   # Точка входа React
-│   ├── index.css                  # Глобальные стили, CSS-переменные, тема
-│   │
-│   ├── components/                # UI-компоненты
-│   │   ├── AbilityScore.tsx       # Отображение одной характеристики
-│   │   ├── AbilityWithSkills.tsx  # Характеристика + связанные навыки (карточка)
-│   │   ├── CharacterCard.tsx      # Карточка персонажа в списке
-│   │   ├── CharacterHeader.tsx    # Шапка: имя, раса, класс, уровень, XP
-│   │   ├── CombatStats.tsx        # КД, инициатива, скорость, хиты, кубики хитов, спасброски смерти
-│   │   ├── DiceRoller.tsx         # Кубомёт (модальное окно с историей бросков)
-│   │   ├── EquipmentSystem.tsx    # Инвентарь с категориями, drag-and-drop
-│   │   ├── FeaturesList.tsx       # Черты и способности
-│   │   ├── MoneyBlock.tsx         # Блок валют (МЗ, СЗ, ЭЗ, ЗМ, ПЗ)
-│   │   ├── ProficienciesSection.tsx # Владения (языки, оружие, доспехи, инструменты)
-│   │   ├── SavingThrows.tsx       # Спасброски по характеристикам
-│   │   ├── SkillItem.tsx          # Один навык (строка)
-│   │   ├── ThemeProvider.tsx      # Переключение тёмной/светлой темы
-│   │   ├── WeaponsList.tsx        # Список оружия
-│   │   └── ui/                    # Shadcn UI примитивы (35+ компонентов)
-│   │       ├── button.tsx
-│   │       ├── card.tsx
-│   │       ├── dialog.tsx
-│   │       ├── drawer.tsx
-│   │       ├── responsive-dialog.tsx  # Dialog на десктопе / Drawer на мобильном
-│   │       └── ...
-│   │
-│   ├── hooks/                     # Пользовательские хуки
-│   │   ├── use-auth.ts            # Хук аутентификации (user, isAuthenticated)
-│   │   ├── use-media-query.ts     # Хук для адаптивности
-│   │   ├── use-mobile.tsx         # Определение мобильного устройства
-│   │   └── use-toast.ts           # Уведомления
-│   │
-│   ├── lib/                       # Утилиты
-│   │   ├── auth-utils.ts          # Редирект на логин, обработка 401
-│   │   ├── queryClient.ts         # Настройка TanStack Query + apiRequest
-│   │   └── utils.ts               # cn() — утилита Tailwind merge
-│   │
-│   └── pages/                     # Страницы
-│       ├── CharactersList.tsx     # Главная: список персонажей + лендинг
-│       ├── CharacterSheet.tsx     # Лист персонажа (основная страница)
-│       └── not-found.tsx          # 404
-│
-├── server/                        # Backend (Express)
-│   ├── index.ts                   # Запуск сервера, middleware
-│   ├── routes.ts                  # API-маршруты (CRUD персонажей)
-│   ├── storage.ts                 # Интерфейс хранилища + DatabaseStorage
-│   ├── db.ts                      # Подключение к PostgreSQL (Drizzle)
-│   ├── google-auth.ts             # Google OAuth 2.0 (production)
-│   ├── local-auth.ts              # Локальная авторизация (LOCAL_DEV=true)
-│   ├── vite.ts                    # Интеграция Vite dev-сервера
-│   └── static.ts                  # Раздача статики в production
-│
-├── shared/                        # Общий код (клиент + сервер)
-│   ├── schema.ts                  # Схема БД, типы, Zod-схемы, D&D-данные (1087 строк)
-│   └── models/
-│       └── auth.ts                # Схема таблиц users и sessions
-│
-├── package.json                   # Зависимости
-├── tsconfig.json                  # Конфигурация TypeScript
-├── vite.config.ts                 # Конфигурация Vite
-├── drizzle.config.ts              # Конфигурация Drizzle ORM
-├── tailwind.config.ts             # Конфигурация Tailwind CSS
-└── replit.md                      # Краткая документация проекта
-```
-
-### Статистика кодовой базы
-| Файл/Группа | Строки кода |
-|---|---|
-| shared/schema.ts | 1 087 |
-| client/src/components/*.tsx (14 файлов) | 3 906 |
-| client/src/pages/*.tsx (3 страницы) | 958 |
-| client/src/index.css | 383 |
-| server/ (routes + storage) | 201 |
-| **Итого (ключевые файлы)** | **~6 530** |
-
----
-
-## 5. Модель данных и сущности
-
-### 5.1. Таблицы базы данных
-
-#### `characters` — Персонажи
-```
-id        VARCHAR  PK  (UUID, gen_random_uuid)
-userId    VARCHAR      FK → users.id
-name      VARCHAR      Имя персонажа
-data      JSONB        Полные данные персонажа (Character)
-createdAt TIMESTAMP    Дата создания
-updatedAt TIMESTAMP    Дата обновления
-```
-
-#### `users` — Пользователи
-```
-id              VARCHAR  PK  (UUID)
-email           VARCHAR  UNIQUE
-firstName       VARCHAR
-lastName        VARCHAR
-profileImageUrl VARCHAR
-createdAt       TIMESTAMP
-updatedAt       TIMESTAMP
-```
-
-#### `sessions` — Сессии
-```
-sid    VARCHAR  PK
-sess   JSONB        Данные сессии
-expire TIMESTAMP    Время истечения
-```
-
-### 5.2. Основные сущности (TypeScript/Zod)
-
-#### Character — Персонаж (корневая сущность)
-Хранится как JSONB в поле `data` таблицы `characters`.
-
-| Поле | Тип | Описание |
-|---|---|---|
-| id | string | UUID |
-| name | string | Имя персонажа |
-| race | string | Раса (Human, Elf, Dwarf, ...) |
-| class | string | Класс (Fighter, Wizard, ...) |
-| subrace | string? | Подраса |
-| level | number | Уровень (1-20) |
-| experience | number | Очки опыта |
-| background | string? | Предыстория |
-| alignment | string? | Мировоззрение |
-| avatar | string? | URL аватара |
-| speed | number | Скорость (фт/ход) |
-| abilityScores | AbilityScores | 6 характеристик |
-| customAbilityBonuses | AbilityScores? | Пользовательские бонусы к хар-кам |
-| skills | Record<SkillName, SkillProficiency> | 18 навыков |
-| savingThrows | Record<AbilityName, boolean> | Владение спасбросками |
-| proficiencyBonus | number | Бонус мастерства |
-| currentHp | number | Текущие хиты |
-| maxHp | number | Максимальные хиты |
-| tempHp | number | Временные хиты |
-| hitDice | string | Кубики хитов (напр. "5d10") |
-| hitDiceRemaining | number | Оставшиеся кубики хитов |
-| deathSaves | DeathSaves | Спасброски от смерти |
-| weapons | Weapon[] | Оружие |
-| equipment | Equipment[] | Инвентарь |
-| features | Feature[] | Черты и способности |
-| money | Money | Валюта (5 типов монет) |
-| proficiencies | Proficiencies | Владения |
-| customACBonus | number | Бонус к КД |
-| customInitiativeBonus | number | Бонус к инициативе |
-| notes | string? | Заметки |
-| appearance | string? | Внешность |
-| allies | string? | Союзники |
-| factions | string? | Фракции |
-| weaponsLocked | boolean | Блокировка оружия |
-| equipmentLocked | boolean | Блокировка инвентаря |
-| featuresLocked | boolean | Блокировка способностей |
-
-#### AbilityScores — Характеристики
-```typescript
-{ STR: number, DEX: number, CON: number, INT: number, WIS: number, CHA: number }
-```
-
-#### SkillProficiency — Владение навыком
-```typescript
-{ proficient: boolean, expertise: boolean }
-```
-
-#### Weapon — Оружие
-```typescript
+Пример ответа:
+```json
 {
-  name: string        // "Длинный меч"
-  damage: string      // "1d8"
-  damageType: string  // "рубящий"
-  type: string        // "melee" | "ranged"
-  properties: string  // "универсальное (1d10)"
-  isProficient: boolean
-  isFinesse: boolean
-  equipped: boolean
+  "id": "2fcd6a8e-0d24-45f0-90f9-f3c72f0f4fb1",
+  "userId": "user_123",
+  "name": "Новый персонаж",
+  "class": "Воин",
+  "classes": [
+    { "name": "Воин", "level": 1 }
+  ],
+  "race": "Человек",
+  "level": 1,
+  "abilityScores": {
+    "STR": 10,
+    "DEX": 10,
+    "CON": 10,
+    "INT": 10,
+    "WIS": 10,
+    "CHA": 10
+  },
+  "currentHp": 10,
+  "maxHp": 10,
+  "deathSaves": {
+    "successes": 0,
+    "failures": 0
+  },
+  "weapons": [],
+  "equipment": []
 }
 ```
 
-#### Equipment — Предмет инвентаря
-```typescript
+#### `POST /api/characters`
+- Auth: да
+- Request body: объект, проходящий `insertCharacterSchema`
+- Возвращает: созданный полный `Character`
+- Основные статусы: `201`, `400`, `401`, `429`
+
+Практическое правило:
+- Для интеграций безопаснее стартовать с payload, эквивалентным `createDefaultCharacter()`, а не пытаться собирать “пустой” персонаж вручную.
+
+Пример рабочего payload:
+```json
 {
-  name: string
-  quantity: number
-  weight: number
-  category: EquipmentCategory  // weapon|armor|food|potion|tool|misc|trash
-  equipped: boolean
-  isArmor: boolean
-  armorType: string?
-  armorBaseAC: number?
-  armorMaxDexBonus: number?
-  notes: string?
+  "name": "Новый персонаж",
+  "class": "Воин",
+  "race": "Человек",
+  "level": 1,
+  "classes": [
+    { "name": "Воин", "level": 1 }
+  ],
+  "background": "",
+  "alignment": "Истинно нейтральный",
+  "experience": 0,
+  "abilityScores": {
+    "STR": 10,
+    "DEX": 10,
+    "CON": 10,
+    "INT": 10,
+    "WIS": 10,
+    "CHA": 10
+  },
+  "customAbilityBonuses": {
+    "STR": 0,
+    "DEX": 0,
+    "CON": 0,
+    "INT": 0,
+    "WIS": 0,
+    "CHA": 0
+  },
+  "savingThrows": {
+    "STR": true,
+    "DEX": false,
+    "CON": true,
+    "INT": false,
+    "WIS": false,
+    "CHA": false
+  },
+  "skills": {
+    "Акробатика": { "proficient": false, "expertise": false },
+    "Анализ": { "proficient": false, "expertise": false },
+    "Атлетика": { "proficient": false, "expertise": false },
+    "Восприятие": { "proficient": false, "expertise": false },
+    "Выживание": { "proficient": false, "expertise": false },
+    "Выступление": { "proficient": false, "expertise": false },
+    "Запугивание": { "proficient": false, "expertise": false },
+    "История": { "proficient": false, "expertise": false },
+    "Ловкость рук": { "proficient": false, "expertise": false },
+    "Магия": { "proficient": false, "expertise": false },
+    "Медицина": { "proficient": false, "expertise": false },
+    "Обман": { "proficient": false, "expertise": false },
+    "Природа": { "proficient": false, "expertise": false },
+    "Проницательность": { "proficient": false, "expertise": false },
+    "Религия": { "proficient": false, "expertise": false },
+    "Скрытность": { "proficient": false, "expertise": false },
+    "Убеждение": { "proficient": false, "expertise": false },
+    "Уход за животными": { "proficient": false, "expertise": false }
+  },
+  "armorClass": 10,
+  "customACBonus": 0,
+  "initiative": 0,
+  "customInitiativeBonus": 0,
+  "speed": 30,
+  "maxHp": 10,
+  "currentHp": 10,
+  "tempHp": 0,
+  "hitDice": "1d10",
+  "hitDiceRemaining": 1,
+  "deathSaves": {
+    "successes": 0,
+    "failures": 0
+  },
+  "weapons": [],
+  "features": [],
+  "equipment": [],
+  "money": {
+    "cp": 0,
+    "sp": 0,
+    "ep": 0,
+    "gp": 0,
+    "pp": 0
+  },
+  "proficiencies": {
+    "languages": ["Общий"],
+    "weapons": [],
+    "armor": [],
+    "tools": []
+  },
+  "proficiencyBonus": 2,
+  "notes": "",
+  "appearance": "",
+  "allies": "",
+  "factions": "",
+  "equipmentLocked": false,
+  "weaponsLocked": false,
+  "featuresLocked": false
 }
 ```
 
-#### Feature — Способность/Черта
-```typescript
+Пример ответа:
+```json
 {
-  name: string
-  description: string
-  source: string  // "class" | "race" | "feat" | "other"
-  level: number?
+  "id": "2fcd6a8e-0d24-45f0-90f9-f3c72f0f4fb1",
+  "userId": "user_123",
+  "name": "Новый персонаж",
+  "class": "Воин",
+  "race": "Человек",
+  "level": 1,
+  "currentHp": 10,
+  "maxHp": 10
 }
 ```
 
-#### Money — Валюта
-```typescript
-{ cp: number, sp: number, ep: number, gp: number, pp: number }
-// МЗ (медные), СЗ (серебряные), ЭЗ (электрумные), ЗМ (золотые), ПЗ (платиновые)
+#### `PATCH /api/characters/:id`
+- Auth: да
+- Request body: частичный `Character`
+- Возвращает: полный `Character`
+- Основные статусы: `200`, `401`, `404`, `429`
+
+Пример 1. Простое scalar-обновление:
+```http
+PATCH /api/characters/2fcd6a8e-0d24-45f0-90f9-f3c72f0f4fb1
+Content-Type: application/json
 ```
 
-#### DeathSaves — Спасброски от смерти
-```typescript
-{ successes: number, failures: number }  // от 0 до 3 каждое
+```json
+{
+  "currentHp": 12
+}
 ```
 
-#### Proficiencies — Владения
-```typescript
-{ languages: string[], weapons: string[], armor: string[], tools: string[] }
+Пример 2. Вложенное object-обновление:
+```json
+{
+  "deathSaves": {
+    "failures": 1
+  }
+}
 ```
 
----
-
-## 6. Бизнес-логика и процессы
-
-### 6.1. Жизненный цикл пользователя
-
-```
-Открытие приложения
-    │
-    ├── Не авторизован → Лендинг → Кнопка "Войти"
-    │                                    │
-    │                          Google OAuth 2.0
-    │                                    │
-    │                          Redirect → /api/callback
-    │                                    │
-    └── Авторизован → Список персонажей ─┘
-                          │
-              ┌───────────┼───────────┐
-              │           │           │
-         Создать      Выбрать     Удалить
-        нового       существующего
-              │           │
-              └─────┬─────┘
-                    │
-            Лист персонажа
-              │           │
-         Режим игры   Режим редактирования
+Пример 3. Обновление массива:
+```json
+{
+  "weapons": [
+    {
+      "id": "weapon-longsword",
+      "name": "Длинный меч",
+      "attackBonus": 5,
+      "damage": "1d8",
+      "damageType": "рубящий",
+      "abilityMod": "str",
+      "properties": "универсальное (1d10)"
+    }
+  ]
+}
 ```
 
-### 6.2. Режимы работы с персонажем
+Важно:
+- массивы заменяются целиком, а не merge-ятся по элементам
+- если нужно изменить один объект в массиве, клиент должен отправить весь новый массив
 
-**Режим редактирования (Edit Mode)**:
-- Изменение имени, расы, класса, уровня
-- Установка значений характеристик
-- Выбор владений навыками (обычное/экспертиза)
-- Добавление/удаление оружия, инвентаря, способностей
-- Настройка бонусов к КД и инициативе
-- Изменение максимальных хитов вручную
-- Редактирование заметок, внешности, союзников, фракций
-
-**Режим игры (Play Mode)**:
-- Быстрое изменение текущих хитов (+/-)
-- Использование кубиков хитов (+/-)
-- Отметка спасбросков от смерти
-- Броски кубиков (характеристики, навыки, спасброски, атаки, урон)
-- Управление валютой (+/-)
-- Добавление/удаление предметов (при разблокированном инвентаре)
-- Экипировка/снятие предметов и оружия
-
-### 6.3. Автоматические расчёты
-
-| Расчёт | Формула |
-|---|---|
-| Модификатор характеристики | `Math.floor((score - 10) / 2)` |
-| Бонус мастерства | По уровню: 1-4 → +2, 5-8 → +3, 9-12 → +4, 13-16 → +5, 17-20 → +6 |
-| Проверка навыка | d20 + мод. характеристики + (мастерство × (1 или 2)) |
-| Класс Доспеха (КД) | Базовый КД доспеха + мод. ЛОВ (с ограничениями) + щит (+2) + бонус |
-| Инициатива | Мод. ЛОВ + пользовательский бонус |
-| Макс. хиты (ур. 1) | Макс. кость хитов + мод. ТЕЛ |
-| Макс. хиты (ур. 2+) | Ур.1 + (уровень - 1) × (среднее кости + мод. ТЕЛ) |
-| Бонус атаки оружием | Мод. СИЛ/ЛОВ + мастерство (если владеет) |
-| Урон оружия | Кость урона + мод. СИЛ/ЛОВ |
-| Расовые бонусы | Автоматически из `RACE_DATA` по расе и подрасе |
-| Прогресс XP | По таблице `XP_THRESHOLDS` (1-20 уровни) |
-
-### 6.4. Автозаполнение владений
-
-При выборе расы и класса автоматически заполняются:
-- **От расы**: языки, расовые особенности, скорость, тёмное зрение
-- **От класса**: владение оружием, доспехами, инструментами, спасброски
-- **От подрасы**: дополнительные бонусы характеристик и особенности
-
-Автозаполненные владения отображаются как «вторичные» бейджи (нередактируемые с тултипами), а добавленные пользователем — как «контурные» бейджи (удаляемые).
-
-### 6.5. Система кубиков
-
-Кубомёт поддерживает:
-- **Проверки характеристик**: d20 + мод. характеристики
-- **Проверки навыков**: d20 + мод. характеристики + мастерство
-- **Спасброски**: d20 + мод. характеристики + мастерство (если владеет)
-- **Броски атаки**: d20 + мод. СИЛ/ЛОВ + мастерство
-- **Броски урона**: кость оружия + мод. СИЛ/ЛОВ
-- **История бросков**: отображается в модальном окне с возможностью очистки
-
-### 6.6. Система блокировки (Lock)
-
-В режиме игры секции оружия, инвентаря и способностей можно заблокировать/разблокировать:
-- **Заблокировано** (🔒): нельзя добавлять/удалять элементы — защита от случайных изменений
-- **Разблокировано** (🔓): можно добавлять новые предметы и удалять существующие
-
-### 6.7. Процесс сохранения данных
-
-```
-Пользователь вносит изменения
-         │
-    handleChange(updates)
-         │
-    setCurrentCharacter(merged)  ← Мгновенное обновление UI
-         │
-    Debounce (авто-сохранение)
-         │
-    PATCH /api/characters/:id
-         │
-    Deep Merge на сервере     ← Частичное обновление JSONB
-         │
-    PostgreSQL
+Фрагмент успешного ответа:
+```json
+{
+  "id": "2fcd6a8e-0d24-45f0-90f9-f3c72f0f4fb1",
+  "userId": "user_123",
+  "currentHp": 12,
+  "deathSaves": {
+    "successes": 0,
+    "failures": 1
+  },
+  "weapons": [
+    {
+      "id": "weapon-longsword",
+      "name": "Длинный меч",
+      "attackBonus": 5,
+      "damage": "1d8",
+      "damageType": "рубящий",
+      "abilityMod": "str",
+      "properties": "универсальное (1d10)"
+    }
+  ]
+}
 ```
 
-Используется **deep merge** — отправляются только изменённые поля, вложенные объекты обновляются, а не перезаписываются.
+#### `DELETE /api/characters/:id`
+- Auth: да
+- Возвращает: пустое тело
+- Основные статусы: `204`, `401`, `404`, `429`
 
----
-
-## 7. API — серверные маршруты
-
-Все маршруты `/api/characters/*` защищены middleware `isAuthenticated`.
-
-| Метод | Маршрут | Описание | Тело запроса | Ответ |
-|---|---|---|---|---|
-| GET | `/api/characters` | Список персонажей пользователя | — | `Character[]` |
-| GET | `/api/characters/:id` | Получить персонажа по ID | — | `Character` |
-| POST | `/api/characters` | Создать нового персонажа | `InsertCharacter` | `Character` |
-| PATCH | `/api/characters/:id` | Обновить персонажа (deep merge) | `Partial<Character>` | `Character` |
-| DELETE | `/api/characters/:id` | Удалить персонажа | — | 204 No Content |
-
-### Аутентификационные маршруты
-
-| Метод | Маршрут | Описание |
-|---|---|---|
-| GET | `/api/login` | Редирект на Google OAuth (или авто-вход при LOCAL_DEV) |
-| GET | `/api/callback` | Обработка callback от Google OAuth |
-| GET | `/api/logout` | Выход из системы |
-| GET | `/api/auth/user` | Текущий пользователь |
-
-### Обработка ошибок
-- **401 Unauthorized** — неавторизованный доступ или истёкший токен
-- **404 Not Found** — персонаж не найден или не принадлежит пользователю
-- **500 Internal Server Error** — ошибка сервера
-
----
-
-## 8. Аутентификация и безопасность
-
-### Поток авторизации
-
-**Production (Google OAuth 2.0):**
-```
-Пользователь → "Войти" → /api/login
-                              │
-                  Google OAuth 2.0 (accounts.google.com)
-                              │
-                    /api/callback (Passport)
-                              │
-                    upsertUser → БД (users)
-                              │
-                    express-session → cookie
-                              │
-                    Redirect → / (приложение)
+Пример:
+```http
+DELETE /api/characters/2fcd6a8e-0d24-45f0-90f9-f3c72f0f4fb1
 ```
 
-**LOCAL_DEV=true (локальная разработка):**
-```
-Любой запрос → isAuthenticated → автоматически пропускается
-req.user.claims.sub = "local-dev-user" (фиктивный пользователь)
-Хранилище: MemStorage (если DATABASE_URL не задан) или PostgreSQL
-```
+Успешный ответ:
+- `204 No Content`
 
-### Механизмы безопасности
+### 9.2 Шаринг
 
-1. **Сессионная аутентификация** — cookie с подписью (SESSION_SECRET)
-2. **Хранение сессий в PostgreSQL** — персистентные сессии через `connect-pg-simple`
-3. **Google OAuth 2.0** — профиль пользователя upsert-ится при каждом входе
-4. **Проверка владения** — каждый запрос к `/api/characters` фильтруется по `userId`
-5. **Валидация данных** — Zod-схемы на сервере проверяют входные данные
-6. **CSRF-защита** — cookie-based сессии с SameSite
+#### `GET /api/characters/:id/share`
+- Auth: да
+- Возвращает: текущий share state персонажа
+- Основные статусы: `200`, `401`, `404`, `429`
 
-### Изоляция данных
-Каждый пользователь видит только своих персонажей. Поле `userId` (из Google profile.id через `sub` claim) используется во всех запросах как обязательный фильтр.
-
----
-
-## 9. Компоненты интерфейса
-
-### Страницы
-
-#### CharactersList (302 строки)
-- Лендинг для неавторизованных пользователей
-- Список персонажей с карточками (имя, раса, класс, уровень, XP)
-- Кнопка создания нового персонажа
-- Удаление персонажа с подтверждением
-
-#### CharacterSheet (656 строк)
-Основная страница — полный лист персонажа. Компоновка:
-
-```
-┌─────────────────────────────────────────────────────┐
-│  CharacterHeader (имя, раса, класс, уровень, XP)   │
-│  + HP Tracker + Death Saves (справа на десктопе)    │
-├─────────────────────────────────────────────────────┤
-│  Характеристики   │  Боевые хар-ки   │  Оружие     │
-│  и навыки         │  (КД, Иниц,      │  и          │
-│  (6 блоков ×      │   Скор, Куб.хит)  │  способности│
-│   характеристика  │  + Спасброски     │  + Владения │
-│   + навыки)       │                   │             │
-├─────────────────────────────────────────────────────┤
-│  Деньги  │  Инвентарь (с категориями и drag-n-drop)│
-│          ├──────────────────────────────────────────│
-│          │  Заметки │ Внешность │ Союзники │ Фракции│
-└─────────────────────────────────────────────────────┘
+Пример ответа:
+```json
+{
+  "shareToken": "78e8b635-3d93-4a7a-813d-6dc3970ce4a8",
+  "isShared": true
+}
 ```
 
-### Ключевые компоненты
+#### `POST /api/characters/:id/share`
+- Auth: да
+- Возвращает: новый или существующий `shareToken`
+- Основные статусы: `200`, `401`, `404`, `429`
 
-| Компонент | Строки | Назначение |
-|---|---|---|
-| **CharacterHeader** | 597 | Шапка: аватар, имя, раса/класс с тултипами, уровень, XP-бар, бонус мастерства. Drawer для мобильного редактирования |
-| **CombatStats** | 433 | КД (расчёт по доспехам), инициатива, скорость, хиты (HP-бар), кубики хитов, спасброски от смерти |
-| **EquipmentSystem** | 856 | Инвентарь с 7 категориями (оружие, доспехи, еда, зелья, инструменты, прочее, мусор). Drag-and-drop через @dnd-kit. Каталог базовых предметов. Экипировка. Вес |
-| **AbilityWithSkills** | 246 | Карточка характеристики + связанные навыки. Расовые бонусы. Клик для броска |
-| **WeaponsList** | 388 | Список оружия с бросками атаки/урона. Учёт STR/DEX/finesse. Блокировка |
-| **ProficienciesSection** | 399 | 4 категории владений с автозаполнением от расы/класса/подрасы |
-| **DiceRoller** | 213 | Модальное окно кубомёта с историей бросков и анимацией |
-| **FeaturesList** | 198 | Черты и способности с источником (класс/раса/черта) |
-| **SkillItem** | 142 | Строка навыка: владение, экспертиза, модификатор, бросок |
-| **MoneyBlock** | 121 | 5 типов валюты с цветными фонами и кнопками +/- |
-| **SavingThrows** | 105 | 6 спасбросков с владением и бросками |
-| **ThemeProvider** | 47 | Контекст тёмной/светлой темы с localStorage |
+Пример ответа:
+```json
+{
+  "shareToken": "78e8b635-3d93-4a7a-813d-6dc3970ce4a8"
+}
+```
 
-### Адаптивность (Mobile-first)
+#### `DELETE /api/characters/:id/share`
+- Auth: да
+- Возвращает: отключённый share state
+- Основные статусы: `200`, `401`, `404`, `429`
 
-- **ResponsiveDialog** — Dialog на десктопе (≥640px) / Drawer на мобильном
-- **Минимальные touch-цели** — 36-40px для всех интерактивных элементов
-- **Горизонтальные вкладки** — прокрутка на мобильном
-- **Скрытие элементов** — бейджи, вес предметов, подробности скрываются на узких экранах
-- **Drawer** для редактирования заголовка на мобильном
-- **Адаптивные сетки** — `grid-cols-1` → `md:grid-cols-2` → `lg:grid-cols-3`
+Пример ответа:
+```json
+{
+  "isShared": false,
+  "shareToken": null
+}
+```
 
----
+#### `GET /api/shared/:token`
+- Auth: нет
+- Возвращает: публичную read-only проекцию персонажа
+- Основные статусы: `200`, `404`, `429`
 
-## 10. Дизайн-система
+Важно:
+- ответ режется через `publicCharacterSchema`
+- `userId` и `notes` наружу не отдаются
 
-### Цветовая палитра
+Фрагмент ответа:
+```json
+{
+  "id": "2fcd6a8e-0d24-45f0-90f9-f3c72f0f4fb1",
+  "name": "Новый персонаж",
+  "class": "Воин",
+  "race": "Человек",
+  "level": 1,
+  "currentHp": 10,
+  "maxHp": 10,
+  "appearance": "",
+  "allies": "",
+  "factions": ""
+}
+```
 
-Тема «Фэнтези-пергамент» с тёплыми тонами:
+### 9.3 Аутентификация
 
-**Светлый режим**:
-- Фон: `hsl(35, 30%, 95%)` — тёплый пергаментный
-- Карточки: `hsl(38, 35%, 97%)` — чуть светлее фона
-- Акцент: `hsl(35, 60%, 50%)` — золотистый
-- Primary: `hsl(25, 55%, 35%)` — тёплый коричневый
+#### `GET /api/auth/user`
+- Auth: да
+- Возвращает: безопасную форму текущего пользователя
+- Основные статусы: `200`, `401`
 
-**Тёмный режим**:
-- Фон: `hsl(25, 25%, 12%)` — тёмный пергаментный
-- Карточки: `hsl(25, 20%, 16%)` — чуть светлее
-- Акцент: `hsl(35, 55%, 55%)` — приглушённый золотой
+Пример ответа:
+```json
+{
+  "id": "user_123",
+  "email": "player@example.com",
+  "firstName": "Илья",
+  "lastName": "Игроков",
+  "profileImageUrl": "https://lh3.googleusercontent.com/example",
+  "createdAt": "2026-03-31T12:00:00.000Z",
+  "updatedAt": "2026-03-31T12:00:00.000Z",
+  "hasPassword": true,
+  "hasGoogle": true
+}
+```
 
-### Семантические цвета
-| Токен | Назначение |
-|---|---|
-| `--color-positive` | Успех, здоровье, стабилизация (зелёный) |
-| `--color-negative` | Урон, смерть, провал (красный) |
-| `--color-info` | Информация, временные хиты (синий) |
-| `--color-warning` | Предупреждения (жёлтый/оранжевый) |
-| `--color-ability-*` | Блоки характеристик (тёплые тона) |
+#### `POST /api/auth/register`
+- Auth: нет
+- Request body: `email`, `password`, опционально `confirmPassword`
+- Возвращает: безопасную форму пользователя и сразу открывает сессию
+- Основные статусы: `201`, `400`, `409`, `429`
 
-### Иерархия карточек
-| Класс | Использование |
-|---|---|
-| `.stat-card-primary` | КД, инициатива, скорость, хиты |
-| `.stat-card` | Стандартные блоки (кубики хитов, спасброски) |
-| `.stat-card-tertiary` | Второстепенные (заметки, внешность) |
+Пример запроса:
+```json
+{
+  "email": "player@example.com",
+  "password": "strong-password-123",
+  "confirmPassword": "strong-password-123"
+}
+```
 
-### HP-бар
-Кастомный прогресс-бар с градиентами:
-- Зелёный → жёлтый → красный (в зависимости от % HP)
-- Полупрозрачный голубой слой для временных хитов
-- Анимация перехода при изменении
+Пример ответа:
+```json
+{
+  "id": "user_123",
+  "email": "player@example.com",
+  "firstName": null,
+  "lastName": null,
+  "profileImageUrl": null,
+  "createdAt": "2026-03-31T12:00:00.000Z",
+  "updatedAt": "2026-03-31T12:00:00.000Z",
+  "hasPassword": true,
+  "hasGoogle": false
+}
+```
 
----
+Типовой `409`:
+- email уже существует
+- email уже принадлежит Google-only аккаунту, куда пароль нельзя добавить анонимно
 
-## 11. D&D 5e — справочные данные
+#### `POST /api/auth/login`
+- Auth: нет
+- Request body: `email`, `password`
+- Возвращает: безопасную форму пользователя и открывает сессию
+- Основные статусы: `200`, `400`, `401`, `429`
 
-В файле `shared/schema.ts` содержатся полные справочные данные D&D 5e:
+Пример запроса:
+```json
+{
+  "email": "player@example.com",
+  "password": "strong-password-123"
+}
+```
 
-### Классы (13)
-Бард, Варвар, Воин, Волшебник, Друид, Жрец, Изобретатель, Колдун, Монах, Паладин, Плут, Следопыт, Чародей
+Пример ответа:
+```json
+{
+  "id": "user_123",
+  "email": "player@example.com",
+  "firstName": "Илья",
+  "lastName": "Игроков",
+  "profileImageUrl": null,
+  "createdAt": "2026-03-31T12:00:00.000Z",
+  "updatedAt": "2026-03-31T12:00:00.000Z",
+  "hasPassword": true,
+  "hasGoogle": false
+}
+```
 
-Каждый класс содержит:
-- Название, описание
-- Кость хитов (d6-d12)
-- Спасброски (2 характеристики)
-- Владения (доспехи, оружие, инструменты)
+Типовой `401`:
+- неверный email или пароль
+- аккаунт существует только через Google и не имеет локального пароля
 
-### Расы (10) с подрасами
-- **Человек** (нет подрас)
-- **Эльф** → Высший, Лесной, Тёмный (дроу)
-- **Дварф** → Горный, Холмовой
-- **Полурослик** → Легконогий, Коренастый
-- **Драконорождённый** (нет подрас)
-- **Гном** → Лесной, Скальный
-- **Полуэльф** (нет подрас)
-- **Полуорк** (нет подрас)
-- **Тифлинг** (нет подрас)
-- **Аасимар** → Защитник, Каратель, Падший
+#### `POST /api/auth/password`
+- Auth: да
+- Request body:
+  - для Google-only аккаунта без пароля: только `newPassword`
+  - для пользователя с существующим паролем: `currentPassword` + `newPassword`
+- Возвращает: обновлённую безопасную форму пользователя
+- Основные статусы: `200`, `400`, `401`, `404`, `429`
 
-Каждая раса содержит:
-- Бонусы характеристик
-- Скорость, языки
-- Особенности и черты
-- Тёмное зрение (дальность)
+Пример 1. Установить первый пароль:
+```json
+{
+  "newPassword": "strong-password-123"
+}
+```
 
-### Оружие (29 наименований)
-Простое и воинское: от кинжала до тяжёлого арбалета, включая свойства (лёгкое, фехтовальное, двуручное, дальнобойное и др.)
+Пример 2. Сменить существующий пароль:
+```json
+{
+  "currentPassword": "old-password-123",
+  "newPassword": "new-password-456"
+}
+```
 
-### Доспехи (13 наименований)
-Лёгкие, средние и тяжёлые доспехи + щит. С базовым КД, ограничением модификатора ЛОВ и штрафом к скрытности.
+Пример ответа:
+```json
+{
+  "id": "user_123",
+  "email": "player@example.com",
+  "firstName": "Илья",
+  "lastName": "Игроков",
+  "profileImageUrl": "https://lh3.googleusercontent.com/example",
+  "createdAt": "2026-03-31T12:00:00.000Z",
+  "updatedAt": "2026-03-31T12:05:00.000Z",
+  "hasPassword": true,
+  "hasGoogle": true
+}
+```
 
-### Мировоззрения (9)
-Законопослушный добрый/нейтральный/злой, Нейтральный добрый/нейтральный/злой, Хаотичный добрый/нейтральный/злой
+#### `GET /api/login`
+- Auth: нет
+- Поведение: запускает Google OAuth flow
 
-### Таблица опыта
-Полная таблица XP_THRESHOLDS для уровней 1-20 (от 0 до 355 000 XP).
+#### `GET /api/callback`
+- Auth: нет
+- Поведение: завершает Google OAuth и редиректит на `/`
 
----
+#### `GET /api/logout`
+- Auth: да
+- Поведение: завершает сессию и редиректит на `/`
 
-## 12. Функциональные возможности
+### 9.4 Поведение неавторизованных запросов
+- Защищённые endpoints отвечают `401`.
+- Клиент больше не форсит пользователя сразу в Google-flow.
+- При `401` пользовательский flow возвращает на стартовый экран `/`.
 
-### Реализованные функции
+## 10. Conflict Resolution and Consistency Model
 
-| # | Функция | Статус |
-|---|---|---|
-| 1 | Авторизация через Google OAuth 2.0 | ✅ |
-| 2 | Создание/удаление нескольких персонажей | ✅ |
-| 3 | 6 характеристик с автомодификаторами | ✅ |
-| 4 | 18 навыков с владением и экспертизой | ✅ |
-| 5 | Расовые бонусы характеристик (авто) | ✅ |
-| 6 | Тёмное зрение по расе/подрасе | ✅ |
-| 7 | Авто-заполнение владений (раса/класс/подраса) | ✅ |
-| 8 | КД с расчётом по доспехам из инвентаря | ✅ |
-| 9 | Авторасчёт максимальных хитов | ✅ |
-| 10 | HP-бар с +/- и временными хитами | ✅ |
-| 11 | Кубики хитов (отдых) | ✅ |
-| 12 | Спасброски от смерти (3 успеха / 3 провала) | ✅ |
-| 13 | Спасброски по характеристикам | ✅ |
-| 14 | Встроенный кубомёт с историей | ✅ |
-| 15 | Оружие с бросками атаки и урона | ✅ |
-| 16 | Учёт STR/DEX/Finesse для оружия | ✅ |
-| 17 | Инвентарь с 7 категориями | ✅ |
-| 18 | Drag-and-drop сортировка инвентаря | ✅ |
-| 19 | Экипировка предметов | ✅ |
-| 20 | Каталог базового оружия и доспехов | ✅ |
-| 21 | 5 типов валюты с +/- | ✅ |
-| 22 | Черты и способности | ✅ |
-| 23 | Режим редактирования / режим игры | ✅ |
-| 24 | Блокировка секций в режиме игры | ✅ |
-| 25 | Тёмная/светлая тема | ✅ |
-| 26 | Мобильная адаптивность | ✅ |
-| 27 | Тултипы по расам и классам | ✅ |
-| 28 | Заметки, внешность, союзники, фракции | ✅ |
-| 29 | Прогресс-бар опыта (XP) | ✅ |
-| 30 | Автосохранение изменений | ✅ |
+Это критичный operational-раздел: в проекте нет отдельной conflict subsystem, поэтому поведение нужно понимать ровно так, как оно реализовано сейчас.
 
----
+### 10.1 Что есть сейчас
+- Versioning персонажей отсутствует.
+- Optimistic locking отсутствует.
+- ETag / `If-Match` отсутствуют.
+- Сервер не хранит и не сравнивает revision number персонажа.
+- `updatedAt` в таблице обновляется, но не участвует в принятии решений о конфликте.
 
-## 13. Ревью кода и архитектурные решения
+### 10.2 Как реально работает `PATCH`
 
-### Сильные стороны
+Server path:
+1. `storage.updateCharacter()` загружает текущего персонажа по `id + userId`.
+2. Из payload удаляются `id` и `userId`.
+3. Выполняется `deepMerge(existing, updateData)`.
+4. В БД записывается весь обновлённый JSONB, а не patch/diff.
 
-1. **Единая типизация** — `shared/schema.ts` используется и на клиенте, и на сервере. Типы, Zod-схемы и справочные данные D&D в одном месте, что исключает рассинхронизацию.
+### 10.3 Правила merge
+- Plain objects merge-ятся рекурсивно.
+- Массивы не merge-ятся поэлементно и не diff-ятся.
+- Если в payload пришёл массив, он заменяет весь старый массив.
+- `undefined` на сервере игнорируется.
+- `null` на сервере перезаписывает существующее значение.
 
-2. **JSONB-хранение** — гибкая схема для сложной структуры персонажа. Позволяет добавлять новые поля без миграций. Deep merge на сервере обеспечивает частичные обновления.
+Практическое следствие:
+- `PATCH { "deathSaves": { "failures": 1 } }` сохранит `deathSaves.successes`, если оно уже было.
+- `PATCH { "weapons": [...] }` заменит весь список оружия, даже если менялся только один элемент.
 
-3. **Компонентная архитектура** — каждый блок листа персонажа выделен в отдельный компонент с чётким интерфейсом. Компоненты принимают `isEditing`, `onChange` и данные — легко тестировать и переиспользовать.
+### 10.4 Кто побеждает при конфликте
 
-4. **Адаптивный дизайн** — продуманная мобильная версия: ResponsiveDialog, Drawer для редактирования, скрытие деталей на узких экранах, увеличенные touch-цели.
+Текущее правило конфликта:
+- побеждает последний успешно сохранённый запрос
 
-5. **Богатая D&D-справка** — 13 классов, 10 рас с подрасами, 29 единиц оружия, 13 типов доспехов, полная таблица опыта. Всё на русском.
+Это означает:
+- если два клиента редактируют одни и те же scalar-поля, победит тот PATCH, который сервер применил последним
+- если один клиент отправляет старый массив, он может затереть более свежие изменения другого клиента
+- сервер не пытается определить “чей state новее” и не делает semantic merge
 
-6. **Безопасность данных** — изоляция по userId на уровне storage, Google OAuth 2.0, серверная валидация через Zod.
+### 10.5 Оффлайн-реплей и конфликты
 
-### Области для улучшения
+Pending queue не делает reconcile/rebase:
+- queued change повторно отправляется как обычный HTTP-запрос
+- он не знает, что серверное состояние могло уже измениться после момента постановки в очередь
+- если queued PATCH содержит затрагиваемые поля, он может переехать поверх более поздних серверных изменений
 
-1. **Размер schema.ts (1087 строк)** — можно разделить на модули: `d5e-classes.ts`, `d5e-races.ts`, `d5e-equipment.ts`, `character-types.ts`.
+Точное поведение replay в `offline-sync.ts`:
+- изменения отправляются последовательно
+- успешные ответы и `404` удаляются из очереди
+- `4xx/5xx` остаются в очереди как failed
+- network exception прерывает текущий проход синка
 
-2. **Отсутствие тестов** — нет unit/integration/e2e тестов. Критично для автовычислений (HP, КД, модификаторы).
+### 10.6 Важный caveat: клиентский merge не идентичен серверному
 
-3. **Нет оффлайн-режима** — приложение требует постоянного подключения. Service Worker + localStorage могли бы обеспечить работу без сети.
+В `CharacterContext.tsx` клиентский optimistic `deepMerge` отличается от server-side версии:
+- клиент не пропускает `undefined`
+- сервер пропускает `undefined`
 
-4. **Нет системы заклинаний** — для полноценного D&D 5e не хватает: списка заклинаний, слотов заклинаний, подготовленных заклинаний.
+Редкий, но важный operational эффект:
+- UI может временно показать optimistic state, который потом не совпадёт с фактически сохранённым серверным результатом
 
-5. **Нет мультикласса** — система поддерживает только один класс.
+Если нужно расследовать “на экране было одно, после перезагрузки стало другое”, это одна из первых точек для проверки.
 
-6. **Нет экспорта/импорта** — нельзя экспортировать персонажа в PDF или JSON, нет импорта из других систем.
+## 11. Заклинания
 
-7. **Нет совместного доступа** — нельзя поделиться персонажем с Мастером или другими игроками.
+### Источник библиотеки
+Библиотека заклинаний собрана в `spells_library.json` и подключена через `shared/data/spells-library.ts`.
 
-### Рекомендации
+Нормализованные поля записи библиотеки:
+- `id`
+- `name`
+- `level`
+- `school`
+- `classes`
+- `range`
+- `ritual`
+- `components`
+- `castingTime`
+- `description`
+- `concentration`
+- `duration`
 
-| Приоритет | Рекомендация |
-|---|---|
-| 🔴 Высокий | Добавить систему заклинаний (слоты, список, подготовка) |
-| 🔴 Высокий | Покрыть автовычисления тестами |
-| 🟡 Средний | Разделить schema.ts на модули |
-| 🟡 Средний | Добавить экспорт в PDF |
-| 🟢 Низкий | Оффлайн-режим (Service Worker) |
-| 🟢 Низкий | Мультикласс |
-| 🟢 Низкий | Совместный доступ для Мастера |
+### UI-поведение
+В `SpellsSection.tsx` доступны:
+- spellcasting ability
+- spell save DC
+- spell attack bonus
+- слоты 1–9 уровня
+- список заклинаний персонажа
+- ручное создание и редактирование заклинаний
+- библиотека заклинаний
 
----
+### Поиск в библиотеке
+Поддерживается фильтрация:
+- по названию
+- по уровню
+- по школе
 
-## 14. Развёртывание и запуск
+Пока не поддерживается:
+- фильтр по классам
 
-### Локальная разработка
+Это текущий limitation, а не скрытый TODO.
+
+## 12. Оффлайн-поддержка
+
+### Что реально есть
+- `client/public/sw.js` регистрируется в production через `client/src/main.tsx`.
+- Service worker кэширует:
+  - `/`
+  - `/index.html`
+  - статические ресурсы
+  - успешные GET API responses
+- `client/src/lib/offline-db.ts` использует IndexedDB для:
+  - кэша персонажей
+  - очереди pending changes
+- `client/src/lib/queryClient.ts`:
+  - кэширует список и отдельные карточки персонажей
+  - при оффлайне читает данные из IndexedDB
+  - для не-GET запросов может класть изменения в очередь
+- `client/src/lib/offline-sync.ts` умеет повторно отправлять queued changes
+
+### Чего сейчас нет в основном UI
+- `ConnectionStatus.tsx` существует, но не смонтирован.
+- Нет полного conflict-aware UX для queued changes.
+- Нет полноценного diff/review шага перед replay отложенных PATCH-запросов.
+
+Итоговая формулировка:
+- проект имеет частичную оффлайн-поддержку
+- проект не является полностью завершённым offline-first приложением
+- детали merge и конфликтов нужно читать вместе с разделом 10
+
+Критичные риски очереди и replay описаны отдельно в разделе 14.
+
+## 13. Импорт, экспорт и шаринг
+
+### Импорт
+- Поддерживается импорт JSON-персонажей.
+- Основной импортёр находится в `client/src/lib/lss-import.ts`.
+- Импортёр распознаёт несколько форматов через эвристики, включая pocket-charlist и Long Story Short JSON.
+- При импорте возможны lossy mappings: внешние поля не всегда один в один совпадают с внутренней моделью.
+
+Критичные import edge cases описаны отдельно в разделе 14.
+
+### Экспорт
+- JSON export — `client/src/lib/json-export.ts`
+- PDF export — `client/src/lib/pdf-export.ts`
+
+### Шаринг
+- В `CharacterSheet` пользователь может включить шаринг.
+- Появляется публичная ссылка на `/shared/:token`.
+- Публичная страница read-only и не требует авторизации.
+- Ответ режется allowlist-моделью `publicCharacterSchema`.
+
+## 14. Known Risk Areas
+
+### Deep merge + concurrent edits
+- Почему это риск:
+  - система не использует versioning и не определяет конкурентные конфликты
+  - массивы заменяются целиком
+  - связанные поля персонажа могут обновляться из разных UI-path одновременно
+- Как это выглядит в симптомах:
+  - “одно поле сохранилось, а соседнее откатилось”
+  - “после второй вкладки пропал элемент из массива”
+  - “в UI всё выглядело правильно, после перезагрузки стало иначе”
+- Текущее реальное поведение:
+  - last successful write wins
+  - server `PATCH` делает recursive merge только для plain objects
+  - arrays replace whole arrays
+  - `undefined` игнорируется на сервере
+- Где искать код:
+  - `server/deep-merge.ts`
+  - `server/storage.ts`
+  - `client/src/context/CharacterContext.tsx`
+- Что нельзя сломать:
+  - запрет на перезапись `id/userId` через PATCH
+  - понимание, что `PATCH` возвращает полный `Character`
+  - distinction между server merge и client optimistic merge
+
+### Offline queue sync conflicts
+- Почему это риск:
+  - queued changes могут быть построены на устаревшем локальном состоянии
+  - replay не делает rebase на текущее серверное состояние
+  - пользователь не видит conflict review step в основном UI
+- Как это выглядит в симптомах:
+  - после восстановления сети часть изменений “вернулась”, а часть затёрла более свежие данные
+  - один неудачный replay оставляет элементы в очереди и даёт повторяющиеся проблемы
+  - расследование требует понимания, что именно было в pending queue
+- Текущее реальное поведение:
+  - изменения уходят последовательно
+  - `2xx` и `404` удаляются из очереди
+  - `4xx/5xx` остаются в очереди
+  - network exception прерывает текущий проход
+- Где искать код:
+  - `client/src/lib/queryClient.ts`
+  - `client/src/lib/offline-db.ts`
+  - `client/src/lib/offline-sync.ts`
+  - `client/public/sw.js`
+- Что нельзя сломать:
+  - кэш GET-ответов отдельно от очереди write-запросов
+  - semantics удаления очереди только после успешного replay или `404`
+  - связь с разделом 10 про отсутствие conflict resolution
+
+### Import mapping edge cases
+- Почему это риск:
+  - импорт использует эвристики распознавания формата
+  - внешние JSON-структуры могут быть неполными, грязными или неожиданно закодированными
+  - часть полей маппится с потерями или через fallback
+- Как это выглядит в симптомах:
+  - некорректные skill names
+  - неполный инвентарь или feature list после импорта
+  - странные символы или missing data в текстовых полях
+- Текущее реальное поведение:
+  - поддерживается pocket-charlist JSON и LSS-подобный JSON
+  - формат определяется эвристически
+  - при неизвестном формате импортёр кидает ошибку
+  - для части полей используются запасные значения по умолчанию
+- Где искать код:
+  - `client/src/lib/lss-import.ts`
+  - `shared/types/character-types.ts`
+- Что нельзя сломать:
+  - поддержка текущих форматов импорта
+  - fallback values для критичных полей персонажа
+  - явная ошибка на действительно неизвестном формате
+
+### Mixed auth edge cases
+- Почему это риск:
+  - один email должен обслуживаться как один аккаунт через два способа входа
+  - есть legacy Google users и runtime-backfill
+  - у Google-only аккаунтов особые правила установки пароля
+- Как это выглядит в симптомах:
+  - пользователь “видит другой аккаунт” после входа через Google
+  - регистрация по email конфликтует с существующим Google-only аккаунтом
+  - локальная разработка ведёт себя не так, как production auth
+- Текущее реальное поведение:
+  - email нормализуется через `trim().toLowerCase()`
+  - linking идёт по email или `googleId`
+  - legacy Google-only users получают `googleId = id` при старте production auth
+  - пароль нельзя анонимно добавить к Google-only аккаунту через регистрацию
+- Где искать код:
+  - `server/google-auth.ts`
+  - `server/local-auth.ts`
+  - `server/password.ts`
+  - `shared/models/auth.ts`
+- Что нельзя сломать:
+  - один email = один аккаунт
+  - `GET /api/logout` должен редиректить на `/`
+  - `LOCAL_DEV` — это bypass auth, а не эмуляция всего production поведения
+
+## 15. Тесты и качество
+
+### Текущее покрытие тестами
+Vitest используется для unit tests:
+- `tests/deep-merge.test.ts`
+- `tests/calculations.test.ts`
+- `tests/password-utils.test.ts`
+
+### Что именно покрыто
+- deep merge логика
+- расчётные функции D&D 5e
+- email normalization и password hash/verify
+
+### Проверочные команды
 ```bash
-# Без базы данных и Google OAuth (данные в памяти, авто-вход)
-npm run dev:local
-
-# С PostgreSQL (задать DATABASE_URL в .env)
-npm run dev:local
+npm run check
+npm test
+npm run build
 ```
 
-### Production-сборка
+## 16. Документация для разработчика
+
+### Где искать бизнес-логику
+- `shared/types/character-types.ts` — основная доменная модель персонажа, Zod-схемы, default character, расчёты и utility-функции.
+- `shared/data/*.ts` — справочные D&D данные.
+
+### Где искать auth
+- `server/google-auth.ts` — production auth flow
+- `server/local-auth.ts` — локальный bypass
+- `server/password.ts` — hash/verify и normalizeEmail
+- `shared/models/auth.ts` — таблица пользователей и auth user types
+
+### Где искать spell library
+- `spells_library.json` — сырой источник библиотеки
+- `shared/data/spells-library.ts` — нормализованный экспорт для клиента
+- `client/src/components/SpellsSection.tsx` — UI и поиск
+
+### Где искать клиентскую state-логику
+- `client/src/hooks/use-auth.ts`
+- `client/src/context/CharacterContext.tsx`
+- `client/src/lib/queryClient.ts`
+- `client/src/lib/offline-sync.ts`
+
+### Где искать тесты
+- `tests/`
+
+## 17. Команды и окружение
+
+### Скрипты
 ```bash
-npm run build  # Сборка через esbuild → dist/
-npm start      # Запуск Express из dist/index.cjs
+npm run dev
+npm run dev:local
+npm run build
+npm start
+npm run check
+npm test
+npm run db:push
 ```
 
 ### Переменные окружения
-| Переменная | Назначение | Обязательна |
-|---|---|---|
-| `DATABASE_URL` | Строка подключения PostgreSQL (`postgresql://user:pass@host/db`) | Нет (без неё — MemStorage) |
-| `SESSION_SECRET` | Ключ подписи cookie сессий (≥32 символов) | При `LOCAL_DEV != true` |
-| `GOOGLE_CLIENT_ID` | Client ID из Google Cloud Console | При `LOCAL_DEV != true` |
-| `GOOGLE_CLIENT_SECRET` | Client Secret из Google Cloud Console | При `LOCAL_DEV != true` |
-| `LOCAL_DEV` | `true` — авто-вход, без Google, без БД | Нет |
-| `PORT` | HTTP-порт (по умолчанию 5000) | Нет |
+| Переменная | Назначение |
+|---|---|
+| `DATABASE_URL` | Подключение к PostgreSQL. |
+| `SESSION_SECRET` | Секрет session cookies. |
+| `GOOGLE_CLIENT_ID` | Google OAuth client id. |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret. |
+| `LOCAL_DEV` | Переключает auth на local bypass. |
+| `PORT` | Порт сервера, по умолчанию `5000`. |
 
-### Настройка Google OAuth
+### Практическая настройка
+- Для production auth нужны `SESSION_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`.
+- Для PostgreSQL storage нужен `DATABASE_URL`.
+- Для локальной разработки без реального auth можно использовать `LOCAL_DEV=true`.
 
-1. Перейдите в [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services** → **Credentials**
-2. Создайте **OAuth 2.0 Client ID** (тип: *Web application*)
-3. Добавьте **Authorized redirect URI**:
-   - Локально: `http://localhost:5000/api/callback`
-   - Production: `https://yourdomain.com/api/callback`
-4. Скопируйте **Client ID** и **Client Secret** в `.env`
-5. Уберите `LOCAL_DEV=true` из `.env`
+## 18. Итог
 
-### База данных
-```bash
-npm run db:push   # Синхронизация схемы Drizzle → PostgreSQL (создаёт таблицы)
-```
+Pocket Charlist сейчас — рабочее full-stack приложение с:
+- устойчивой моделью персонажа
+- mixed auth
+- публичным шарингом
+- библиотекой заклинаний с фильтрами по уровню и школе
+- частичной оффлайн-поддержкой
 
-Таблицы создаются автоматически при первом запуске (`createTableIfMissing: true` для `sessions`).
-
----
-
-*Документация актуальна по состоянию кодовой базы на 29 марта 2026 года.*
-*Общий объём ключевых файлов: ~6 500 строк TypeScript/React/CSS.*
+Ключевой operational вывод:
+- документацию нужно читать вместе с реальным conflict model
+- массивы в PATCH заменяются целиком
+- versioning и server-side conflict detection пока отсутствуют
+- оффлайн-очередь и mixed auth требуют аккуратных изменений и внимательного сопровождения

@@ -211,6 +211,11 @@ export type Character = z.infer<typeof characterSchema>;
 export const insertCharacterSchema = characterSchema.omit({ id: true });
 export type InsertCharacter = z.infer<typeof insertCharacterSchema>;
 
+// Allowlist for public character sharing — explicitly omit private fields.
+// Adding a new private field? Omit it here too.
+export const publicCharacterSchema = characterSchema.omit({ userId: true, notes: true });
+export type PublicCharacter = z.infer<typeof publicCharacterSchema>;
+
 export function calculateModifier(score: number): number {
   return Math.floor((score - 10) / 2);
 }

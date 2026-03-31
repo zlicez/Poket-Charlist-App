@@ -1,8 +1,30 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { rateLimit } from "express-rate-limit";
 import { storage } from "./storage";
-import { insertCharacterSchema } from "@shared/schema";
+import { insertCharacterSchema, publicCharacterSchema } from "@shared/schema";
 import { z } from "zod";
+
+// Authenticated routes: key by userId so each account gets 120 req/min
+const apiLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 120,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  // Authenticated requests always have a userId — no IP fallback needed
+  skip: (req: any) => !req.user?.claims?.sub,
+  keyGenerator: (req: any) => req.user.claims.sub as string,
+  message: { error: "Слишком много запросов, попробуйте позже" },
+});
+
+// Public endpoint: default IP-based keying (library handles IPv6 correctly)
+const sharedLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 30,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Слишком много запросов, попробуйте позже" },
+});
 
 export async function registerRoutes(
   httpServer: Server,
@@ -19,7 +41,7 @@ export async function registerRoutes(
   registerAuthRoutes(app);
   
   // All character routes require authentication
-  app.get("/api/characters", isAuthenticated, async (req: any, res) => {
+  app.get("/api/characters", apiLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const characters = await storage.getCharacters(userId);
@@ -30,7 +52,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/characters/:id", isAuthenticated, async (req: any, res) => {
+  app.get("/api/characters/:id", apiLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const character = await storage.getCharacter(req.params.id, userId);
@@ -44,7 +66,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/characters", isAuthenticated, async (req: any, res) => {
+  app.post("/api/characters", apiLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const validatedData = insertCharacterSchema.parse(req.body);
@@ -59,7 +81,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/characters/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/characters/:id", apiLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const character = await storage.updateCharacter(req.params.id, userId, req.body);
@@ -73,7 +95,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/characters/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/characters/:id", apiLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const deleted = await storage.deleteCharacter(req.params.id, userId);
@@ -87,7 +109,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/characters/:id/share", isAuthenticated, async (req: any, res) => {
+  app.get("/api/characters/:id/share", apiLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const info = await storage.getShareInfo(req.params.id, userId);
@@ -101,7 +123,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/characters/:id/share", isAuthenticated, async (req: any, res) => {
+  app.post("/api/characters/:id/share", apiLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const result = await storage.enableSharing(req.params.id, userId);
@@ -115,7 +137,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/characters/:id/share", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/characters/:id/share", apiLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const disabled = await storage.disableSharing(req.params.id, userId);
@@ -129,14 +151,20 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/shared/:token", async (req, res) => {
+  app.get("/api/shared/:token", sharedLimiter, async (req, res) => {
     try {
-      const character = await storage.getCharacterByShareToken(req.params.token);
+      const character = await storage.getCharacterByShareToken(req.params.token as string);
       if (!character) {
         return res.status(404).json({ error: "Shared character not found" });
       }
-      const { userId: _userId, notes: _notes, ...safeCharacter } = character;
-      res.json(safeCharacter);
+      // Allowlist: Zod strips unknown fields and omits userId + notes.
+      // Any future private field must be added to publicCharacterSchema.omit().
+      const result = publicCharacterSchema.safeParse(character);
+      if (!result.success) {
+        console.error("Public character schema validation failed:", result.error);
+        return res.status(500).json({ error: "Failed to fetch shared character" });
+      }
+      res.json(result.data);
     } catch (error) {
       console.error("Error fetching shared character:", error);
       res.status(500).json({ error: "Failed to fetch shared character" });

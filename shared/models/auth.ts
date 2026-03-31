@@ -18,6 +18,8 @@ export const sessions = pgTable(
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: varchar("email").unique(),
+  googleId: varchar("google_id").unique(),
+  passwordHash: varchar("password_hash"),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
@@ -26,4 +28,11 @@ export const users = pgTable("users", {
 });
 
 export type UpsertUser = typeof users.$inferInsert;
-export type User = typeof users.$inferSelect;
+export type DbUser = typeof users.$inferSelect;
+
+export type AuthUser = Omit<DbUser, "googleId" | "passwordHash"> & {
+  hasPassword: boolean;
+  hasGoogle: boolean;
+};
+
+export type User = AuthUser;

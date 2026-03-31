@@ -1,6 +1,22 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { User } from "@shared/models/auth";
 
+type LoginInput = {
+  email: string;
+  password: string;
+};
+
+type RegisterInput = {
+  email: string;
+  password: string;
+  confirmPassword?: string;
+};
+
+type PasswordInput = {
+  currentPassword?: string;
+  newPassword: string;
+};
+
 async function fetchUser(): Promise<User | null> {
   const response = await fetch("/api/auth/user", {
     credentials: "include",
@@ -17,8 +33,24 @@ async function fetchUser(): Promise<User | null> {
   return response.json();
 }
 
-async function logout(): Promise<void> {
-  window.location.href = "/api/logout";
+async function submitAuthRequest(url: string, body: unknown): Promise<User> {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(body),
+  });
+
+  const responseBody = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message = typeof responseBody?.message === "string"
+      ? responseBody.message
+      : `${response.status}: ${response.statusText}`;
+    throw new Error(message);
+  }
+
+  return responseBody as User;
 }
 
 export function useAuth() {
@@ -30,18 +62,44 @@ export function useAuth() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  const logoutMutation = useMutation({
-    mutationFn: logout,
-    onSuccess: () => {
-      queryClient.setQueryData(["/api/auth/user"], null);
+  const loginMutation = useMutation({
+    mutationFn: (input: LoginInput) => submitAuthRequest("/api/auth/login", input),
+    onSuccess: (nextUser) => {
+      queryClient.setQueryData(["/api/auth/user"], nextUser);
     },
   });
+
+  const registerMutation = useMutation({
+    mutationFn: (input: RegisterInput) => submitAuthRequest("/api/auth/register", input),
+    onSuccess: (nextUser) => {
+      queryClient.setQueryData(["/api/auth/user"], nextUser);
+    },
+  });
+
+  const passwordMutation = useMutation({
+    mutationFn: (input: PasswordInput) => submitAuthRequest("/api/auth/password", input),
+    onSuccess: (nextUser) => {
+      queryClient.setQueryData(["/api/auth/user"], nextUser);
+    },
+  });
+
+  const logout = () => {
+    queryClient.setQueryData(["/api/auth/user"], null);
+    window.location.href = "/api/logout";
+  };
 
   return {
     user,
     isLoading,
     isAuthenticated: !!user,
-    logout: logoutMutation.mutate,
-    isLoggingOut: logoutMutation.isPending,
+    login: loginMutation.mutateAsync,
+    register: registerMutation.mutateAsync,
+    setPassword: (input: Omit<PasswordInput, "currentPassword">) => passwordMutation.mutateAsync(input),
+    changePassword: (input: Required<Pick<PasswordInput, "currentPassword">> & Pick<PasswordInput, "newPassword">) =>
+      passwordMutation.mutateAsync(input),
+    logout,
+    isLoggingIn: loginMutation.isPending,
+    isRegistering: registerMutation.isPending,
+    isUpdatingPassword: passwordMutation.isPending,
   };
 }
