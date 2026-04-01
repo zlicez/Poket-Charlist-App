@@ -350,6 +350,26 @@ function CharacterSheetContent() {
 
       <main className="max-w-7xl mx-auto p-2 sm:p-4">
         <div className="space-y-4 sm:space-y-5">
+          <nav className="sticky top-[49px] sm:top-[53px] z-40 border-b bg-background/95 backdrop-blur" data-testid="section-nav">
+            <div className="-mx-2 sm:mx-0 nav-scroll-container">
+              <div className="overflow-x-auto scrollbar-hide px-2 sm:px-0">
+                <div className="flex gap-2 py-2">
+                  {sectionNavItems.map(({ id: sectionId, label, icon: Icon }) => (
+                    <button
+                      key={sectionId}
+                      onClick={() => document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                      className="section-nav-chip"
+                      data-testid={`nav-${sectionId}`}
+                    >
+                      <Icon className="w-4 h-4 shrink-0" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </nav>
+
           <section id="section-combat" className="space-y-3 sm:space-y-4">
             <div className="section-label">Боевой обзор</div>
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.95fr)] gap-3 sm:gap-4">
@@ -379,26 +399,6 @@ function CharacterSheetContent() {
               </div>
             </div>
           </section>
-
-          <nav className="sticky top-[49px] sm:top-[53px] z-40 border-b bg-background/95 backdrop-blur" data-testid="section-nav">
-            <div className="-mx-2 sm:mx-0 nav-scroll-container">
-              <div className="overflow-x-auto scrollbar-hide px-2 sm:px-0">
-                <div className="flex gap-2 py-2">
-                  {sectionNavItems.map(({ id: sectionId, label, icon: Icon }) => (
-                    <button
-                      key={sectionId}
-                      onClick={() => document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                      className="section-nav-chip"
-                      data-testid={`nav-${sectionId}`}
-                    >
-                      <Icon className="w-4 h-4 shrink-0" />
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </nav>
 
           {!isEditing &&
             newCharHintVisible &&
