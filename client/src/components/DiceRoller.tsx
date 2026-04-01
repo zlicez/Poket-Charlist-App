@@ -159,8 +159,10 @@ export function DiceRollerTrigger({ onClick, rollCount }: { onClick: () => void;
       onClick={onClick}
       className="gap-2 h-9"
       data-testid="button-dice-roller"
+      aria-label="История бросков"
     >
       <Dices className="w-4 h-4" />
+      <span className="sm:hidden">Броски</span>
       <span className="hidden sm:inline">История</span>
       {rollCount > 0 && (
         <Badge variant="secondary" className="text-xs font-mono">

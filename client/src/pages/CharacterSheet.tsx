@@ -35,6 +35,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { exportCharacterToJSON } from "@/lib/json-export";
@@ -70,6 +71,7 @@ import {
   Share2,
   Copy,
   Check,
+  Menu,
 } from "lucide-react";
 
 export default function CharacterSheet() {
@@ -110,6 +112,19 @@ function CharacterSheetContent() {
   const [newCharHintVisible, setNewCharHintVisible] = useState(true);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false);
+
+  const handleExportPdf = async () => {
+    if (!character) return;
+    const { exportCharacterToPDF } = await import("@/lib/pdf-export");
+    exportCharacterToPDF(character);
+    toast({ title: "PDF генерируется..." });
+  };
+
+  const handleExportJson = () => {
+    if (!character) return;
+    exportCharacterToJSON(character);
+    toast({ title: "JSON сохранён" });
+  };
 
   const addRoll = (roll: DiceRoll) => {
     setRollHistory((prev) => [roll, ...prev].slice(0, 50));
@@ -294,27 +309,65 @@ function CharacterSheetContent() {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" data-testid="button-export-menu">
+                <Button variant="ghost" size="icon" className="sm:hidden" data-testid="button-mobile-menu" aria-label="Открыть меню">
+                  <Menu className="w-5 h-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem
+                  onClick={handleExportPdf}
+                  data-testid="button-mobile-export-pdf"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  Экспорт в PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handleExportJson}
+                  data-testid="button-mobile-export-json"
+                >
+                  <FileJson className="w-4 h-4 mr-2" />
+                  Экспорт в JSON
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setIsShareDialogOpen(true)}
+                  data-testid="button-mobile-share"
+                >
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Поделиться
+                </DropdownMenuItem>
+                {user ? (
+                  <DropdownMenuItem
+                    onClick={() => setIsAccountDialogOpen(true)}
+                    data-testid="button-mobile-account"
+                  >
+                    <User className="w-4 h-4 mr-2" />
+                    Профиль
+                  </DropdownMenuItem>
+                ) : null}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={toggleTheme} data-testid="button-mobile-theme-toggle">
+                  {theme === "dark" ? <Sun className="w-4 h-4 mr-2" /> : <Moon className="w-4 h-4 mr-2" />}
+                  {theme === "dark" ? "Светлая тема" : "Тёмная тема"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="hidden sm:inline-flex" data-testid="button-export-menu">
                   <Download className="w-5 h-5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
-                  onClick={async () => {
-                    const { exportCharacterToPDF } = await import("@/lib/pdf-export");
-                    exportCharacterToPDF(character);
-                    toast({ title: "PDF генерируется..." });
-                  }}
+                  onClick={handleExportPdf}
                   data-testid="button-export-pdf"
                 >
                   <FileText className="w-4 h-4 mr-2" />
                   Экспорт в PDF
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => {
-                    exportCharacterToJSON(character);
-                    toast({ title: "JSON сохранён" });
-                  }}
+                  onClick={handleExportJson}
                   data-testid="button-export-json"
                 >
                   <FileJson className="w-4 h-4 mr-2" />
@@ -327,6 +380,7 @@ function CharacterSheetContent() {
               variant="ghost"
               size="icon"
               onClick={() => setIsShareDialogOpen(true)}
+              className="hidden sm:inline-flex"
               data-testid="button-share"
             >
               <Share2 className="w-5 h-5" />
@@ -336,12 +390,13 @@ function CharacterSheetContent() {
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsAccountDialogOpen(true)}
+                className="hidden sm:inline-flex"
                 data-testid="button-account"
               >
                 <User className="w-5 h-5" />
               </Button>
             ) : null}
-            <Button variant="ghost" size="icon" onClick={toggleTheme} data-testid="button-theme-toggle">
+            <Button variant="ghost" size="icon" onClick={toggleTheme} className="hidden sm:inline-flex" data-testid="button-theme-toggle">
               {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </Button>
           </div>
