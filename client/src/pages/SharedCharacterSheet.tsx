@@ -122,8 +122,8 @@ export default function SharedCharacterSheet() {
         <div className="space-y-4 sm:space-y-5">
           <nav className="sticky top-[49px] sm:top-[53px] z-40 border-b bg-background/95 backdrop-blur" data-testid="section-nav">
             <div className="-mx-2 sm:mx-0 nav-scroll-container">
-              <div className="overflow-x-auto scrollbar-hide px-2 sm:px-0">
-                <div className="flex gap-2 py-2">
+              <div className="overflow-x-auto scrollbar-hide px-2 sm:px-0 lg:overflow-visible">
+                <div className="flex gap-2 py-2 lg:flex-wrap lg:justify-center">
                   {sectionNavItems.map(({ id, label, icon: Icon }) => (
                     <button
                       key={id}

@@ -428,6 +428,13 @@ input[type="number"]::-webkit-inner-spin-button {
     background: linear-gradient(to left, hsl(var(--background) / 0.9), transparent);
   }
 
+  @media (min-width: 1024px) {
+    .nav-scroll-container::before,
+    .nav-scroll-container::after {
+      display: none;
+    }
+  }
+
   [id^="section-"] {
     scroll-margin-top: 6rem;
   }
