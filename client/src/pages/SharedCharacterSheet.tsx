@@ -25,8 +25,6 @@ import {
   Moon,
   Sun,
   ArrowLeft,
-  Swords,
-  Shield,
   Crosshair,
   BookOpen,
   Backpack,
@@ -36,6 +34,7 @@ import {
   Users,
   Flag,
 } from "lucide-react";
+import { FaDiceD20 } from "react-icons/fa";
 
 export default function SharedCharacterSheet() {
   const { token } = useParams<{ token: string }>();
@@ -85,10 +84,10 @@ export default function SharedCharacterSheet() {
   const noop = () => {};
   const showSpellsSection = !!character.spellcasting || hasAnyCasterClass(getCharacterClasses(character));
   const sectionNavItems = [
-    { id: "section-combat", label: "Бой", icon: Shield },
+    { id: "section-combat", label: "Общее", icon: User },
     { id: "section-equipment", label: "Оружие", icon: Crosshair },
     ...(showSpellsSection ? [{ id: "section-spells", label: "Заклинания", icon: BookOpen }] : []),
-    { id: "section-abilities", label: "Характеристики", icon: Swords },
+    { id: "section-abilities", label: "Характеристики", icon: FaDiceD20 },
     { id: "section-inventory", label: "Инвентарь", icon: Backpack },
   ];
   const referenceSections = [
@@ -123,7 +122,7 @@ export default function SharedCharacterSheet() {
           <nav className="sticky top-[49px] sm:top-[53px] z-40 border-b bg-background/95 backdrop-blur" data-testid="section-nav">
             <div className="-mx-2 sm:mx-0 nav-scroll-container">
               <div className="overflow-x-auto scrollbar-hide px-2 sm:px-0 lg:overflow-visible">
-                <div className="flex gap-2 py-2 lg:flex-wrap lg:justify-center">
+                <div className="flex gap-2 py-2 lg:flex-wrap lg:justify-start">
                   {sectionNavItems.map(({ id, label, icon: Icon }) => (
                     <button
                       key={id}
@@ -141,7 +140,7 @@ export default function SharedCharacterSheet() {
           </nav>
 
           <section id="section-combat" className="space-y-3 sm:space-y-4">
-            <div className="section-label">Боевой обзор</div>
+            <div className="section-label">Общее</div>
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.95fr)] gap-3 sm:gap-4">
               <div className="min-w-0">
                 <CharacterHeader

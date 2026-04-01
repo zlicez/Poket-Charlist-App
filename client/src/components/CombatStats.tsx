@@ -274,12 +274,12 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
       <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
         <Tooltip>
           <TooltipTrigger asChild>
-            <Card className="stat-card-primary p-3" data-testid="stat-ac">
-              <div className="flex items-center gap-2">
+            <Card className="stat-card-primary p-3 text-center" data-testid="stat-ac">
+              <div className="flex items-center justify-center gap-2">
                 <Shield className="w-4 h-4 text-accent shrink-0" />
                 <span className="tx-l4">КД</span>
               </div>
-              <div className="mt-3 space-y-2">
+              <div className="mt-3 flex flex-col items-center gap-2">
                 <div className="tx-l1 font-mono">{calculatedAC}</div>
                 {isEditing ? (
                   <div className="space-y-1">
@@ -289,12 +289,12 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
                       inputMode="numeric"
                       value={character.customACBonus || 0}
                       onChange={(e) => onChange({ customACBonus: parseInt(e.target.value) || 0 })}
-                      className="h-10 text-sm font-mono text-center"
+                      className="h-10 w-16 text-sm font-mono text-center mx-auto"
                       data-testid="input-ac-bonus"
                     />
                   </div>
                 ) : (
-                  <div className="tx-l4 truncate">
+                  <div className="tx-l4 w-full truncate text-center">
                     {armorData ? armorData.name : "Без брони"}
                     {hasShield ? " + Щит" : ""}
                   </div>
@@ -314,12 +314,12 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Card className="stat-card-primary p-3" data-testid="stat-initiative">
-              <div className="flex items-center gap-2">
+            <Card className="stat-card-primary p-3 text-center" data-testid="stat-initiative">
+              <div className="flex items-center justify-center gap-2">
                 <Zap className="w-4 h-4 text-accent shrink-0" />
                 <span className="tx-l4">Инициатива</span>
               </div>
-              <div className="mt-3 space-y-2">
+              <div className="mt-3 flex flex-col items-center gap-2">
                 <div className={`tx-l1 font-mono ${calculatedInitiative >= 0 ? 'text-positive' : 'text-negative'}`}>
                   {formatModifier(calculatedInitiative)}
                 </div>
@@ -331,12 +331,12 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
                       inputMode="numeric"
                       value={character.customInitiativeBonus || 0}
                       onChange={(e) => onChange({ customInitiativeBonus: parseInt(e.target.value) || 0 })}
-                      className="h-10 text-sm font-mono text-center"
+                      className="h-10 w-16 text-sm font-mono text-center mx-auto"
                       data-testid="input-initiative-bonus"
                     />
                   </div>
                 ) : (
-                  <div className="tx-l4">ЛОВ: {formatModifier(dexMod)}</div>
+                  <div className="tx-l4 text-center">ЛОВ: {formatModifier(dexMod)}</div>
                 )}
               </div>
             </Card>
@@ -352,25 +352,25 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Card className="stat-card-primary p-3" data-testid="stat-speed">
-              <div className="flex items-center gap-2">
+            <Card className="stat-card-primary p-3 text-center" data-testid="stat-speed">
+              <div className="flex items-center justify-center gap-2">
                 <Footprints className="w-4 h-4 text-accent shrink-0" />
                 <span className="tx-l4">Скорость</span>
               </div>
-              <div className="mt-3 space-y-2">
+              <div className="mt-3 flex flex-col items-center gap-2">
                 {isEditing ? (
                   <Input
                     type="number"
                     inputMode="numeric"
                     value={character.speed}
                     onChange={(e) => onChange({ speed: parseInt(e.target.value) || 30 })}
-                    className="h-10 text-base font-bold font-mono text-center"
+                    className="h-10 w-20 text-base font-bold font-mono text-center mx-auto"
                     data-testid="input-speed"
                   />
                 ) : (
                   <div className="tx-l1 font-mono">{character.speed}</div>
                 )}
-                <div className="tx-l4">футов за ход</div>
+                <div className="tx-l4 text-center">футов за ход</div>
               </div>
             </Card>
           </TooltipTrigger>
@@ -503,15 +503,15 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
               <Footprints className="w-5 h-5 mx-auto mb-1 text-accent" />
               <div className="text-xs text-muted-foreground">Скор.</div>
               {isEditing ? (
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  value={character.speed}
-                  onChange={(e) => onChange({ speed: parseInt(e.target.value) || 30 })}
-                  className="text-center text-base font-bold h-10 mt-1 font-mono"
-                  data-testid="input-speed"
-                />
-              ) : (
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    value={character.speed}
+                    onChange={(e) => onChange({ speed: parseInt(e.target.value) || 30 })}
+                    className="text-center text-base font-bold h-10 mt-1 w-20 mx-auto font-mono"
+                    data-testid="input-speed"
+                  />
+                ) : (
                 <div className="text-2xl font-bold font-mono">{character.speed}</div>
               )}
             </Card>
