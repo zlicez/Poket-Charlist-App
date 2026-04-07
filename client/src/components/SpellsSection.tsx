@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { generateId } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -758,7 +759,7 @@ export function SpellsSection({ character, onChange, isEditing }: SpellsSectionP
   const handleAddSpell = (spellData: Omit<Spell, "id">) => {
     const newSpell: Spell = {
       ...spellData,
-      id: crypto.randomUUID(),
+      id: generateId(),
     };
     updateSpellcasting({ spells: [...spellcasting.spells, newSpell] });
   };

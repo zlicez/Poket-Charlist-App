@@ -1,3 +1,4 @@
+import { generateId } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -69,7 +70,7 @@ export function rollDice(
   const total = diceTotal + modifier;
 
   return {
-    id: crypto.randomUUID(),
+    id: generateId(),
     type: options?.advantage ? "advantage" : options?.disadvantage ? "disadvantage" : "normal",
     label,
     dice: diceString,

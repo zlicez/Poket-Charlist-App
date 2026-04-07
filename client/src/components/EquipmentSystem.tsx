@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { generateId } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -615,7 +616,7 @@ export function EquipmentSystem({
   );
 
   const addEquipment = (item: Omit<Equipment, "id">) => {
-    onChange([...equipment, { ...item, id: crypto.randomUUID() }]);
+    onChange([...equipment, { ...item, id: generateId() }]);
   };
 
   const removeEquipment = (id: string) => {
