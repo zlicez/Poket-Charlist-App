@@ -47,14 +47,19 @@ flowchart LR
 - Один аккаунт на один email.
 - Account dialog для добавления или смены пароля.
 - Публичный read-only шаринг персонажа.
-- Библиотека заклинаний из `spells_library.json` с фильтрами по уровню и школе.
+- Библиотека заклинаний из `spells_library.json` с фильтрами по уровню, школе и классу.
+- `ConnectionStatus` смонтирован в `App.tsx`: отображает статус сети, счётчик pending changes и кнопку ручной синхронизации.
+- Мобильное бургер-меню в шапке листа персонажа: экспорт PDF/JSON, шаринг, профиль и переключатель темы скрыты в `<Menu>` на маленьких экранах, на десктопе остаются открытыми кнопками.
 - Частичная оффлайн-поддержка через service worker, IndexedDB-кэш и очередь отложенных изменений.
+- **Авторасчёт максимума ОЗ на 1-м уровне**: `calculateMaxHp(class, 1, conMod)` из `shared/types/character-types.ts`; поле `customMaxHpBonus` позволяет добавить ручной бонус. Со 2-го уровня — ручной ввод (игрок вносит результат броска кубика).
+- **Авторасчёт КД по типу доспеха**: `calculateAC(dexMod, armor, shield, bonus)` с корректной обработкой тяжёлого доспеха (DEX игнорируется полностью, включая штраф).
+- **Автозаполнение ячеек заклинаний**: таблицы в `shared/data/spell-slots.ts`; функции `getSpellSlotsForClass` и `getMulticlassSpellSlots` поддерживают все классы и правила мультикласса D&D 5e.
+- **Кнопка повышения уровня по XP**: `getLevelFromXP` в `CharacterHeader`; кнопка появляется при накоплении XP, поддерживает прыжок сразу на несколько уровней.
+- **`NumericInput`** (`client/src/components/ui/numeric-input.tsx`): управляемый числовой инпут с локальным state, позволяет очистить поле до нуля без немедленного сброса.
 
 ### Ограничения
 - Нет email verification.
 - Нет reset пароля по email.
-- Фильтр библиотеки заклинаний по классам пока не реализован.
-- `ConnectionStatus` и ручной offline-sync UI написаны, но не подключены в основной интерфейс.
 - Оффлайн-поддержка best-effort: это не полностью завершённый offline-first режим.
 - Versioning персонажей и server-side conflict detection отсутствуют.
 
@@ -99,6 +104,7 @@ flowchart LR
 - `client/src/hooks/use-auth.ts` — текущий пользователь, login/register/password/logout.
 - `client/src/components/AuthScreen.tsx` — unified start screen для входа и регистрации.
 - `client/src/components/AccountDialog.tsx` — установка первого пароля или смена существующего.
+- `client/src/components/AbilityWithSkills.tsx` — карточка характеристики: модификатор, спасбросок (включая toggle профиценции и бросок), связанные навыки.
 - `client/src/components/SpellsSection.tsx` — spellcasting UI и библиотека заклинаний.
 
 ### Основные серверные точки
@@ -895,11 +901,7 @@ Pending queue не делает reconcile/rebase:
 - по названию
 - по уровню
 - по школе
-
-Пока не поддерживается:
-- фильтр по классам
-
-Это текущий limitation, а не скрытый TODO.
+- по классу (выпадающий список, использует поле `classes` из SpellEntry)
 
 ## 12. Оффлайн-поддержка
 
@@ -920,7 +922,6 @@ Pending queue не делает reconcile/rebase:
 - `client/src/lib/offline-sync.ts` умеет повторно отправлять queued changes
 
 ### Чего сейчас нет в основном UI
-- `ConnectionStatus.tsx` существует, но не смонтирован.
 - Нет полного conflict-aware UX для queued changes.
 - Нет полноценного diff/review шага перед replay отложенных PATCH-запросов.
 
@@ -1126,7 +1127,8 @@ Pocket Charlist сейчас — рабочее full-stack приложение 
 - устойчивой моделью персонажа
 - mixed auth
 - публичным шарингом
-- библиотекой заклинаний с фильтрами по уровню и школе
+- библиотекой заклинаний с фильтрами по уровню, школе и классу
+- мобильным бургер-меню с доступом к экспорту, шарингу и профилю
 - частичной оффлайн-поддержкой
 
 Ключевой operational вывод:

@@ -7,7 +7,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CharacterHeader } from "@/components/CharacterHeader";
 import { AbilityWithSkills } from "@/components/AbilityWithSkills";
 import { CombatStats, DeathSavesTracker, HpTracker } from "@/components/CombatStats";
-import { SavingThrowsComponent } from "@/components/SavingThrows";
 import { WeaponsList } from "@/components/WeaponsList";
 import { FeaturesList } from "@/components/FeaturesList";
 import { EquipmentSystem } from "@/components/EquipmentSystem";
@@ -29,6 +28,7 @@ import {
   getRacialBonuses,
   getCharacterClasses,
   getTotalLevel,
+  calculateMaxHp,
   hasAnyCasterClass,
   type AbilityName,
   type Weapon,
@@ -37,6 +37,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { exportCharacterToJSON } from "@/lib/json-export";
@@ -50,17 +51,34 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import {
-  ArrowLeft, Moon, Sun, Save, Edit2, X, StickyNote, User, Users, Flag,
-  Swords, Shield, Backpack, Sparkles, Crosshair, BookOpen, Download,
-  FileText, FileJson, Share2, Copy, Check,
+  ArrowLeft,
+  Moon,
+  Sun,
+  Save,
+  Edit2,
+  X,
+  StickyNote,
+  User,
+  Users,
+  Flag,
+  Backpack,
+  Sparkles,
+  Crosshair,
+  BookOpen,
+  Download,
+  FileText,
+  FileJson,
+  Share2,
+  Copy,
+  Check,
+  Menu,
 } from "lucide-react";
+import { FaDiceD20 } from "react-icons/fa";
 
-// ---------------------------------------------------------------------------
-// Root component — just sets up the context provider
-// ---------------------------------------------------------------------------
 export default function CharacterSheet() {
   const { id } = useParams<{ id: string }>();
   if (!id) return null;
+
   return (
     <CharacterProvider id={id}>
       <CharacterSheetContent />
@@ -68,9 +86,6 @@ export default function CharacterSheet() {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Inner component — layout & UI state only; data comes from context
-// ---------------------------------------------------------------------------
 function CharacterSheetContent() {
   const {
     character,
@@ -99,9 +114,19 @@ function CharacterSheetContent() {
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false);
 
-  // -------------------------------------------------------------------------
-  // Dice rolling helpers
-  // -------------------------------------------------------------------------
+  const handleExportPdf = async () => {
+    if (!character) return;
+    const { exportCharacterToPDF } = await import("@/lib/pdf-export");
+    exportCharacterToPDF(character);
+    toast({ title: "PDF генерируется..." });
+  };
+
+  const handleExportJson = () => {
+    if (!character) return;
+    exportCharacterToJSON(character);
+    toast({ title: "JSON сохранён" });
+  };
+
   const addRoll = (roll: DiceRoll) => {
     setRollHistory((prev) => [roll, ...prev].slice(0, 50));
     setIsDiceRollerOpen(true);
@@ -197,9 +222,6 @@ function CharacterSheetContent() {
     ));
   };
 
-  // -------------------------------------------------------------------------
-  // Loading / error states
-  // -------------------------------------------------------------------------
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background p-4">
@@ -232,13 +254,31 @@ function CharacterSheetContent() {
   }
 
   const racialBonuses = getRacialBonuses(character.race, character.subrace);
+  const charClassesForHp = getCharacterClasses(character);
+  const totalLevelForHp = getTotalLevel(charClassesForHp);
+  const conModForHp = calculateModifier(character.abilityScores.CON + (racialBonuses.CON || 0) + (character.customAbilityBonuses?.CON || 0));
+  const isLevel1ForHp = totalLevelForHp === 1;
+  const calculatedMaxHp = calculateMaxHp(charClassesForHp[0]?.name || character.class, 1, conModForHp);
+  const effectiveMaxHp = isLevel1ForHp
+    ? calculatedMaxHp + (character.customMaxHpBonus || 0)
+    : character.maxHp;
+  const showSpellsSection = isEditing || !!character.spellcasting || hasAnyCasterClass(getCharacterClasses(character));
+  const sectionNavItems = [
+    { id: "section-combat", label: "Общее", icon: User },
+    { id: "section-equipment", label: "Оружие", icon: Crosshair },
+    ...(showSpellsSection ? [{ id: "section-spells", label: "Заклинания", icon: BookOpen }] : []),
+    { id: "section-abilities", label: "Характеристики", icon: FaDiceD20 },
+    { id: "section-inventory", label: "Инвентарь", icon: Backpack },
+  ];
+  const referenceSections = [
+    { key: "notes" as const, label: "Заметки", icon: StickyNote, rows: 6, placeholder: "Записи о персонаже, квестах...", testId: "textarea-notes" },
+    { key: "appearance" as const, label: "Внешность", icon: User, rows: 3, placeholder: "Рост, телосложение, особые приметы...", testId: "textarea-appearance" },
+    { key: "allies" as const, label: "Союзники", icon: Users, rows: 3, placeholder: "Друзья, союзники...", testId: "textarea-allies" },
+    { key: "factions" as const, label: "Фракции", icon: Flag, rows: 3, placeholder: "Гильдии, ордены...", testId: "textarea-factions" },
+  ];
 
-  // -------------------------------------------------------------------------
-  // Render
-  // -------------------------------------------------------------------------
   return (
     <div className="min-h-screen bg-background">
-      {/* ── Top toolbar ── */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
         <div className="max-w-7xl mx-auto px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between gap-1 sm:gap-2">
           <Button variant="ghost" size="icon" onClick={() => setLocation("/")} data-testid="button-back">
@@ -278,27 +318,65 @@ function CharacterSheetContent() {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" data-testid="button-export-menu">
+                <Button variant="ghost" size="icon" className="sm:hidden" data-testid="button-mobile-menu" aria-label="Открыть меню">
+                  <Menu className="w-5 h-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem
+                  onClick={handleExportPdf}
+                  data-testid="button-mobile-export-pdf"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  Экспорт в PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handleExportJson}
+                  data-testid="button-mobile-export-json"
+                >
+                  <FileJson className="w-4 h-4 mr-2" />
+                  Экспорт в JSON
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setIsShareDialogOpen(true)}
+                  data-testid="button-mobile-share"
+                >
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Поделиться
+                </DropdownMenuItem>
+                {user ? (
+                  <DropdownMenuItem
+                    onClick={() => setIsAccountDialogOpen(true)}
+                    data-testid="button-mobile-account"
+                  >
+                    <User className="w-4 h-4 mr-2" />
+                    Профиль
+                  </DropdownMenuItem>
+                ) : null}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={toggleTheme} data-testid="button-mobile-theme-toggle">
+                  {theme === "dark" ? <Sun className="w-4 h-4 mr-2" /> : <Moon className="w-4 h-4 mr-2" />}
+                  {theme === "dark" ? "Светлая тема" : "Тёмная тема"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="hidden sm:inline-flex" data-testid="button-export-menu">
                   <Download className="w-5 h-5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
-                  onClick={async () => {
-                    const { exportCharacterToPDF } = await import("@/lib/pdf-export");
-                    exportCharacterToPDF(character);
-                    toast({ title: "PDF генерируется..." });
-                  }}
+                  onClick={handleExportPdf}
                   data-testid="button-export-pdf"
                 >
                   <FileText className="w-4 h-4 mr-2" />
                   Экспорт в PDF
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => {
-                    exportCharacterToJSON(character);
-                    toast({ title: "JSON сохранён" });
-                  }}
+                  onClick={handleExportJson}
                   data-testid="button-export-json"
                 >
                   <FileJson className="w-4 h-4 mr-2" />
@@ -311,6 +389,7 @@ function CharacterSheetContent() {
               variant="ghost"
               size="icon"
               onClick={() => setIsShareDialogOpen(true)}
+              className="hidden sm:inline-flex"
               data-testid="button-share"
             >
               <Share2 className="w-5 h-5" />
@@ -320,164 +399,108 @@ function CharacterSheetContent() {
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsAccountDialogOpen(true)}
+                className="hidden sm:inline-flex"
                 data-testid="button-account"
               >
                 <User className="w-5 h-5" />
               </Button>
             ) : null}
-            <Button variant="ghost" size="icon" onClick={toggleTheme} data-testid="button-theme-toggle">
+            <Button variant="ghost" size="icon" onClick={toggleTheme} className="hidden sm:inline-flex" data-testid="button-theme-toggle">
               {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </Button>
           </div>
         </div>
       </header>
 
-      {/* ── Section navigation ── */}
-      <nav className="sticky top-[49px] sm:top-[53px] z-40 bg-background/95 backdrop-blur border-b" data-testid="section-nav">
-        <div className="max-w-7xl mx-auto px-1 sm:px-4 overflow-x-auto scrollbar-hide">
-          <div className="flex gap-0.5 sm:gap-1 py-1">
-            {[
-              { id: "section-abilities", label: "Характеристики", icon: Swords },
-              { id: "section-combat",    label: "Бой",            icon: Shield },
-              { id: "section-equipment", label: "Оружие",         icon: Crosshair },
-              ...(isEditing || character.spellcasting || hasAnyCasterClass(getCharacterClasses(character))
-                ? [{ id: "section-spells", label: "Заклинания", icon: BookOpen }]
-                : []),
-              { id: "section-inventory", label: "Инвентарь", icon: Backpack },
-            ].map(({ id: sectionId, label, icon: Icon }) => (
-              <button
-                key={sectionId}
-                onClick={() => document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap"
-                data-testid={`nav-${sectionId}`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </nav>
-
-      {/* ── Main content ── */}
       <main className="max-w-7xl mx-auto p-2 sm:p-4">
-        <div className="space-y-3 sm:space-y-4">
-
-          {/* Header + HP + Death Saves */}
-          <div className="flex flex-col lg:flex-row gap-2 sm:gap-4">
-            <div className="flex-1 min-w-0">
-              <CharacterHeader character={character} onChange={handleChange} isEditing={isEditing} />
-            </div>
-            <div className="flex flex-col gap-2 sm:gap-3 lg:w-[320px] xl:w-[360px] flex-shrink-0">
-              <HpTracker
-                current={character.currentHp}
-                max={character.maxHp}
-                temp={character.tempHp}
-                onChange={handleChange}
-                isEditing={isEditing}
-              />
-              <DeathSavesTracker
-                deathSaves={character.deathSaves}
-                onChange={(deathSaves) => handleChange({ deathSaves })}
-                isEditing={isEditing}
-              />
-            </div>
-          </div>
-
-          {/* New character hint */}
-          {!isEditing && newCharHintVisible &&
-            character.equipment.length === 0 &&
-            character.weapons.length === 0 &&
-            character.features.length === 0 && (
-            <div
-              className="flex items-center gap-2 px-3 py-2 rounded-md border border-info/20 bg-info/5"
-              data-testid="new-character-hint"
-            >
-              <Sparkles className="w-4 h-4 text-info shrink-0" />
-              <span className="flex-1 text-xs text-muted-foreground">
-                Новый персонаж — нажмите <strong className="text-foreground">«Редактировать»</strong> чтобы задать характеристики и снаряжение.
-              </span>
-              <button
-                onClick={() => setNewCharHintVisible(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded shrink-0"
-                aria-label="Закрыть подсказку"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-
-          {/* 3-column grid: abilities | combat | weapons/features */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-4 lg:items-stretch">
-            <div id="section-abilities" className="flex flex-col gap-2 sm:gap-3">
-              <div className="section-label">Характеристики и навыки</div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-2 sm:gap-3 auto-rows-fr flex-1">
-                {ABILITY_NAMES.map((ability) => (
-                  <AbilityWithSkills
-                    key={ability}
-                    ability={ability}
-                    baseScore={character.abilityScores[ability]}
-                    customBonus={character.customAbilityBonuses?.[ability] || 0}
-                    race={character.race}
-                    subrace={character.subrace}
-                    level={character.level}
-                    skills={character.skills}
-                    onScoreChange={(value) =>
-                      handleChange({ abilityScores: { ...character.abilityScores, [ability]: value } })
-                    }
-                    onCustomBonusChange={(value) =>
-                      handleChange({
-                        customAbilityBonuses: {
-                          STR: character.customAbilityBonuses?.STR || 0,
-                          DEX: character.customAbilityBonuses?.DEX || 0,
-                          CON: character.customAbilityBonuses?.CON || 0,
-                          INT: character.customAbilityBonuses?.INT || 0,
-                          WIS: character.customAbilityBonuses?.WIS || 0,
-                          CHA: character.customAbilityBonuses?.CHA || 0,
-                          [ability]: value,
-                        },
-                      })
-                    }
-                    onSkillProficiencyChange={(skillName, proficiency) =>
-                      handleChange({ skills: { [skillName]: proficiency } })
-                    }
-                    onRollAbility={() => rollAbility(ability)}
-                    onRollSkill={(skillName) => {
-                      const skill = SKILLS_BY_ABILITY[ability].find((s) => s.name === skillName);
-                      if (skill) rollSkill(skillName, skill.ability);
-                    }}
-                    isEditing={isEditing}
-                  />
-                ))}
+        <div className="space-y-4 sm:space-y-5">
+          <nav className="sticky top-[49px] sm:top-[53px] z-40 border-b bg-background/95 backdrop-blur" data-testid="section-nav">
+            <div className="-mx-2 sm:mx-0 nav-scroll-container">
+              <div className="overflow-x-auto scrollbar-hide px-2 sm:px-0 lg:overflow-visible">
+                <div className="flex gap-2 py-2 lg:flex-wrap lg:justify-start">
+                  {sectionNavItems.map(({ id: sectionId, label, icon: Icon }) => (
+                    <button
+                      key={sectionId}
+                      onClick={() => document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                      className="section-nav-chip"
+                      data-testid={`nav-${sectionId}`}
+                    >
+                      <Icon className="w-4 h-4 shrink-0" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
+          </nav>
 
-            <div className="flex flex-col gap-2 sm:gap-3" id="section-combat">
-              <div className="section-label">Боевые характеристики</div>
-              <CombatStats
-                character={character}
-                onChange={handleChange}
-                isEditing={isEditing}
-                hideDeathSaves
-                hideHp
-              />
-              <div className="flex-1 min-h-0 flex flex-col [&>*]:flex-1">
-                <SavingThrowsComponent
-                  abilityScores={character.abilityScores}
-                  savingThrows={character.savingThrows}
-                  level={character.level}
-                  onChange={(savingThrows) => handleChange({ savingThrows })}
-                  onRoll={rollSavingThrow}
+          <section id="section-combat" className="space-y-3 sm:space-y-4">
+            <div className="section-label">Общее</div>
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.95fr)] gap-3 sm:gap-4">
+              <div className="min-w-0">
+                <CharacterHeader character={character} onChange={handleChange} isEditing={isEditing} />
+              </div>
+              <div className="space-y-3">
+                <HpTracker
+                  current={character.currentHp}
+                  max={effectiveMaxHp}
+                  calculatedMax={calculatedMaxHp}
+                  customMaxHpBonus={character.customMaxHpBonus || 0}
+                  isAutoCalc={isLevel1ForHp}
+                  temp={character.tempHp}
+                  onChange={handleChange}
+                  isEditing={isEditing}
+                />
+                <CombatStats
+                  character={character}
+                  onChange={handleChange}
+                  isEditing={isEditing}
+                  hideDeathSaves
+                  hideHp
+                />
+                <DeathSavesTracker
+                  deathSaves={character.deathSaves}
+                  onChange={(deathSaves) => handleChange({ deathSaves })}
                   isEditing={isEditing}
                 />
               </div>
             </div>
+          </section>
 
-            <div className="flex flex-col gap-2 sm:gap-3" id="section-equipment">
-              <div className="section-label">Оружие и способности</div>
+          {!isEditing &&
+            newCharHintVisible &&
+            character.equipment.length === 0 &&
+            character.weapons.length === 0 &&
+            character.features.length === 0 && (
+              <div
+                className="flex items-center gap-2 rounded-md border border-info/20 bg-info/5 px-3 py-2"
+                data-testid="new-character-hint"
+              >
+                <Sparkles className="w-4 h-4 text-info shrink-0" />
+                <span className="flex-1 text-xs text-muted-foreground">
+                  Новый персонаж - нажмите <strong className="text-foreground">«Редактировать»</strong>, чтобы задать характеристики и снаряжение.
+                </span>
+                <button
+                  onClick={() => setNewCharHintVisible(false)}
+                  className="rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground shrink-0"
+                  aria-label="Закрыть подсказку"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+          <section id="section-equipment" className="space-y-3">
+            <div className="section-label">Оружие и ключевые действия</div>
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] gap-3 sm:gap-4">
               <WeaponsList
                 weapons={character.weapons}
                 onChange={(weapons) => handleChange({ weapons })}
+                onAddInventoryWeapon={(weapon) =>
+                  handleChange({
+                    equipment: [...character.equipment, { ...weapon, id: crypto.randomUUID() }],
+                  })
+                }
                 onRollAttack={rollWeaponAttack}
                 onRollDamage={rollWeaponDamage}
                 isEditing={isEditing}
@@ -504,7 +527,79 @@ function CharacterSheetContent() {
                 isLocked={character.featuresLocked ?? false}
                 onToggleLock={() => handleChange({ featuresLocked: !character.featuresLocked })}
               />
-              <div className="flex-1 min-h-0 flex flex-col [&>*]:flex-1">
+            </div>
+          </section>
+
+          {showSpellsSection && (
+            <section id="section-spells" className="space-y-3">
+              <div className="section-label">Заклинания</div>
+              <SpellsSection character={character} onChange={handleChange} isEditing={isEditing} />
+            </section>
+          )}
+
+          <section id="section-abilities" className="space-y-3">
+            <div className="section-label">Характеристики, спасброски и навыки</div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+              {ABILITY_NAMES.map((ability) => (
+                <AbilityWithSkills
+                  key={ability}
+                  ability={ability}
+                  baseScore={character.abilityScores[ability]}
+                  customBonus={character.customAbilityBonuses?.[ability] || 0}
+                  race={character.race}
+                  subrace={character.subrace}
+                  level={character.level}
+                  skills={character.skills}
+                  onScoreChange={(value) =>
+                    handleChange({ abilityScores: { ...character.abilityScores, [ability]: value } })
+                  }
+                  onCustomBonusChange={(value) =>
+                    handleChange({
+                      customAbilityBonuses: {
+                        STR: character.customAbilityBonuses?.STR || 0,
+                        DEX: character.customAbilityBonuses?.DEX || 0,
+                        CON: character.customAbilityBonuses?.CON || 0,
+                        INT: character.customAbilityBonuses?.INT || 0,
+                        WIS: character.customAbilityBonuses?.WIS || 0,
+                        CHA: character.customAbilityBonuses?.CHA || 0,
+                        [ability]: value,
+                      },
+                    })
+                  }
+                  onSkillProficiencyChange={(skillName, proficiency) =>
+                    handleChange({ skills: { [skillName]: proficiency } })
+                  }
+                  savingThrowProficient={!!character.savingThrows[ability]}
+                  onSavingThrowProficiencyChange={() =>
+                    handleChange({ savingThrows: { ...character.savingThrows, [ability]: !character.savingThrows[ability] } })
+                  }
+                  onRollAbility={() => rollAbility(ability)}
+                  onRollSavingThrow={() => rollSavingThrow(ability)}
+                  onRollSkill={(skillName) => {
+                    const skill = SKILLS_BY_ABILITY[ability].find((s) => s.name === skillName);
+                    if (skill) rollSkill(skillName, skill.ability);
+                  }}
+                  isEditing={isEditing}
+                />
+              ))}
+            </div>
+          </section>
+
+          <section id="section-inventory" className="space-y-3">
+            <div className="section-label">Инвентарь и справочная информация</div>
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.2fr)_minmax(300px,0.8fr)] gap-3 sm:gap-4">
+              <EquipmentSystem
+                equipment={character.equipment}
+                onChange={(equipment) => handleChange({ equipment })}
+                isEditing={isEditing}
+                isLocked={character.equipmentLocked ?? false}
+                onToggleLock={() => handleChange({ equipmentLocked: !character.equipmentLocked })}
+                proficiencyBonus={getProficiencyBonus(character.level)}
+                money={character.money ?? { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }}
+                onMoneyChange={(money) => handleChange({ money })}
+              />
+
+              <div className="space-y-3">
                 <ProficienciesSection
                   proficiencies={character.proficiencies ?? { languages: [], weapons: [], armor: [], tools: [] }}
                   onChange={(proficiencies) => handleChange({ proficiencies })}
@@ -513,46 +608,11 @@ function CharacterSheetContent() {
                   className={character.class}
                   subrace={character.subrace}
                 />
-              </div>
-            </div>
-          </div>
-
-          {/* Spells section */}
-          {(isEditing || character.spellcasting || hasAnyCasterClass(getCharacterClasses(character))) && (
-            <div id="section-spells">
-              <div className="section-label">Заклинания</div>
-              <SpellsSection character={character} onChange={handleChange} isEditing={isEditing} />
-            </div>
-          )}
-
-          {/* Inventory + notes sidebar */}
-          <div id="section-inventory">
-            <div className="section-label">Инвентарь и снаряжение</div>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-4">
-              <div className="lg:col-span-2 space-y-2 sm:space-y-3">
-                <EquipmentSystem
-                  equipment={character.equipment}
-                  onChange={(equipment) => handleChange({ equipment })}
-                  isEditing={isEditing}
-                  isLocked={character.equipmentLocked ?? false}
-                  onToggleLock={() => handleChange({ equipmentLocked: !character.equipmentLocked })}
-                  proficiencyBonus={getProficiencyBonus(character.level)}
-                  money={character.money ?? { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }}
-                  onMoneyChange={(money) => handleChange({ money })}
-                />
-              </div>
-
-              <div className="space-y-2 sm:space-y-3">
-                {[
-                  { key: "notes" as const,      label: "Заметки",   icon: StickyNote, rows: 6, placeholder: "Записи о персонаже, квестах...",    testId: "textarea-notes" },
-                  { key: "appearance" as const, label: "Внешность", icon: User,       rows: 3, placeholder: "Рост, телосложение, особые приметы...", testId: "textarea-appearance" },
-                  { key: "allies" as const,     label: "Союзники",  icon: Users,      rows: 3, placeholder: "Друзья, союзники...",                 testId: "textarea-allies" },
-                  { key: "factions" as const,   label: "Фракции",   icon: Flag,       rows: 3, placeholder: "Гильдии, ордены...",                  testId: "textarea-factions" },
-                ].map(({ key, label, icon: Icon, rows, placeholder, testId }) => (
-                  <Card key={key} className="stat-card-tertiary p-2 sm:p-3">
-                    <div className="flex items-center gap-2 mb-2">
+                {referenceSections.map(({ key, label, icon: Icon, rows, placeholder, testId }) => (
+                  <Card key={key} className="stat-card-tertiary p-3">
+                    <div className="mb-2 flex items-center gap-2">
                       <Icon className="w-4 h-4 text-accent" />
-                      <h3 className="font-semibold text-xs sm:text-sm">{label}</h3>
+                      <h3 className="tx-l3 font-semibold">{label}</h3>
                     </div>
                     {isEditing ? (
                       <Textarea
@@ -564,7 +624,7 @@ function CharacterSheetContent() {
                         data-testid={testId}
                       />
                     ) : (
-                      <div className={`text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap ${rows === 6 ? "min-h-[80px] sm:min-h-[100px]" : "min-h-[40px] sm:min-h-[50px]"}`}>
+                      <div className={`tx-l4 whitespace-pre-wrap ${rows === 6 ? "min-h-[96px]" : "min-h-[52px]"}`}>
                         {character[key] || `Нет ${key === "notes" ? "заметок" : key === "appearance" ? "описания" : "записей"}`}
                       </div>
                     )}
@@ -572,11 +632,10 @@ function CharacterSheetContent() {
                 ))}
               </div>
             </div>
-          </div>
+          </section>
         </div>
       </main>
 
-      {/* ── Dice Roller modal ── */}
       <DiceRoller
         isOpen={isDiceRollerOpen}
         onClose={() => setIsDiceRollerOpen(false)}
@@ -584,7 +643,6 @@ function CharacterSheetContent() {
         onClearHistory={() => setRollHistory([])}
       />
 
-      {/* ── Share dialog ── */}
       <AccountDialog open={isAccountDialogOpen} onOpenChange={setIsAccountDialogOpen} />
       <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
         <DialogContent className="sm:max-w-md">
@@ -606,7 +664,7 @@ function CharacterSheetContent() {
             {shareData?.isShared && shareUrl && (
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground">
-                  Любой, у кого есть эта ссылка, сможет просматривать лист персонажа (без возможности редактирования).
+                  Любой, у кого есть эта ссылка, сможет просматривать лист персонажа без возможности редактирования.
                 </p>
                 <div className="flex gap-2">
                   <Input value={shareUrl} readOnly className="text-xs" data-testid="input-share-url" />

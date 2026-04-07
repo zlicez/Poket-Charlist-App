@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { generateId } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   BookOpen, Plus, Trash2, ChevronDown, ChevronRight, Edit2,
-  Clock, Ruler, Sparkles, Eye, Target, Wand2, Library, Search,
+  Clock, Ruler, Sparkles, Eye, Target, Wand2, Library, Search, RefreshCw,
 } from "lucide-react";
 import {
   ABILITY_LABELS,
@@ -35,6 +36,8 @@ import {
 } from "@shared/schema";
 import type { Character, Spell, Spellcasting, AbilityName } from "@shared/schema";
 import { spells as spellLibrary, type SpellEntry } from "@shared/data/spells-library";
+import { getSpellSlotsForClass, getMulticlassSpellSlots, CLASS_CASTER_TYPE } from "@shared/data/spell-slots";
+import { NumericInput } from "@/components/ui/numeric-input";
 
 const SPELL_LEVEL_LABELS: Record<number, string> = {
   0: "Заговоры",
@@ -61,6 +64,7 @@ function SpellLibraryDialog({
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState("all");
   const [schoolFilter, setSchoolFilter] = useState("all");
+  const [classFilter, setClassFilter] = useState("all");
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 300);
@@ -77,14 +81,25 @@ function SpellLibraryDialog({
     ).sort((a, b) => a.localeCompare(b, "ru"));
   }, []);
 
+  const classOptions = useMemo(() => {
+    return Array.from(
+      new Set(
+        spellLibrary
+          .flatMap((spell) => spell.classes ?? [])
+          .filter(Boolean),
+      ),
+    ).sort((a, b) => a.localeCompare(b, "ru"));
+  }, []);
+
   const filtered = useMemo(() => {
     return spellLibrary.filter((s) => {
       if (debouncedSearch.trim() && !s.name.toLowerCase().includes(debouncedSearch.trim().toLowerCase())) return false;
       if (levelFilter !== "all" && s.level !== Number(levelFilter)) return false;
       if (schoolFilter !== "all" && s.school !== schoolFilter) return false;
+      if (classFilter !== "all" && !s.classes?.includes(classFilter)) return false;
       return true;
     });
-  }, [debouncedSearch, levelFilter, schoolFilter]);
+  }, [debouncedSearch, levelFilter, schoolFilter, classFilter]);
 
   const handleAdd = (entry: SpellEntry) => {
     onAdd({
@@ -109,6 +124,7 @@ function SpellLibraryDialog({
       setDebouncedSearch("");
       setLevelFilter("all");
       setSchoolFilter("all");
+      setClassFilter("all");
     }
   };
 
@@ -180,6 +196,20 @@ function SpellLibraryDialog({
               </SelectContent>
             </Select>
           </div>
+
+          <Select value={classFilter} onValueChange={setClassFilter}>
+            <SelectTrigger className="h-9 text-xs" data-testid="select-spell-library-class">
+              <SelectValue placeholder="Класс" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Все классы</SelectItem>
+              {classOptions.map((cls) => (
+                <SelectItem key={cls} value={cls}>
+                  {cls}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Results list */}
@@ -410,12 +440,14 @@ function SpellSlotTracker({
   level,
   max,
   used,
+  calculatedMax,
   onChange,
   isEditing,
 }: {
   level: number;
   max: number;
   used: number;
+  calculatedMax?: number;
   onChange: (max: number, used: number) => void;
   isEditing: boolean;
 }) {
@@ -425,17 +457,25 @@ function SpellSlotTracker({
     <div className="flex items-center gap-2" data-testid={`spell-slots-level-${level}`}>
       <span className="text-xs font-medium w-6 text-right text-muted-foreground">{level}</span>
       {isEditing ? (
-        <div className="flex items-center gap-1">
-          <Input
-            type="number"
-            inputMode="numeric"
+        <div className="flex items-center gap-1.5">
+          <NumericInput
             min={0}
             max={20}
             value={max}
-            onChange={(e) => onChange(Math.max(0, parseInt(e.target.value) || 0), used)}
+            onChange={(v) => onChange(v, Math.min(used, v))}
             className="h-8 w-14 text-center text-sm font-mono"
             data-testid={`input-spell-slots-max-${level}`}
           />
+          {calculatedMax !== undefined && calculatedMax !== max && (
+            <button
+              className="text-[11px] text-muted-foreground hover:text-accent tabular-nums"
+              onClick={() => onChange(calculatedMax, Math.min(used, calculatedMax))}
+              title="Заполнить расчётным значением"
+              data-testid={`button-slot-calc-${level}`}
+            >
+              /{calculatedMax}
+            </button>
+          )}
         </div>
       ) : (
         <div className="flex gap-1 flex-wrap">
@@ -701,6 +741,14 @@ export function SpellsSection({ character, onChange, isEditing }: SpellsSectionP
   const totalLevel = getTotalLevel(charClasses);
   const profBonus = getProficiencyBonus(totalLevel);
 
+  const casterClasses = charClasses.filter((c) => CLASS_CASTER_TYPE[c.name]);
+  const calculatedSlots: number[] | null =
+    casterClasses.length === 0
+      ? null
+      : casterClasses.length === 1
+        ? getSpellSlotsForClass(casterClasses[0].name, casterClasses[0].level)
+        : getMulticlassSpellSlots(charClasses);
+
   const racialBonuses = getRacialBonuses(character.race, character.subrace);
   const abilityScore =
     character.abilityScores[spellcasting.ability] +
@@ -728,10 +776,19 @@ export function SpellsSection({ character, onChange, isEditing }: SpellsSectionP
     updateSpellcasting({ spellSlots: newSlots });
   };
 
+  const handleAutoFillSlots = () => {
+    if (!calculatedSlots) return;
+    const newSlots = spellcasting.spellSlots.map((slot, i) => ({
+      max: calculatedSlots[i],
+      used: Math.min(slot.used, calculatedSlots[i]),
+    }));
+    updateSpellcasting({ spellSlots: newSlots });
+  };
+
   const handleAddSpell = (spellData: Omit<Spell, "id">) => {
     const newSpell: Spell = {
       ...spellData,
-      id: crypto.randomUUID(),
+      id: generateId(),
     };
     updateSpellcasting({ spells: [...spellcasting.spells, newSpell] });
   };
@@ -785,7 +842,7 @@ export function SpellsSection({ character, onChange, isEditing }: SpellsSectionP
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <BookOpen className="w-4 h-4 text-accent" />
-          <h3 className="font-semibold text-xs sm:text-sm">Заклинания</h3>
+          <h3 className="font-semibold text-sm">Заклинания</h3>
         </div>
         {isEditing && (
           <div className="flex items-center gap-1">
@@ -861,6 +918,16 @@ export function SpellsSection({ character, onChange, isEditing }: SpellsSectionP
         <div className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
           <Target className="w-3 h-3" />
           Ячейки заклинаний
+          {isEditing && calculatedSlots && (
+            <button
+              onClick={handleAutoFillSlots}
+              className="ml-auto flex items-center gap-1 text-xs text-accent hover:underline"
+              data-testid="button-auto-fill-slots"
+            >
+              <RefreshCw className="w-3 h-3" />
+              По классу
+            </button>
+          )}
         </div>
         {Array.from({ length: 9 }, (_, i) => (
           <SpellSlotTracker
@@ -868,6 +935,7 @@ export function SpellsSection({ character, onChange, isEditing }: SpellsSectionP
             level={i + 1}
             max={spellcasting.spellSlots[i]?.max ?? 0}
             used={spellcasting.spellSlots[i]?.used ?? 0}
+            calculatedMax={calculatedSlots?.[i]}
             onChange={(max, used) => handleSlotChange(i, max, used)}
             isEditing={isEditing}
           />

@@ -15,18 +15,20 @@ import {
   DrawerDescription,
   DrawerFooter,
 } from "@/components/ui/drawer";
-import { User, Sparkles, Scroll, BookOpen, Info, Settings2, Plus, Trash2 } from "lucide-react";
+import { User, Sparkles, Scroll, BookOpen, Info, Settings2, Plus, Trash2, TrendingUp } from "lucide-react";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { 
-  CLASSES, 
-  RACES, 
-  ALIGNMENTS, 
+import { NumericInput } from "@/components/ui/numeric-input";
+import {
+  CLASSES,
+  RACES,
+  ALIGNMENTS,
   RACE_DATA,
   CLASS_DATA,
   ABILITY_LABELS,
-  getProficiencyBonus, 
+  getProficiencyBonus,
   formatModifier,
   getXPProgress,
+  getLevelFromXP,
   getCharacterClasses,
   getTotalLevel,
 } from "@shared/schema";
@@ -258,12 +260,10 @@ function EditingFields({
 
       <div>
         <label className="text-xs text-muted-foreground mb-1 block">Опыт (XP)</label>
-        <Input
-          type="number"
-          inputMode="numeric"
+        <NumericInput
           min={0}
           value={character.experience}
-          onChange={(e) => onChange({ experience: parseInt(e.target.value) || 0 })}
+          onChange={(v) => onChange({ experience: v })}
           className="h-10"
           data-testid="input-experience"
         />
@@ -317,6 +317,17 @@ export function CharacterHeader({ character, onChange, isEditing }: CharacterHea
   const raceData = RACE_DATA[character.race];
   const subraces = raceData?.subraces ? Object.keys(raceData.subraces) : [];
   const xpProgress = getXPProgress(character.experience, totalLevel);
+  const xpLevel = getLevelFromXP(character.experience);
+  const canLevelUp = xpLevel > totalLevel && totalLevel < 20;
+
+  const handleLevelUp = () => {
+    const newLevel = Math.min(20, xpLevel);
+    const levelDiff = newLevel - totalLevel;
+    const newClasses = charClasses.map((c, i) =>
+      i === 0 ? { ...c, level: c.level + levelDiff } : c
+    );
+    handleClassesChange(newClasses);
+  };
 
   const handleClassesChange = (newClasses: ClassEntry[]) => {
     const newTotalLevel = getTotalLevel(newClasses);
@@ -551,6 +562,18 @@ export function CharacterHeader({ character, onChange, isEditing }: CharacterHea
             </p>
           </TooltipContent>
         </Tooltip>
+        {canLevelUp && (
+          <Button
+            size="sm"
+            variant="default"
+            className="w-full mt-1.5 gap-1.5 h-8 text-xs"
+            onClick={handleLevelUp}
+            data-testid="button-level-up"
+          >
+            <TrendingUp className="w-3.5 h-3.5" />
+            Повысить уровень до {xpLevel}
+          </Button>
+        )}
       </div>
 
       {isEditing && isDesktop && (

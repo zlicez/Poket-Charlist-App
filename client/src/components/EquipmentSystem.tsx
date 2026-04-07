@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { generateId } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -18,8 +19,8 @@ import {
   ResponsiveDialogFooter,
 } from "@/components/ui/responsive-dialog";
 import { 
-  Backpack, Plus, Trash2, Package, Shield, ShieldCheck, Lock, Unlock, 
-  Sword, Apple, FlaskConical, Wrench, Trash, Search,
+  Backpack, Plus, Trash2, Package, Shield, ShieldCheck, Lock, Unlock,
+  Sword, Apple, FlaskConical, Wrench, Search,
   Minus, ChevronDown, ChevronRight, Sparkles, GripVertical
 } from "lucide-react";
 import { 
@@ -53,6 +54,12 @@ import {
 } from "@shared/schema";
 import type { Equipment, EquipmentCategory, BaseEquipmentItem, Money } from "@shared/schema";
 import { MoneyBlock } from "./MoneyBlock";
+import { WeaponFormFields } from "@/components/WeaponFormFields";
+import {
+  DEFAULT_WEAPON_FORM_VALUES,
+  createEquipmentWeaponFromForm,
+  type WeaponFormValues,
+} from "@/lib/weapons";
 
 interface EquipmentSystemProps {
   equipment: Equipment[];
@@ -72,7 +79,6 @@ const CATEGORY_ICONS: Record<EquipmentCategory, React.ReactNode> = {
   potion: <FlaskConical className="w-3.5 h-3.5 sm:w-4 sm:h-4" />,
   tool: <Wrench className="w-3.5 h-3.5 sm:w-4 sm:h-4" />,
   misc: <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4" />,
-  trash: <Trash className="w-3.5 h-3.5 sm:w-4 sm:h-4" />,
 };
 
 const CATEGORY_ITEMS: Record<EquipmentCategory, BaseEquipmentItem[]> = {
@@ -82,7 +88,6 @@ const CATEGORY_ITEMS: Record<EquipmentCategory, BaseEquipmentItem[]> = {
   potion: BASE_POTIONS,
   tool: BASE_TOOLS,
   misc: BASE_MISC,
-  trash: [],
 };
 
 function AddFromCatalogDialog({ 
@@ -114,7 +119,7 @@ function AddFromCatalogDialog({
   return (
     <ResponsiveDialog open={open} onOpenChange={setOpen}>
       <ResponsiveDialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-7 sm:w-7" data-testid={`button-catalog-${category}`}>
+        <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-9 sm:w-9" data-testid={`button-catalog-${category}`}>
           <Package className="w-4 h-4" />
         </Button>
       </ResponsiveDialogTrigger>
@@ -192,23 +197,24 @@ function AddCustomItemDialog({
   onAdd: (item: Omit<Equipment, "id">) => void;
   defaultCategory?: EquipmentCategory;
 }) {
+  const initialCategory = defaultCategory === "weapon" || defaultCategory === "armor" ? "misc" : defaultCategory;
+  const defaultIsWeapon = defaultCategory === "weapon";
+  const defaultIsArmor = defaultCategory === "armor";
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
-  const [category, setCategory] = useState<EquipmentCategory>(defaultCategory);
+  const [category, setCategory] = useState<EquipmentCategory>(initialCategory);
   const [quantity, setQuantity] = useState(1);
   const [weight, setWeight] = useState<number | undefined>(undefined);
   const [description, setDescription] = useState("");
-  const [isWeapon, setIsWeapon] = useState(false);
-  const [isArmor, setIsArmor] = useState(false);
-  const [damage, setDamage] = useState("1d6");
-  const [damageType, setDamageType] = useState("рубящий");
-  const [weaponProperties, setWeaponProperties] = useState("");
+  const [isWeapon, setIsWeapon] = useState(defaultIsWeapon);
+  const [isArmor, setIsArmor] = useState(defaultIsArmor);
+  const [weaponForm, setWeaponForm] = useState<WeaponFormValues>(DEFAULT_WEAPON_FORM_VALUES);
   const [armorBaseAC, setArmorBaseAC] = useState(12);
 
   const handleSubmit = () => {
     if (!name.trim()) return;
     
-    const item: Omit<Equipment, "id"> = {
+    let item: Omit<Equipment, "id"> = {
       name: name.trim(),
       quantity,
       weight,
@@ -218,11 +224,12 @@ function AddCustomItemDialog({
     };
 
     if (isWeapon) {
-      item.isWeapon = true;
-      item.damage = damage;
-      item.damageType = damageType;
-      item.weaponProperties = weaponProperties || undefined;
-      item.attackBonus = 0;
+      item = createEquipmentWeaponFromForm(name, weaponForm, {
+        quantity,
+        weight,
+        description,
+        equipped: false,
+      });
     }
 
     if (isArmor) {
@@ -239,22 +246,20 @@ function AddCustomItemDialog({
 
   const resetForm = () => {
     setName("");
-    setCategory("misc");
+    setCategory(initialCategory);
     setQuantity(1);
     setWeight(undefined);
     setDescription("");
-    setIsWeapon(false);
-    setIsArmor(false);
-    setDamage("1d6");
-    setDamageType("рубящий");
-    setWeaponProperties("");
+    setIsWeapon(defaultIsWeapon);
+    setIsArmor(defaultIsArmor);
+    setWeaponForm(DEFAULT_WEAPON_FORM_VALUES);
     setArmorBaseAC(12);
   };
 
   return (
     <ResponsiveDialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetForm(); }}>
       <ResponsiveDialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1 h-9 sm:h-8" data-testid="button-add-custom">
+        <Button variant="outline" size="sm" className="gap-1 h-10 sm:h-9 px-3" data-testid="button-add-custom">
           <Plus className="w-4 h-4" />
           <Sparkles className="w-3 h-3" />
         </Button>
@@ -285,7 +290,9 @@ function AddCustomItemDialog({
                 checked={isWeapon}
                 onCheckedChange={(checked) => {
                   setIsWeapon(!!checked);
-                  if (checked) setIsArmor(false);
+                  if (checked) {
+                    setIsArmor(false);
+                  }
                 }}
                 data-testid="checkbox-is-weapon"
               />
@@ -297,7 +304,9 @@ function AddCustomItemDialog({
                 checked={isArmor}
                 onCheckedChange={(checked) => {
                   setIsArmor(!!checked);
-                  if (checked) setIsWeapon(false);
+                  if (checked) {
+                    setIsWeapon(false);
+                  }
                 }}
                 data-testid="checkbox-is-armor"
               />
@@ -327,36 +336,11 @@ function AddCustomItemDialog({
           )}
 
           {isWeapon && (
-            <div className="space-y-2 p-2 bg-muted/30 rounded-md">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-xs text-muted-foreground">Урон</label>
-                  <Input
-                    value={damage}
-                    onChange={(e) => setDamage(e.target.value)}
-                    placeholder="1d8"
-                    data-testid="input-weapon-damage"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Тип урона</label>
-                  <Input
-                    value={damageType}
-                    onChange={(e) => setDamageType(e.target.value)}
-                    placeholder="рубящий"
-                    data-testid="input-weapon-damage-type"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Свойства</label>
-                <Input
-                  value={weaponProperties}
-                  onChange={(e) => setWeaponProperties(e.target.value)}
-                  placeholder="универсальное, фехтовальное..."
-                  data-testid="input-weapon-properties"
-                />
-              </div>
+            <div className="p-2 bg-muted/30 rounded-md">
+              <WeaponFormFields
+                values={weaponForm}
+                onChange={(updates) => setWeaponForm((prev) => ({ ...prev, ...updates }))}
+              />
             </div>
           )}
 
@@ -478,7 +462,7 @@ function SortableEquipmentItem({
         <Button
           variant="ghost"
           size="icon"
-          className={`h-8 w-8 sm:h-7 sm:w-7 shrink-0 ${item.equipped ? 'text-accent' : 'text-muted-foreground'}`}
+          className={`h-10 w-10 sm:h-9 sm:w-9 shrink-0 ${item.equipped ? 'text-accent' : 'text-muted-foreground'}`}
           onClick={onToggleEquip}
           data-testid={`button-equip-${index}`}
         >
@@ -492,7 +476,7 @@ function SortableEquipmentItem({
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1 flex-wrap">
-          <span className={`text-xs sm:text-sm font-medium truncate ${item.equipped ? 'text-accent' : ''}`}>
+          <span className={`text-sm font-medium truncate ${item.equipped ? 'text-accent' : ''}`}>
             {item.name}
           </span>
           {item.quantity > 1 && (
@@ -525,7 +509,7 @@ function SortableEquipmentItem({
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-8 w-8 sm:h-7 sm:w-7"
+            className="h-10 w-10 sm:h-9 sm:w-9"
             onClick={() => onUpdateQuantity(-1)}
             data-testid={`button-qty-minus-${index}`}
           >
@@ -534,7 +518,7 @@ function SortableEquipmentItem({
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-8 w-8 sm:h-7 sm:w-7"
+            className="h-10 w-10 sm:h-9 sm:w-9"
             onClick={() => onUpdateQuantity(1)}
             data-testid={`button-qty-plus-${index}`}
           >
@@ -547,7 +531,7 @@ function SortableEquipmentItem({
         <Button 
           variant="ghost" 
           size="icon" 
-          className="h-8 w-8 sm:h-7 sm:w-7 text-destructive shrink-0"
+          className="h-10 w-10 sm:h-9 sm:w-9 text-destructive shrink-0"
           onClick={onRemove}
           data-testid={`button-remove-${index}`}
         >
@@ -605,23 +589,22 @@ export function EquipmentSystem({
       potion: [],
       tool: [],
       misc: [],
-      trash: [],
     };
-    
+
     equipment.forEach(item => {
-      const cat = item.category || "misc";
+      const cat = (item.category && item.category in result ? item.category : "misc") as EquipmentCategory;
       result[cat].push(item);
     });
-    
+
     return result;
   }, [equipment]);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<EquipmentCategory, number> = {
-      weapon: 0, armor: 0, food: 0, potion: 0, tool: 0, misc: 0, trash: 0,
+      weapon: 0, armor: 0, food: 0, potion: 0, tool: 0, misc: 0,
     };
     equipment.forEach(item => {
-      const cat = item.category || "misc";
+      const cat = (item.category && item.category in counts ? item.category : "misc") as EquipmentCategory;
       counts[cat] += item.quantity;
     });
     return counts;
@@ -633,7 +616,7 @@ export function EquipmentSystem({
   );
 
   const addEquipment = (item: Omit<Equipment, "id">) => {
-    onChange([...equipment, { ...item, id: crypto.randomUUID() }]);
+    onChange([...equipment, { ...item, id: generateId() }]);
   };
 
   const removeEquipment = (id: string) => {
@@ -682,7 +665,7 @@ export function EquipmentSystem({
       <div className="flex items-center justify-between mb-2 sm:mb-3 gap-2">
         <div className="flex items-center gap-2">
           <Backpack className="w-4 h-4 text-accent" />
-          <h3 className="font-semibold text-xs sm:text-sm">Снаряжение</h3>
+          <h3 className="font-semibold text-sm">Снаряжение</h3>
           <Badge variant="outline" className="text-xs">
             {totalWeight.toFixed(1)} ф.
           </Badge>
@@ -695,7 +678,7 @@ export function EquipmentSystem({
                   variant="ghost"
                   size="icon"
                   onClick={onToggleLock}
-                  className={`h-9 w-9 sm:h-7 sm:w-7 ${isLocked ? "text-muted-foreground" : "text-accent"}`}
+                  className={`h-10 w-10 sm:h-9 sm:w-9 ${isLocked ? "text-muted-foreground" : "text-accent"}`}
                   data-testid="button-toggle-equipment-lock"
                 >
                   {isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
@@ -726,38 +709,40 @@ export function EquipmentSystem({
       )}
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
-        <div className="overflow-x-auto scrollbar-hide -mx-2 px-2 sm:mx-0 sm:px-0">
-          <TabsList className="w-max sm:w-full h-auto p-0.5 sm:p-1 mb-2 flex gap-0">
-            <TabsTrigger 
-              value="all"
-              className="px-1.5 sm:px-2 py-1.5 sm:flex-1 min-w-[36px] sm:min-w-0 min-h-[40px] sm:min-h-0 text-[11px] sm:text-xs gap-0.5 sm:gap-1 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
-              data-testid="tab-all"
-            >
-              <Backpack className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="hidden sm:inline">Всё</span>
-              {equipment.length > 0 && (
-                <Badge variant="outline" className="h-4 px-1 text-[10px] sm:text-xs ml-0.5 hidden sm:inline-flex">
-                  {equipment.reduce((sum, e) => sum + e.quantity, 0)}
-                </Badge>
-              )}
-            </TabsTrigger>
-            {EQUIPMENT_CATEGORIES.map((cat) => (
-              <TabsTrigger 
-                key={cat} 
-                value={cat}
-                className="px-1.5 sm:px-2 py-1.5 sm:flex-1 min-w-[36px] sm:min-w-0 min-h-[40px] sm:min-h-0 text-[11px] sm:text-xs gap-0.5 sm:gap-1 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
-                data-testid={`tab-${cat}`}
+        <div className="nav-scroll-container -mx-2 sm:mx-0 mb-3">
+          <div className="overflow-x-auto scrollbar-hide px-2 sm:px-0 lg:overflow-visible">
+            <TabsList className="inline-flex w-max min-w-full h-auto rounded-xl border border-border/60 bg-muted/50 p-1 gap-1 lg:flex lg:w-full lg:min-w-0 lg:flex-nowrap lg:justify-start">
+              <TabsTrigger
+                value="all"
+                className="shrink-0 rounded-lg px-3 py-2.5 min-h-[44px] text-xs gap-1.5 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground lg:flex-1 lg:min-w-0 lg:px-2 lg:py-2 lg:min-h-[38px] lg:text-[11px] lg:gap-1"
+                data-testid="tab-all"
               >
-                {CATEGORY_ICONS[cat]}
-                <span className="hidden sm:inline">{CATEGORY_LABELS[cat]}</span>
-                {categoryCounts[cat] > 0 && (
-                  <Badge variant="outline" className="h-4 px-1 text-[10px] sm:text-xs ml-0.5 hidden sm:inline-flex">
-                    {categoryCounts[cat]}
+                <Backpack className="w-4 h-4 lg:w-3.5 lg:h-3.5" />
+                <span className="lg:truncate">Всё</span>
+                {equipment.length > 0 && (
+                  <Badge variant="outline" className="h-5 px-1.5 text-[10px] sm:text-xs lg:h-4 lg:px-1 lg:text-[9px]">
+                    {equipment.reduce((sum, e) => sum + e.quantity, 0)}
                   </Badge>
                 )}
               </TabsTrigger>
-            ))}
-          </TabsList>
+              {EQUIPMENT_CATEGORIES.map((cat) => (
+                <TabsTrigger
+                  key={cat}
+                  value={cat}
+                  className="shrink-0 rounded-lg px-3 py-2.5 min-h-[44px] text-xs gap-1.5 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground lg:flex-1 lg:min-w-0 lg:px-2 lg:py-2 lg:min-h-[38px] lg:text-[11px] lg:gap-1"
+                  data-testid={`tab-${cat}`}
+                >
+                  {CATEGORY_ICONS[cat]}
+                  <span className="lg:truncate">{CATEGORY_LABELS[cat]}</span>
+                  {categoryCounts[cat] > 0 && (
+                    <Badge variant="outline" className="h-5 px-1.5 text-[10px] sm:text-xs lg:h-4 lg:px-1 lg:text-[9px]">
+                      {categoryCounts[cat]}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
         </div>
 
         <TabsContent value="all" className="mt-0">
@@ -816,7 +801,7 @@ export function EquipmentSystem({
                 <p>Добавьте {CATEGORY_LABELS[cat].toLowerCase()}</p>
                 {canModify && CATEGORY_ITEMS[cat].length > 0 && (
                   <p className="text-xs mt-1">
-                    Выберите из каталога или создайте свой
+                    Выберите из каталога или создайте
                   </p>
                 )}
               </div>

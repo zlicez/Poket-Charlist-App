@@ -372,9 +372,67 @@ input[type="number"]::-webkit-inner-spin-button {
     display: none;
   }
 
+  /* ── Typography scale ───────────────────────────────────────────────────
+   * L1 — critical numbers: HP, dice results, ability score
+   * L2 — labels/headings: section names, ability abbreviations
+   * L3 — body: skill names, stat values, button text
+   * L4 — hints: tooltips, secondary descriptions
+   * ────────────────────────────────────────────────────────────────────── */
+  .tx-l1 {
+    @apply text-2xl font-bold tracking-tight leading-none;
+  }
+  .tx-l2 {
+    @apply text-[11px] font-semibold uppercase tracking-widest leading-tight;
+  }
+  .tx-l3 {
+    @apply text-sm font-normal leading-snug;
+  }
+  .tx-l4 {
+    @apply text-xs text-muted-foreground leading-snug;
+  }
+
   .section-label {
-    @apply text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3;
-    letter-spacing: 0.08em;
+    @apply text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3;
+    letter-spacing: 0.1em;
+  }
+
+  .section-nav-chip {
+    @apply flex items-center gap-2 whitespace-nowrap rounded-xl border border-border/70 bg-card/70 px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors min-h-[44px] shadow-sm;
+  }
+
+  .section-nav-chip:hover {
+    @apply text-foreground;
+    background-color: hsl(var(--muted) / 0.85);
+  }
+
+  /* ── Nav fade edges (scrollable carousel hint) ──────────────────────── */
+  .nav-scroll-container {
+    @apply relative;
+  }
+  .nav-scroll-container::before,
+  .nav-scroll-container::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2.5rem;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .nav-scroll-container::before {
+    left: 0;
+    background: linear-gradient(to right, hsl(var(--background) / 0.9), transparent);
+  }
+  .nav-scroll-container::after {
+    right: 0;
+    background: linear-gradient(to left, hsl(var(--background) / 0.9), transparent);
+  }
+
+  @media (min-width: 1024px) {
+    .nav-scroll-container::before,
+    .nav-scroll-container::after {
+      display: none;
+    }
   }
 
   [id^="section-"] {

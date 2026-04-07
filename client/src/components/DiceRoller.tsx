@@ -1,3 +1,4 @@
+import { generateId } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -69,7 +70,7 @@ export function rollDice(
   const total = diceTotal + modifier;
 
   return {
-    id: crypto.randomUUID(),
+    id: generateId(),
     type: options?.advantage ? "advantage" : options?.disadvantage ? "disadvantage" : "normal",
     label,
     dice: diceString,
@@ -159,8 +160,10 @@ export function DiceRollerTrigger({ onClick, rollCount }: { onClick: () => void;
       onClick={onClick}
       className="gap-2 h-9"
       data-testid="button-dice-roller"
+      aria-label="История бросков"
     >
       <Dices className="w-4 h-4" />
+      <span className="sm:hidden">Броски</span>
       <span className="hidden sm:inline">История</span>
       {rollCount > 0 && (
         <Badge variant="secondary" className="text-xs font-mono">

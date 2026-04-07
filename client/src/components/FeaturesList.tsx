@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { generateId } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -126,7 +127,7 @@ function FeatureItem({ feature, onRemove, canModify }: { feature: Feature; onRem
         </CollapsibleTrigger>
         <CollapsibleContent>
           <div className="px-2 pb-2 pt-0">
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap pl-6">
+            <p className="text-xs text-muted-foreground whitespace-pre-wrap pl-6">
               {feature.description || "Описание отсутствует"}
             </p>
           </div>
@@ -140,7 +141,7 @@ export function FeaturesList({ features, onChange, isEditing, isLocked = false, 
   const canModify = isEditing || !isLocked;
 
   const addFeature = (feature: Omit<Feature, "id">) => {
-    onChange([...features, { ...feature, id: crypto.randomUUID() }]);
+    onChange([...features, { ...feature, id: generateId() }]);
   };
 
   const removeFeature = (id: string) => {
@@ -152,7 +153,7 @@ export function FeaturesList({ features, onChange, isEditing, isLocked = false, 
       <div className="flex items-center justify-between mb-2 sm:mb-3">
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-accent" />
-          <h3 className="font-semibold text-xs sm:text-sm">Способности и черты</h3>
+          <h3 className="font-semibold text-sm">Способности и черты</h3>
         </div>
         <div className="flex items-center gap-1">
           {!isEditing && onToggleLock && (
@@ -178,7 +179,7 @@ export function FeaturesList({ features, onChange, isEditing, isLocked = false, 
       </div>
 
       {features.length === 0 ? (
-        <div className="text-center py-4 text-muted-foreground text-sm">
+        <div className="text-center py-4 text-muted-foreground text-xs">
           {isEditing ? "Нажмите \"Добавить\" чтобы добавить способность" : "Нет способностей"}
         </div>
       ) : (
