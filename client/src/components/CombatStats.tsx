@@ -267,6 +267,163 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
   
   const calculatedAC = calculateAC(dexMod, armorData, hasShield, character.customACBonus || 0);
   const calculatedInitiative = dexMod + (character.customInitiativeBonus || 0);
+  const compactSummary = hideHp && hideDeathSaves;
+
+  if (compactSummary) {
+    return (
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Card className="stat-card-primary p-3 text-center" data-testid="stat-ac">
+              <div className="flex items-center justify-center gap-2">
+                <Shield className="w-4 h-4 text-accent shrink-0" />
+                <span className="tx-l4">КД</span>
+              </div>
+              <div className="mt-3 flex flex-col items-center gap-2">
+                <div className="tx-l1 font-mono">{calculatedAC}</div>
+                {isEditing ? (
+                  <div className="space-y-1">
+                    <label className="tx-l4">Бонус</label>
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      value={character.customACBonus || 0}
+                      onChange={(e) => onChange({ customACBonus: parseInt(e.target.value) || 0 })}
+                      className="h-10 w-16 text-sm font-mono text-center mx-auto"
+                      data-testid="input-ac-bonus"
+                    />
+                  </div>
+                ) : (
+                  <div className="tx-l4 w-full truncate text-center">
+                    {armorData ? armorData.name : "Без брони"}
+                    {hasShield ? " + Щит" : ""}
+                  </div>
+                )}
+              </div>
+            </Card>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Класс Доспеха</p>
+            <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
+              <p>Базовый: {armorData ? armorData.baseAC : 10}</p>
+              <p>ЛОВ: {formatModifier(dexMod)}</p>
+              {hasShield && <p>Щит: +2</p>}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Card className="stat-card-primary p-3 text-center" data-testid="stat-initiative">
+              <div className="flex items-center justify-center gap-2">
+                <Zap className="w-4 h-4 text-accent shrink-0" />
+                <span className="tx-l4">Инициатива</span>
+              </div>
+              <div className="mt-3 flex flex-col items-center gap-2">
+                <div className={`tx-l1 font-mono ${calculatedInitiative >= 0 ? 'text-positive' : 'text-negative'}`}>
+                  {formatModifier(calculatedInitiative)}
+                </div>
+                {isEditing ? (
+                  <div className="space-y-1">
+                    <label className="tx-l4">Бонус</label>
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      value={character.customInitiativeBonus || 0}
+                      onChange={(e) => onChange({ customInitiativeBonus: parseInt(e.target.value) || 0 })}
+                      className="h-10 w-16 text-sm font-mono text-center mx-auto"
+                      data-testid="input-initiative-bonus"
+                    />
+                  </div>
+                ) : (
+                  <div className="tx-l4 text-center">ЛОВ: {formatModifier(dexMod)}</div>
+                )}
+              </div>
+            </Card>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Инициатива определяет порядок действий в бою</p>
+            <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
+              <p>Модификатор ЛОВ: {formatModifier(dexMod)}</p>
+              {(character.customInitiativeBonus || 0) !== 0 && <p>Бонус: {formatModifier(character.customInitiativeBonus || 0)}</p>}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Card className="stat-card-primary p-3 text-center" data-testid="stat-speed">
+              <div className="flex items-center justify-center gap-2">
+                <Footprints className="w-4 h-4 text-accent shrink-0" />
+                <span className="tx-l4">Скорость</span>
+              </div>
+              <div className="mt-3 flex flex-col items-center gap-2">
+                {isEditing ? (
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    value={character.speed}
+                    onChange={(e) => onChange({ speed: parseInt(e.target.value) || 30 })}
+                    className="h-10 w-20 text-base font-bold font-mono text-center mx-auto"
+                    data-testid="input-speed"
+                  />
+                ) : (
+                  <div className="tx-l1 font-mono">{character.speed}</div>
+                )}
+                <div className="tx-l4 text-center">футов за ход</div>
+              </div>
+            </Card>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Скорость (футов/ход)</p>
+          </TooltipContent>
+        </Tooltip>
+
+        <Card className="stat-card p-3" data-testid="stat-hit-dice">
+          <div className="flex items-center gap-2">
+            <Dice6 className="w-4 h-4 text-accent shrink-0" />
+            <span className="tx-l4">Кубики хитов</span>
+          </div>
+          <div className="mt-3 space-y-3">
+            <div className="tx-l1 font-mono">
+              {character.hitDiceRemaining} / {totalLevel}
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {multiHitDice.map((hd, i) => (
+                <Badge key={i} variant="secondary" className="text-[10px] sm:text-xs font-mono">
+                  {hd.count}{hd.dice}
+                </Badge>
+              ))}
+            </div>
+            {!isEditing && (
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10"
+                  onClick={() => onChange({ hitDiceRemaining: Math.max(0, character.hitDiceRemaining - 1) })}
+                  disabled={character.hitDiceRemaining <= 0}
+                  data-testid="button-hit-dice-minus"
+                >
+                  <Minus className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10"
+                  onClick={() => onChange({ hitDiceRemaining: Math.min(totalLevel, character.hitDiceRemaining + 1) })}
+                  disabled={character.hitDiceRemaining >= totalLevel}
+                  data-testid="button-hit-dice-plus"
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">
@@ -346,15 +503,15 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
               <Footprints className="w-5 h-5 mx-auto mb-1 text-accent" />
               <div className="text-xs text-muted-foreground">Скор.</div>
               {isEditing ? (
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  value={character.speed}
-                  onChange={(e) => onChange({ speed: parseInt(e.target.value) || 30 })}
-                  className="text-center text-base font-bold h-10 mt-1 font-mono"
-                  data-testid="input-speed"
-                />
-              ) : (
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    value={character.speed}
+                    onChange={(e) => onChange({ speed: parseInt(e.target.value) || 30 })}
+                    className="text-center text-base font-bold h-10 mt-1 w-20 mx-auto font-mono"
+                    data-testid="input-speed"
+                  />
+                ) : (
                 <div className="text-2xl font-bold font-mono">{character.speed}</div>
               )}
             </Card>

@@ -14,6 +14,7 @@ import {
   type Character,
   type AbilityName,
 } from "@shared/schema";
+import { getCombinedWeapons } from "@/lib/weapons";
 
 declare module "jspdf" {
   interface jsPDF {
@@ -96,6 +97,7 @@ export function exportCharacterToPDF(character: Character): void {
     return base + racial + custom;
   };
   const getMod = (ab: AbilityName) => calculateModifier(getScore(ab));
+  const displayWeapons = getCombinedWeapons(character.weapons, character.equipment);
 
   let y = MARGIN;
 
@@ -236,11 +238,11 @@ export function exportCharacterToPDF(character: Character): void {
   });
   y += Math.ceil(combatData.length / 4) * 12 + 4;
 
-  if (character.weapons.length > 0) {
+  if (displayWeapons.length > 0) {
     y = checkNewPage(doc, y, 20);
     y = drawSectionHeader(doc, "ОРУЖИЕ", y);
 
-    const weaponRows = character.weapons.map((w) => [
+    const weaponRows = displayWeapons.map((w) => [
       w.name,
       formatModifier(w.attackBonus + getMod(w.abilityMod === "dex" ? "DEX" : "STR") + profBonus),
       w.damage,

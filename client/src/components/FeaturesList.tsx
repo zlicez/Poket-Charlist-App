@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { generateId } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -140,7 +141,7 @@ export function FeaturesList({ features, onChange, isEditing, isLocked = false, 
   const canModify = isEditing || !isLocked;
 
   const addFeature = (feature: Omit<Feature, "id">) => {
-    onChange([...features, { ...feature, id: crypto.randomUUID() }]);
+    onChange([...features, { ...feature, id: generateId() }]);
   };
 
   const removeFeature = (id: string) => {

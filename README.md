@@ -107,6 +107,7 @@ client/src/
   components/
     AuthScreen.tsx
     AccountDialog.tsx
+    AbilityWithSkills.tsx
     SpellsSection.tsx
   context/
     CharacterContext.tsx

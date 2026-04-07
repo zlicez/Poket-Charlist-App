@@ -255,7 +255,7 @@ export function AbilityWithSkills({
               <div className="text-[11px] font-bold text-ability-text uppercase tracking-wider">
                 {ability}
               </div>
-              <div className="text-[11px] text-ability-label leading-tight">
+              <div className="mt-0.5 max-w-[60px] text-[11px] text-ability-label leading-[1.05] text-center [overflow-wrap:anywhere]">
                 {label.ru}
               </div>
 

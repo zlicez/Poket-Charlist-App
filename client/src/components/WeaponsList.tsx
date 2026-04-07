@@ -1,10 +1,10 @@
 import { useState, useMemo } from "react";
+import { generateId } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ResponsiveDialog,
   ResponsiveDialogTrigger,
@@ -16,10 +16,19 @@ import {
 import { Swords, Plus, Trash2, Dices, Lock, Unlock, Backpack } from "lucide-react";
 import type { Weapon, Equipment, WeaponAbilityMod, Proficiencies } from "@shared/schema";
 import { formatModifier, isWeaponProficient } from "@shared/schema";
+import { WeaponFormFields } from "@/components/WeaponFormFields";
+import {
+  DEFAULT_WEAPON_FORM_VALUES,
+  createWeaponFromForm,
+  createEquipmentWeaponFromForm,
+  getEquippedInventoryWeapons,
+  type WeaponFormValues,
+} from "@/lib/weapons";
 
 interface WeaponsListProps {
   weapons: Weapon[];
   onChange: (weapons: Weapon[]) => void;
+  onAddInventoryWeapon?: (weapon: Omit<Equipment, "id">) => void;
   onRollAttack: (weapon: Weapon, totalAttackBonus: number, isProficient: boolean) => void;
   onRollDamage: (weapon: Weapon, damageModifier: number) => void;
   isEditing: boolean;
@@ -32,26 +41,16 @@ interface WeaponsListProps {
   proficiencies?: Proficiencies;
 }
 
-function AddWeaponDialog({ onAdd }: { onAdd: (weapon: Omit<Weapon, "id">) => void }) {
+function AddWeaponDialog({ onAdd }: { onAdd: (name: string, weapon: WeaponFormValues) => void }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
-  const [attackBonus, setAttackBonus] = useState(0);
-  const [damage, setDamage] = useState("1d8");
-  const [damageType, setDamageType] = useState("рубящий");
-  const [properties, setProperties] = useState("");
-  const [abilityMod, setAbilityMod] = useState<WeaponAbilityMod>("str");
-  const [isFinesse, setIsFinesse] = useState(false);
+  const [weaponForm, setWeaponForm] = useState<WeaponFormValues>(DEFAULT_WEAPON_FORM_VALUES);
 
   const handleSubmit = () => {
     if (!name.trim()) return;
-    onAdd({ name, attackBonus, damage, damageType, properties, abilityMod, isFinesse });
+    onAdd(name, weaponForm);
     setName("");
-    setAttackBonus(0);
-    setDamage("1d8");
-    setDamageType("рубящий");
-    setProperties("");
-    setAbilityMod("str");
-    setIsFinesse(false);
+    setWeaponForm(DEFAULT_WEAPON_FORM_VALUES);
     setOpen(false);
   };
 
@@ -77,72 +76,10 @@ function AddWeaponDialog({ onAdd }: { onAdd: (weapon: Omit<Weapon, "id">) => voi
               data-testid="input-weapon-name"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm text-muted-foreground">Бонус атаки</label>
-              <Input
-                type="number"
-                value={attackBonus}
-                onChange={(e) => setAttackBonus(parseInt(e.target.value) || 0)}
-                data-testid="input-weapon-attack"
-              />
-            </div>
-            <div>
-              <label className="text-sm text-muted-foreground">Урон</label>
-              <Input
-                value={damage}
-                onChange={(e) => setDamage(e.target.value)}
-                placeholder="1d8"
-                data-testid="input-weapon-damage"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm text-muted-foreground">Тип урона</label>
-              <Input
-                value={damageType}
-                onChange={(e) => setDamageType(e.target.value)}
-                placeholder="рубящий"
-                data-testid="input-weapon-damage-type"
-              />
-            </div>
-            <div>
-              <label className="text-sm text-muted-foreground">Свойства</label>
-              <Input
-                value={properties}
-                onChange={(e) => setProperties(e.target.value)}
-                placeholder="универсальное"
-                data-testid="input-weapon-properties"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm text-muted-foreground">Модификатор</label>
-              <Select value={abilityMod} onValueChange={(v) => setAbilityMod(v as WeaponAbilityMod)}>
-                <SelectTrigger data-testid="select-weapon-ability">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="str">Сила (СИЛ)</SelectItem>
-                  <SelectItem value="dex">Ловкость (ЛОВ)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-end">
-              <label className="flex items-center gap-2 cursor-pointer h-10 min-h-[40px]">
-                <input
-                  type="checkbox"
-                  checked={isFinesse}
-                  onChange={(e) => setIsFinesse(e.target.checked)}
-                  className="rounded w-5 h-5"
-                  data-testid="checkbox-weapon-finesse"
-                />
-                <span className="text-sm">Фехтовальное</span>
-              </label>
-            </div>
-          </div>
+          <WeaponFormFields
+            values={weaponForm}
+            onChange={(updates) => setWeaponForm((prev) => ({ ...prev, ...updates }))}
+          />
         </div>
         <ResponsiveDialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Отмена</Button>
@@ -156,6 +93,7 @@ function AddWeaponDialog({ onAdd }: { onAdd: (weapon: Omit<Weapon, "id">) => voi
 export function WeaponsList({ 
   weapons, 
   onChange, 
+  onAddInventoryWeapon,
   onRollAttack, 
   onRollDamage, 
   isEditing, 
@@ -174,23 +112,30 @@ export function WeaponsList({
   };
 
   const equippedWeapons = useMemo(() => {
-    return equippedFromInventory
-      .filter(e => e.isWeapon && e.equipped)
-      .map(e => ({
-        id: e.id,
-        name: e.name,
-        attackBonus: e.attackBonus || 0,
-        damage: e.damage || "1d4",
-        damageType: e.damageType || "дробящий",
-        properties: e.weaponProperties,
-        fromInventory: true,
-        abilityMod: (e.abilityMod || "str") as WeaponAbilityMod,
-        isFinesse: e.isFinesse,
-      }));
+    return getEquippedInventoryWeapons(equippedFromInventory).map((weapon) => ({
+      ...weapon,
+      fromInventory: true,
+    }));
   }, [equippedFromInventory]);
 
-  const addWeapon = (weapon: Omit<Weapon, "id">) => {
-    onChange([...weapons, { ...weapon, id: crypto.randomUUID() }]);
+  const addWeapon = (name: string, weapon: WeaponFormValues) => {
+    if (onAddInventoryWeapon) {
+      onAddInventoryWeapon(
+        createEquipmentWeaponFromForm(name, weapon, {
+          quantity: 1,
+          equipped: true,
+        }),
+      );
+      return;
+    }
+
+    onChange([
+      ...weapons,
+      {
+        ...createWeaponFromForm(name, weapon),
+        id: crypto.randomUUID(),
+      },
+    ]);
   };
 
   const removeWeapon = (id: string) => {

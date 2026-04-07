@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { generateId } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -53,6 +54,12 @@ import {
 } from "@shared/schema";
 import type { Equipment, EquipmentCategory, BaseEquipmentItem, Money } from "@shared/schema";
 import { MoneyBlock } from "./MoneyBlock";
+import { WeaponFormFields } from "@/components/WeaponFormFields";
+import {
+  DEFAULT_WEAPON_FORM_VALUES,
+  createEquipmentWeaponFromForm,
+  type WeaponFormValues,
+} from "@/lib/weapons";
 
 interface EquipmentSystemProps {
   equipment: Equipment[];
@@ -112,7 +119,7 @@ function AddFromCatalogDialog({
   return (
     <ResponsiveDialog open={open} onOpenChange={setOpen}>
       <ResponsiveDialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-7 sm:w-7" data-testid={`button-catalog-${category}`}>
+        <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-9 sm:w-9" data-testid={`button-catalog-${category}`}>
           <Package className="w-4 h-4" />
         </Button>
       </ResponsiveDialogTrigger>
@@ -190,23 +197,24 @@ function AddCustomItemDialog({
   onAdd: (item: Omit<Equipment, "id">) => void;
   defaultCategory?: EquipmentCategory;
 }) {
+  const initialCategory = defaultCategory === "weapon" || defaultCategory === "armor" ? "misc" : defaultCategory;
+  const defaultIsWeapon = defaultCategory === "weapon";
+  const defaultIsArmor = defaultCategory === "armor";
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
-  const [category, setCategory] = useState<EquipmentCategory>(defaultCategory);
+  const [category, setCategory] = useState<EquipmentCategory>(initialCategory);
   const [quantity, setQuantity] = useState(1);
   const [weight, setWeight] = useState<number | undefined>(undefined);
   const [description, setDescription] = useState("");
-  const [isWeapon, setIsWeapon] = useState(false);
-  const [isArmor, setIsArmor] = useState(false);
-  const [damage, setDamage] = useState("1d6");
-  const [damageType, setDamageType] = useState("рубящий");
-  const [weaponProperties, setWeaponProperties] = useState("");
+  const [isWeapon, setIsWeapon] = useState(defaultIsWeapon);
+  const [isArmor, setIsArmor] = useState(defaultIsArmor);
+  const [weaponForm, setWeaponForm] = useState<WeaponFormValues>(DEFAULT_WEAPON_FORM_VALUES);
   const [armorBaseAC, setArmorBaseAC] = useState(12);
 
   const handleSubmit = () => {
     if (!name.trim()) return;
     
-    const item: Omit<Equipment, "id"> = {
+    let item: Omit<Equipment, "id"> = {
       name: name.trim(),
       quantity,
       weight,
@@ -216,11 +224,12 @@ function AddCustomItemDialog({
     };
 
     if (isWeapon) {
-      item.isWeapon = true;
-      item.damage = damage;
-      item.damageType = damageType;
-      item.weaponProperties = weaponProperties || undefined;
-      item.attackBonus = 0;
+      item = createEquipmentWeaponFromForm(name, weaponForm, {
+        quantity,
+        weight,
+        description,
+        equipped: false,
+      });
     }
 
     if (isArmor) {
@@ -237,22 +246,20 @@ function AddCustomItemDialog({
 
   const resetForm = () => {
     setName("");
-    setCategory("misc");
+    setCategory(initialCategory);
     setQuantity(1);
     setWeight(undefined);
     setDescription("");
-    setIsWeapon(false);
-    setIsArmor(false);
-    setDamage("1d6");
-    setDamageType("рубящий");
-    setWeaponProperties("");
+    setIsWeapon(defaultIsWeapon);
+    setIsArmor(defaultIsArmor);
+    setWeaponForm(DEFAULT_WEAPON_FORM_VALUES);
     setArmorBaseAC(12);
   };
 
   return (
     <ResponsiveDialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetForm(); }}>
       <ResponsiveDialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1 h-9 sm:h-8" data-testid="button-add-custom">
+        <Button variant="outline" size="sm" className="gap-1 h-10 sm:h-9 px-3" data-testid="button-add-custom">
           <Plus className="w-4 h-4" />
           <Sparkles className="w-3 h-3" />
         </Button>
@@ -283,7 +290,9 @@ function AddCustomItemDialog({
                 checked={isWeapon}
                 onCheckedChange={(checked) => {
                   setIsWeapon(!!checked);
-                  if (checked) setIsArmor(false);
+                  if (checked) {
+                    setIsArmor(false);
+                  }
                 }}
                 data-testid="checkbox-is-weapon"
               />
@@ -295,7 +304,9 @@ function AddCustomItemDialog({
                 checked={isArmor}
                 onCheckedChange={(checked) => {
                   setIsArmor(!!checked);
-                  if (checked) setIsWeapon(false);
+                  if (checked) {
+                    setIsWeapon(false);
+                  }
                 }}
                 data-testid="checkbox-is-armor"
               />
@@ -325,36 +336,11 @@ function AddCustomItemDialog({
           )}
 
           {isWeapon && (
-            <div className="space-y-2 p-2 bg-muted/30 rounded-md">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-xs text-muted-foreground">Урон</label>
-                  <Input
-                    value={damage}
-                    onChange={(e) => setDamage(e.target.value)}
-                    placeholder="1d8"
-                    data-testid="input-weapon-damage"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Тип урона</label>
-                  <Input
-                    value={damageType}
-                    onChange={(e) => setDamageType(e.target.value)}
-                    placeholder="рубящий"
-                    data-testid="input-weapon-damage-type"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Свойства</label>
-                <Input
-                  value={weaponProperties}
-                  onChange={(e) => setWeaponProperties(e.target.value)}
-                  placeholder="универсальное, фехтовальное..."
-                  data-testid="input-weapon-properties"
-                />
-              </div>
+            <div className="p-2 bg-muted/30 rounded-md">
+              <WeaponFormFields
+                values={weaponForm}
+                onChange={(updates) => setWeaponForm((prev) => ({ ...prev, ...updates }))}
+              />
             </div>
           )}
 
@@ -476,7 +462,7 @@ function SortableEquipmentItem({
         <Button
           variant="ghost"
           size="icon"
-          className={`h-8 w-8 sm:h-7 sm:w-7 shrink-0 ${item.equipped ? 'text-accent' : 'text-muted-foreground'}`}
+          className={`h-10 w-10 sm:h-9 sm:w-9 shrink-0 ${item.equipped ? 'text-accent' : 'text-muted-foreground'}`}
           onClick={onToggleEquip}
           data-testid={`button-equip-${index}`}
         >
@@ -523,7 +509,7 @@ function SortableEquipmentItem({
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-8 w-8 sm:h-7 sm:w-7"
+            className="h-10 w-10 sm:h-9 sm:w-9"
             onClick={() => onUpdateQuantity(-1)}
             data-testid={`button-qty-minus-${index}`}
           >
@@ -532,7 +518,7 @@ function SortableEquipmentItem({
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-8 w-8 sm:h-7 sm:w-7"
+            className="h-10 w-10 sm:h-9 sm:w-9"
             onClick={() => onUpdateQuantity(1)}
             data-testid={`button-qty-plus-${index}`}
           >
@@ -545,7 +531,7 @@ function SortableEquipmentItem({
         <Button 
           variant="ghost" 
           size="icon" 
-          className="h-8 w-8 sm:h-7 sm:w-7 text-destructive shrink-0"
+          className="h-10 w-10 sm:h-9 sm:w-9 text-destructive shrink-0"
           onClick={onRemove}
           data-testid={`button-remove-${index}`}
         >
@@ -630,7 +616,7 @@ export function EquipmentSystem({
   );
 
   const addEquipment = (item: Omit<Equipment, "id">) => {
-    onChange([...equipment, { ...item, id: crypto.randomUUID() }]);
+    onChange([...equipment, { ...item, id: generateId() }]);
   };
 
   const removeEquipment = (id: string) => {
@@ -692,7 +678,7 @@ export function EquipmentSystem({
                   variant="ghost"
                   size="icon"
                   onClick={onToggleLock}
-                  className={`h-9 w-9 sm:h-7 sm:w-7 ${isLocked ? "text-muted-foreground" : "text-accent"}`}
+                  className={`h-10 w-10 sm:h-9 sm:w-9 ${isLocked ? "text-muted-foreground" : "text-accent"}`}
                   data-testid="button-toggle-equipment-lock"
                 >
                   {isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
@@ -723,37 +709,41 @@ export function EquipmentSystem({
       )}
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
-        <TabsList className="w-full h-auto p-0.5 sm:p-1 mb-2 flex gap-0">
-          <TabsTrigger
-            value="all"
-            className="flex-1 min-w-0 px-1 sm:px-2 py-1.5 min-h-[40px] sm:min-h-0 text-[11px] sm:text-xs gap-0.5 sm:gap-1 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
-            data-testid="tab-all"
-          >
-            <Backpack className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            <span className="hidden sm:inline">Всё</span>
-            {equipment.length > 0 && (
-              <Badge variant="outline" className="h-4 px-1 text-[10px] sm:text-xs ml-0.5 hidden sm:inline-flex">
-                {equipment.reduce((sum, e) => sum + e.quantity, 0)}
-              </Badge>
-            )}
-          </TabsTrigger>
-          {EQUIPMENT_CATEGORIES.map((cat) => (
-            <TabsTrigger
-              key={cat}
-              value={cat}
-              className="flex-1 min-w-0 px-1 sm:px-2 py-1.5 min-h-[40px] sm:min-h-0 text-[11px] sm:text-xs gap-0.5 sm:gap-1 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
-              data-testid={`tab-${cat}`}
-            >
-              {CATEGORY_ICONS[cat]}
-              <span className="hidden sm:inline">{CATEGORY_LABELS[cat]}</span>
-              {categoryCounts[cat] > 0 && (
-                <Badge variant="outline" className="h-4 px-1 text-[10px] sm:text-xs ml-0.5 hidden sm:inline-flex">
-                  {categoryCounts[cat]}
-                </Badge>
-              )}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="nav-scroll-container -mx-2 sm:mx-0 mb-3">
+          <div className="overflow-x-auto scrollbar-hide px-2 sm:px-0 lg:overflow-visible">
+            <TabsList className="inline-flex w-max min-w-full h-auto rounded-xl border border-border/60 bg-muted/50 p-1 gap-1 lg:flex lg:w-full lg:min-w-0 lg:flex-nowrap lg:justify-start">
+              <TabsTrigger
+                value="all"
+                className="shrink-0 rounded-lg px-3 py-2.5 min-h-[44px] text-xs gap-1.5 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground lg:flex-1 lg:min-w-0 lg:px-2 lg:py-2 lg:min-h-[38px] lg:text-[11px] lg:gap-1"
+                data-testid="tab-all"
+              >
+                <Backpack className="w-4 h-4 lg:w-3.5 lg:h-3.5" />
+                <span className="lg:truncate">Всё</span>
+                {equipment.length > 0 && (
+                  <Badge variant="outline" className="h-5 px-1.5 text-[10px] sm:text-xs lg:h-4 lg:px-1 lg:text-[9px]">
+                    {equipment.reduce((sum, e) => sum + e.quantity, 0)}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              {EQUIPMENT_CATEGORIES.map((cat) => (
+                <TabsTrigger
+                  key={cat}
+                  value={cat}
+                  className="shrink-0 rounded-lg px-3 py-2.5 min-h-[44px] text-xs gap-1.5 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground lg:flex-1 lg:min-w-0 lg:px-2 lg:py-2 lg:min-h-[38px] lg:text-[11px] lg:gap-1"
+                  data-testid={`tab-${cat}`}
+                >
+                  {CATEGORY_ICONS[cat]}
+                  <span className="lg:truncate">{CATEGORY_LABELS[cat]}</span>
+                  {categoryCounts[cat] > 0 && (
+                    <Badge variant="outline" className="h-5 px-1.5 text-[10px] sm:text-xs lg:h-4 lg:px-1 lg:text-[9px]">
+                      {categoryCounts[cat]}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
+        </div>
 
         <TabsContent value="all" className="mt-0">
           {equipment.length === 0 ? (
