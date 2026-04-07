@@ -64,7 +64,7 @@ function buildSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.COOKIE_SECURE === "true",
       maxAge: sessionTtl,
     },
   });

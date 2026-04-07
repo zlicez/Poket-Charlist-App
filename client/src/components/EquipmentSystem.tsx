@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { generateId } from "@/lib/utils";
+import { cn, generateId } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -90,6 +90,27 @@ const CATEGORY_ITEMS: Record<EquipmentCategory, BaseEquipmentItem[]> = {
   misc: BASE_MISC,
 };
 
+function EquipmentScrollArea({
+  children,
+  className,
+  contentClassName,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  contentClassName?: string;
+}) {
+  return (
+    <ScrollArea
+      className={cn("equipment-scroll-area", className)}
+      viewportClassName="equipment-scroll-viewport overscroll-contain touch-pan-y"
+      scrollbarClassName="equipment-scrollbar"
+      thumbClassName="equipment-scrollbar-thumb"
+    >
+      <div className={cn("pr-3", contentClassName)}>{children}</div>
+    </ScrollArea>
+  );
+}
+
 function AddFromCatalogDialog({ 
   onAdd, 
   category 
@@ -145,8 +166,7 @@ function AddFromCatalogDialog({
           />
         </div>
 
-        <ScrollArea className="h-[300px] pr-4">
-          <div className="space-y-1">
+        <EquipmentScrollArea className="mt-1 h-[300px]" contentClassName="space-y-1 p-0.5">
             {filteredItems.map((item, index) => (
               <button
                 key={item.name}
@@ -183,8 +203,7 @@ function AddFromCatalogDialog({
                 Ничего не найдено
               </div>
             )}
-          </div>
-        </ScrollArea>
+        </EquipmentScrollArea>
       </ResponsiveDialogContent>
     </ResponsiveDialog>
   );
@@ -661,7 +680,7 @@ export function EquipmentSystem({
   const catalogCategory: EquipmentCategory = activeTab === "all" ? "weapon" : activeTab;
 
   return (
-    <Card className="stat-card p-2 sm:p-3">
+    <Card className="stat-card self-start p-2 sm:p-3 flex flex-col">
       <div className="flex items-center justify-between mb-2 sm:mb-3 gap-2">
         <div className="flex items-center gap-2">
           <Backpack className="w-4 h-4 text-accent" />
@@ -708,7 +727,7 @@ export function EquipmentSystem({
         </div>
       )}
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)} className="flex flex-col">
         <div className="nav-scroll-container -mx-2 sm:mx-0 mb-3">
           <div className="overflow-x-auto scrollbar-hide px-2 sm:px-0 lg:overflow-visible">
             <TabsList className="inline-flex w-max min-w-full h-auto rounded-xl border border-border/60 bg-muted/50 p-1 gap-1 lg:flex lg:w-full lg:min-w-0 lg:flex-nowrap lg:justify-start">
@@ -764,11 +783,7 @@ export function EquipmentSystem({
                 items={equipment.map(e => e.id)}
                 strategy={verticalListSortingStrategy}
               >
-                <div 
-                  className="max-h-[300px] overflow-y-auto overscroll-contain"
-                  style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
-                >
-                  <div className="space-y-0.5 pr-1">
+                <EquipmentScrollArea className="equipment-scroll-area-dynamic" contentClassName="space-y-0.5 py-0.5">
                     {equipment.map((item, index) => (
                       <SortableEquipmentItem
                         key={item.id}
@@ -782,8 +797,7 @@ export function EquipmentSystem({
                         canReorder={canModify}
                       />
                     ))}
-                  </div>
-                </div>
+                </EquipmentScrollArea>
               </SortableContext>
             </DndContext>
           )}
@@ -815,11 +829,7 @@ export function EquipmentSystem({
                   items={categorizedEquipment[cat].map(e => e.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  <div 
-                    className="max-h-[300px] overflow-y-auto overscroll-contain"
-                    style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
-                  >
-                    <div className="space-y-0.5 pr-1">
+                  <EquipmentScrollArea className="equipment-scroll-area-dynamic" contentClassName="space-y-0.5 py-0.5">
                       {categorizedEquipment[cat].map((item, index) => (
                         <SortableEquipmentItem
                           key={item.id}
@@ -833,8 +843,7 @@ export function EquipmentSystem({
                           canReorder={canModify}
                         />
                       ))}
-                    </div>
-                  </div>
+                  </EquipmentScrollArea>
                 </SortableContext>
               </DndContext>
             )}
@@ -843,7 +852,7 @@ export function EquipmentSystem({
       </Tabs>
 
       {money !== undefined && onMoneyChange && (
-        <div className="mt-3 pt-3 border-t border-border">
+        <div className="mt-auto pt-3 border-t border-border">
           <MoneyBlock flat money={money} onChange={onMoneyChange} isEditing={isEditing} />
         </div>
       )}

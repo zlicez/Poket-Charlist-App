@@ -1,17 +1,21 @@
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Shield, Zap, Footprints, Heart, Skull, Plus, Minus, Dice6, Check, X, RotateCcw } from "lucide-react";
-import { calculateModifier, formatModifier, calculateAC, CLASS_DATA, getRacialBonuses, getCharacterClasses, getMulticlassHitDice, getTotalLevel } from "@shared/schema";
+import { calculateModifier, formatModifier, calculateAC, calculateMaxHp, CLASS_DATA, getRacialBonuses, getCharacterClasses, getMulticlassHitDice, getTotalLevel } from "@shared/schema";
 import type { Character, DeathSaves, ArmorData } from "@shared/schema";
 
 interface HpTrackerProps {
   current: number;
   max: number;
+  calculatedMax: number;
+  customMaxHpBonus: number;
+  isAutoCalc: boolean;
   temp: number;
-  onChange: (updates: { currentHp?: number; maxHp?: number; tempHp?: number }) => void;
+  onChange: (updates: { currentHp?: number; maxHp?: number; customMaxHpBonus?: number; tempHp?: number }) => void;
   isEditing: boolean;
 }
 
@@ -23,12 +27,15 @@ interface CombatStatsProps {
   hideHp?: boolean;
 }
 
-export function HpTracker({ 
-  current, 
-  max, 
-  temp, 
-  onChange, 
-  isEditing 
+export function HpTracker({
+  current,
+  max,
+  calculatedMax,
+  customMaxHpBonus,
+  isAutoCalc,
+  temp,
+  onChange,
+  isEditing
 }: HpTrackerProps) {
   const percentage = Math.max(0, Math.min(100, (current / max) * 100));
   const tempPercentage = Math.max(0, Math.min(100 - percentage, (temp / max) * 100));
@@ -65,43 +72,80 @@ export function HpTracker({
       </div>
 
       {isEditing ? (
-        <div className="grid grid-cols-3 gap-2 mt-2">
-          <div>
-            <label className="text-xs text-muted-foreground">Текущие</label>
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={current}
-              min={0}
-              max={max}
-              onChange={(e) => onChange({ currentHp: Math.min(max, parseInt(e.target.value) || 0) })}
-              className="h-10 text-center font-mono"
-              data-testid="input-current-hp"
-            />
+        isAutoCalc ? (
+          <div className="grid grid-cols-4 gap-1.5 mt-2">
+            <div>
+              <label className="text-xs text-muted-foreground">Текущие</label>
+              <NumericInput
+                value={current}
+                min={0}
+                max={max}
+                onChange={(v) => onChange({ currentHp: v })}
+                className="h-10 text-center font-mono"
+                data-testid="input-current-hp"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Расч.</label>
+              <div className="h-10 flex items-center justify-center font-mono text-sm border rounded-md bg-muted/50 text-muted-foreground" data-testid="display-calc-hp">
+                {calculatedMax}
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Бонус</label>
+              <NumericInput
+                value={customMaxHpBonus}
+                onChange={(v) => onChange({ customMaxHpBonus: v })}
+                className="h-10 text-center font-mono"
+                data-testid="input-max-hp-bonus"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Врем.</label>
+              <NumericInput
+                value={temp}
+                min={0}
+                onChange={(v) => onChange({ tempHp: v })}
+                className="h-10 text-center font-mono"
+                data-testid="input-temp-hp"
+              />
+            </div>
           </div>
-          <div>
-            <label className="text-xs text-muted-foreground">Макс.</label>
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={max}
-              onChange={(e) => onChange({ maxHp: parseInt(e.target.value) || 0 })}
-              className="h-10 text-center font-mono"
-              data-testid="input-max-hp"
-            />
+        ) : (
+          <div className="grid grid-cols-3 gap-2 mt-2">
+            <div>
+              <label className="text-xs text-muted-foreground">Текущие</label>
+              <NumericInput
+                value={current}
+                min={0}
+                max={max}
+                onChange={(v) => onChange({ currentHp: v })}
+                className="h-10 text-center font-mono"
+                data-testid="input-current-hp"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Макс.</label>
+              <NumericInput
+                value={max}
+                min={1}
+                onChange={(v) => onChange({ maxHp: v })}
+                className="h-10 text-center font-mono"
+                data-testid="input-max-hp"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Врем.</label>
+              <NumericInput
+                value={temp}
+                min={0}
+                onChange={(v) => onChange({ tempHp: v })}
+                className="h-10 text-center font-mono"
+                data-testid="input-temp-hp"
+              />
+            </div>
           </div>
-          <div>
-            <label className="text-xs text-muted-foreground">Врем.</label>
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={temp}
-              onChange={(e) => onChange({ tempHp: parseInt(e.target.value) || 0 })}
-              className="h-10 text-center font-mono"
-              data-testid="input-temp-hp"
-            />
-          </div>
-        </div>
+        )
       ) : (
         <div className="flex justify-center gap-3">
           <Button 
@@ -247,9 +291,17 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
   const racialBonuses = getRacialBonuses(character.race, character.subrace);
   const totalDex = character.abilityScores.DEX + (racialBonuses.DEX || 0) + (character.customAbilityBonuses?.DEX || 0);
   const dexMod = calculateModifier(totalDex);
+  const totalCon = character.abilityScores.CON + (racialBonuses.CON || 0) + (character.customAbilityBonuses?.CON || 0);
+  const conMod = calculateModifier(totalCon);
   const charClasses = getCharacterClasses(character);
   const totalLevel = getTotalLevel(charClasses);
   const multiHitDice = getMulticlassHitDice(charClasses);
+  const primaryClass = charClasses[0]?.name || character.class;
+  const isLevel1 = totalLevel === 1;
+  const calculatedMaxHp = calculateMaxHp(primaryClass, 1, conMod);
+  const effectiveMaxHp = isLevel1
+    ? calculatedMaxHp + (character.customMaxHpBonus || 0)
+    : character.maxHp;
   
   const equippedArmor = character.equipment.find(e => e.equipped && e.isArmor && e.armorType !== "shield");
   const hasShield = character.equipment.some(e => e.equipped && e.isArmor && e.armorType === "shield");
@@ -267,6 +319,12 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
   
   const calculatedAC = calculateAC(dexMod, armorData, hasShield, character.customACBonus || 0);
   const calculatedInitiative = dexMod + (character.customInitiativeBonus || 0);
+  const effectiveDexBonus = armorData
+    ? (armorData.maxDexBonus === null ? dexMod : armorData.maxDexBonus === 0 ? 0 : Math.min(dexMod, armorData.maxDexBonus))
+    : dexMod;
+  const armorTypeLabel = armorData
+    ? ({ none: "Без брони", light: "Лёгкий", medium: "Средний (макс. ЛОВ +2)", heavy: "Тяжёлый (ЛОВ не учит.)", shield: "" } as const)[armorData.type] ?? "Без брони"
+    : "Без брони";
   const compactSummary = hideHp && hideDeathSaves;
 
   if (compactSummary) {
@@ -284,11 +342,9 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
                 {isEditing ? (
                   <div className="space-y-1">
                     <label className="tx-l4">Бонус</label>
-                    <Input
-                      type="number"
-                      inputMode="numeric"
+                    <NumericInput
                       value={character.customACBonus || 0}
-                      onChange={(e) => onChange({ customACBonus: parseInt(e.target.value) || 0 })}
+                      onChange={(v) => onChange({ customACBonus: v })}
                       className="h-10 w-16 text-sm font-mono text-center mx-auto"
                       data-testid="input-ac-bonus"
                     />
@@ -305,9 +361,11 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
           <TooltipContent>
             <p>Класс Доспеха</p>
             <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
+              <p>Тип: {armorTypeLabel}</p>
               <p>Базовый: {armorData ? armorData.baseAC : 10}</p>
-              <p>ЛОВ: {formatModifier(dexMod)}</p>
+              {(armorData?.type !== "heavy") && <p>ЛОВ: {formatModifier(effectiveDexBonus)}</p>}
               {hasShield && <p>Щит: +2</p>}
+              {(character.customACBonus || 0) !== 0 && <p>Бонус: {formatModifier(character.customACBonus || 0)}</p>}
             </div>
           </TooltipContent>
         </Tooltip>
@@ -326,11 +384,9 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
                 {isEditing ? (
                   <div className="space-y-1">
                     <label className="tx-l4">Бонус</label>
-                    <Input
-                      type="number"
-                      inputMode="numeric"
+                    <NumericInput
                       value={character.customInitiativeBonus || 0}
-                      onChange={(e) => onChange({ customInitiativeBonus: parseInt(e.target.value) || 0 })}
+                      onChange={(v) => onChange({ customInitiativeBonus: v })}
                       className="h-10 w-16 text-sm font-mono text-center mx-auto"
                       data-testid="input-initiative-bonus"
                     />
@@ -359,11 +415,10 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
               </div>
               <div className="mt-3 flex flex-col items-center gap-2">
                 {isEditing ? (
-                  <Input
-                    type="number"
-                    inputMode="numeric"
+                  <NumericInput
                     value={character.speed}
-                    onChange={(e) => onChange({ speed: parseInt(e.target.value) || 30 })}
+                    min={0}
+                    onChange={(v) => onChange({ speed: v })}
                     className="h-10 w-20 text-base font-bold font-mono text-center mx-auto"
                     data-testid="input-speed"
                   />
@@ -437,11 +492,9 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
               {isEditing && (
                 <div className="mt-1">
                   <label className="text-xs text-muted-foreground">Бонус</label>
-                  <Input
-                    type="number"
-                    inputMode="numeric"
+                  <NumericInput
                     value={character.customACBonus || 0}
-                    onChange={(e) => onChange({ customACBonus: parseInt(e.target.value) || 0 })}
+                    onChange={(v) => onChange({ customACBonus: v })}
                     className="text-center text-sm h-10 w-14 mx-auto font-mono"
                     data-testid="input-ac-bonus"
                   />
@@ -458,9 +511,11 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
           <TooltipContent>
             <p>Класс Доспеха</p>
             <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
+              <p>Тип: {armorTypeLabel}</p>
               <p>Базовый: {armorData ? armorData.baseAC : 10}</p>
-              <p>ЛОВ: {formatModifier(dexMod)}</p>
+              {(armorData?.type !== "heavy") && <p>ЛОВ: {formatModifier(effectiveDexBonus)}</p>}
               {hasShield && <p>Щит: +2</p>}
+              {(character.customACBonus || 0) !== 0 && <p>Бонус: {formatModifier(character.customACBonus || 0)}</p>}
             </div>
           </TooltipContent>
         </Tooltip>
@@ -476,11 +531,9 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
               {isEditing && (
                 <div className="mt-1">
                   <label className="text-xs text-muted-foreground">Бонус</label>
-                  <Input
-                    type="number"
-                    inputMode="numeric"
+                  <NumericInput
                     value={character.customInitiativeBonus || 0}
-                    onChange={(e) => onChange({ customInitiativeBonus: parseInt(e.target.value) || 0 })}
+                    onChange={(v) => onChange({ customInitiativeBonus: v })}
                     className="text-center text-sm h-10 w-14 mx-auto font-mono"
                     data-testid="input-initiative-bonus"
                   />
@@ -503,11 +556,10 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
               <Footprints className="w-5 h-5 mx-auto mb-1 text-accent" />
               <div className="text-xs text-muted-foreground">Скор.</div>
               {isEditing ? (
-                  <Input
-                    type="number"
-                    inputMode="numeric"
+                  <NumericInput
                     value={character.speed}
-                    onChange={(e) => onChange({ speed: parseInt(e.target.value) || 30 })}
+                    min={0}
+                    onChange={(v) => onChange({ speed: v })}
                     className="text-center text-base font-bold h-10 mt-1 w-20 mx-auto font-mono"
                     data-testid="input-speed"
                   />
@@ -526,7 +578,10 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
         {!hideHp && (
           <HpTracker
             current={character.currentHp}
-            max={character.maxHp}
+            max={effectiveMaxHp}
+            calculatedMax={calculatedMaxHp}
+            customMaxHpBonus={character.customMaxHpBonus || 0}
+            isAutoCalc={isLevel1}
             temp={character.tempHp}
             onChange={onChange}
             isEditing={isEditing}

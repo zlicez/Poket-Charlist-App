@@ -1,8 +1,18 @@
 import { z } from "zod";
-import { ABILITY_NAMES, type AbilityName, SKILLS, SIMPLE_WEAPONS, MARTIAL_WEAPONS } from "../data/d5e-constants";
+import {
+  ABILITY_NAMES,
+  type AbilityName,
+  SKILLS,
+  SIMPLE_WEAPONS,
+  MARTIAL_WEAPONS,
+} from "../data/d5e-constants";
 import { RACE_DATA } from "../data/d5e-races";
 import { CLASS_DATA } from "../data/d5e-classes";
-import type { ArmorData, ArmorType, BaseEquipmentItem } from "../data/d5e-equipment";
+import type {
+  ArmorData,
+  ArmorType,
+  BaseEquipmentItem,
+} from "../data/d5e-equipment";
 
 export const skillProficiencySchema = z.object({
   proficient: z.boolean().default(false),
@@ -52,7 +62,7 @@ export const deathSavesSchema = z.object({
 export type DeathSaves = z.infer<typeof deathSavesSchema>;
 
 export const WEAPON_ABILITY_MODS = ["str", "dex"] as const;
-export type WeaponAbilityMod = typeof WEAPON_ABILITY_MODS[number];
+export type WeaponAbilityMod = (typeof WEAPON_ABILITY_MODS)[number];
 
 export const weaponSchema = z.object({
   id: z.string(),
@@ -82,7 +92,9 @@ export const equipmentSchema = z.object({
   quantity: z.number().default(1),
   weight: z.number().optional(),
   description: z.string().optional(),
-  category: z.enum(["weapon", "armor", "food", "potion", "tool", "misc"]).default("misc"),
+  category: z
+    .enum(["weapon", "armor", "food", "potion", "tool", "misc"])
+    .default("misc"),
   isArmor: z.boolean().optional(),
   armorType: z.enum(["none", "light", "medium", "heavy", "shield"]).optional(),
   armorBaseAC: z.number().optional(),
@@ -141,13 +153,31 @@ export const spellSlotSchema = z.object({
 
 export type SpellSlot = z.infer<typeof spellSlotSchema>;
 
+export const pactMagicSchema = z.object({
+  slotLevel: z.number().min(1).max(5).default(1),
+  max: z.number().min(0).default(0),
+  used: z.number().min(0).default(0),
+});
+
+export type PactMagic = z.infer<typeof pactMagicSchema>;
+
 export const spellcastingSchema = z.object({
   ability: z.enum(["STR", "DEX", "CON", "INT", "WIS", "CHA"]).default("INT"),
-  spellSlots: z.array(spellSlotSchema).length(9).default([
-    { max: 0, used: 0 }, { max: 0, used: 0 }, { max: 0, used: 0 },
-    { max: 0, used: 0 }, { max: 0, used: 0 }, { max: 0, used: 0 },
-    { max: 0, used: 0 }, { max: 0, used: 0 }, { max: 0, used: 0 },
-  ]),
+  spellSlots: z
+    .array(spellSlotSchema)
+    .length(9)
+    .default([
+      { max: 0, used: 0 },
+      { max: 0, used: 0 },
+      { max: 0, used: 0 },
+      { max: 0, used: 0 },
+      { max: 0, used: 0 },
+      { max: 0, used: 0 },
+      { max: 0, used: 0 },
+      { max: 0, used: 0 },
+      { max: 0, used: 0 },
+    ]),
+  pactMagic: pactMagicSchema.default({ slotLevel: 1, max: 0, used: 0 }),
   spells: z.array(spellSchema).default([]),
 });
 
@@ -181,6 +211,7 @@ export const characterSchema = z.object({
   skills: z.record(z.string(), skillProficiencySchema),
   armorClass: z.number().min(0).default(10),
   customACBonus: z.number().default(0),
+  customMaxHpBonus: z.number().default(0),
   initiative: z.number().default(0),
   customInitiativeBonus: z.number().default(0),
   speed: z.number().min(0).default(30),
@@ -194,7 +225,12 @@ export const characterSchema = z.object({
   features: z.array(featureSchema).default([]),
   equipment: z.array(equipmentSchema).default([]),
   money: moneySchema.default({ cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }),
-  proficiencies: proficienciesSchema.default({ languages: [], weapons: [], armor: [], tools: [] }),
+  proficiencies: proficienciesSchema.default({
+    languages: [],
+    weapons: [],
+    armor: [],
+    tools: [],
+  }),
   spellcasting: spellcastingSchema.optional(),
   proficiencyBonus: z.number().default(2),
   notes: z.string().optional(),
@@ -213,7 +249,9 @@ export type InsertCharacter = z.infer<typeof insertCharacterSchema>;
 
 // Allowlist for public character sharing — explicitly omit private fields.
 // Adding a new private field? Omit it here too.
-export const publicCharacterSchema = characterSchema.omit({ userId: true, notes: true });
+export const publicCharacterSchema = characterSchema.omit({
+  userId: true,
+});
 export type PublicCharacter = z.infer<typeof publicCharacterSchema>;
 
 export function calculateModifier(score: number): number {
@@ -228,39 +266,50 @@ export function formatModifier(mod: number): string {
   return mod >= 0 ? `+${mod}` : `${mod}`;
 }
 
-export function getRacialBonuses(race: string, subrace?: string): Partial<Record<AbilityName, number>> {
+export function getRacialBonuses(
+  race: string,
+  subrace?: string,
+): Partial<Record<AbilityName, number>> {
   const raceData = RACE_DATA[race];
   if (!raceData) return {};
-  
+
   const bonuses = { ...raceData.abilityBonuses };
-  
+
   if (subrace && raceData.subraces && raceData.subraces[subrace]) {
     const subraceData = raceData.subraces[subrace];
     for (const ability of ABILITY_NAMES) {
       if (subraceData.abilityBonuses[ability]) {
-        bonuses[ability] = (bonuses[ability] || 0) + subraceData.abilityBonuses[ability]!;
+        bonuses[ability] =
+          (bonuses[ability] || 0) + subraceData.abilityBonuses[ability]!;
       }
     }
   }
-  
+
   return bonuses;
 }
 
 export function getTotalAbilityScore(
   baseScore: number,
   racialBonus: number,
-  customBonus: number
+  customBonus: number,
 ): number {
   return baseScore + racialBonus + customBonus;
 }
 
-export function getClassHitDice(className: string): { dice: string; value: number } {
+export function getClassHitDice(className: string): {
+  dice: string;
+  value: number;
+} {
   const classData = CLASS_DATA[className];
   if (!classData) return { dice: "d10", value: 10 };
   return { dice: classData.hitDice, value: classData.hitDiceValue };
 }
 
-export function calculateMaxHp(className: string, level: number, conModifier: number): number {
+export function calculateMaxHp(
+  className: string,
+  level: number,
+  conModifier: number,
+): number {
   const hitDice = getClassHitDice(className);
   const firstLevelHp = hitDice.value + conModifier;
   const avgRollPerLevel = Math.floor(hitDice.value / 2) + 1;
@@ -278,47 +327,63 @@ export function calculateAC(
   dexMod: number,
   equippedArmor: ArmorData | null,
   hasShield: boolean,
-  customACBonus: number = 0
+  customACBonus: number = 0,
 ): number {
   let baseAC = 10;
   let dexBonus = dexMod;
-  
+
   if (equippedArmor && equippedArmor.type !== "shield") {
     baseAC = equippedArmor.baseAC;
     if (equippedArmor.maxDexBonus !== null) {
-      dexBonus = Math.min(dexMod, equippedArmor.maxDexBonus);
+      dexBonus =
+        equippedArmor.maxDexBonus === 0
+          ? 0
+          : Math.min(dexMod, equippedArmor.maxDexBonus);
     }
   }
-  
+
   const shieldBonus = hasShield ? 2 : 0;
   return baseAC + dexBonus + shieldBonus + customACBonus;
 }
 
-export function isWeaponProficient(weaponName: string, proficiencies: Proficiencies): boolean {
+export function isWeaponProficient(
+  weaponName: string,
+  proficiencies: Proficiencies,
+): boolean {
   const weaponProfs = proficiencies.weapons || [];
-  
+
   if (weaponProfs.includes(weaponName)) return true;
-  
-  const isSimpleWeapon = (SIMPLE_WEAPONS as readonly string[]).includes(weaponName);
-  const isMartialWeapon = (MARTIAL_WEAPONS as readonly string[]).includes(weaponName);
-  
+
+  const isSimpleWeapon = (SIMPLE_WEAPONS as readonly string[]).includes(
+    weaponName,
+  );
+  const isMartialWeapon = (MARTIAL_WEAPONS as readonly string[]).includes(
+    weaponName,
+  );
+
   if (weaponProfs.includes("Простое оружие") && isSimpleWeapon) return true;
   if (weaponProfs.includes("Воинское оружие") && isMartialWeapon) return true;
   if (weaponProfs.includes("Воинское оружие") && isSimpleWeapon) return true;
-  
+
   return false;
 }
 
-export function isArmorProficient(armorType: ArmorType | undefined, proficiencies: Proficiencies): boolean {
+export function isArmorProficient(
+  armorType: ArmorType | undefined,
+  proficiencies: Proficiencies,
+): boolean {
   const armorProfs = proficiencies.armor || [];
-  
+
   if (!armorType || armorType === "none") return true;
-  
-  if (armorType === "light" && armorProfs.includes("Лёгкие доспехи")) return true;
-  if (armorType === "medium" && armorProfs.includes("Средние доспехи")) return true;
-  if (armorType === "heavy" && armorProfs.includes("Тяжёлые доспехи")) return true;
+
+  if (armorType === "light" && armorProfs.includes("Лёгкие доспехи"))
+    return true;
+  if (armorType === "medium" && armorProfs.includes("Средние доспехи"))
+    return true;
+  if (armorType === "heavy" && armorProfs.includes("Тяжёлые доспехи"))
+    return true;
   if (armorType === "shield" && armorProfs.includes("Щиты")) return true;
-  
+
   return false;
 }
 
@@ -333,11 +398,11 @@ export interface CombinedProficiencies {
 export function getRaceAndClassProficiencies(
   race: string,
   className: string,
-  subrace?: string
+  subrace?: string,
 ): CombinedProficiencies {
   const raceData = RACE_DATA[race];
   const classData = CLASS_DATA[className];
-  
+
   const result: CombinedProficiencies = {
     languages: [],
     weapons: [],
@@ -345,14 +410,14 @@ export function getRaceAndClassProficiencies(
     tools: [],
     darkvision: null,
   };
-  
+
   if (raceData) {
     result.languages = [...raceData.languages];
     result.weapons = [...(raceData.weaponProficiencies || [])];
     result.armor = [...(raceData.armorProficiencies || [])];
     result.tools = [...(raceData.toolProficiencies || [])];
     result.darkvision = raceData.darkvision || null;
-    
+
     if (subrace && raceData.subraces && raceData.subraces[subrace]) {
       const subraceData = raceData.subraces[subrace];
       if (subraceData.weaponProficiencies) {
@@ -369,44 +434,56 @@ export function getRaceAndClassProficiencies(
       }
     }
   }
-  
+
   if (classData) {
     result.weapons.push(...classData.weaponProficiencies);
     result.armor.push(...classData.armorProficiencies);
     result.tools.push(...classData.toolProficiencies);
   }
-  
+
   result.languages = Array.from(new Set(result.languages));
   result.weapons = Array.from(new Set(result.weapons));
   result.armor = Array.from(new Set(result.armor));
   result.tools = Array.from(new Set(result.tools));
-  
+
   return result;
 }
 
-export function calculateSpellSaveDC(abilityModifier: number, proficiencyBonus: number): number {
+export function calculateSpellSaveDC(
+  abilityModifier: number,
+  proficiencyBonus: number,
+): number {
   return 8 + proficiencyBonus + abilityModifier;
 }
 
-export function calculateSpellAttackBonus(abilityModifier: number, proficiencyBonus: number): number {
+export function calculateSpellAttackBonus(
+  abilityModifier: number,
+  proficiencyBonus: number,
+): number {
   return proficiencyBonus + abilityModifier;
 }
 
-export function getRaceDarkvision(race: string, subrace?: string): number | null {
+export function getRaceDarkvision(
+  race: string,
+  subrace?: string,
+): number | null {
   const raceData = RACE_DATA[race];
   if (!raceData) return null;
-  
+
   if (subrace && raceData.subraces && raceData.subraces[subrace]) {
     const subraceData = raceData.subraces[subrace];
     if (subraceData.darkvision) return subraceData.darkvision;
   }
-  
+
   return raceData.darkvision || null;
 }
 
 export const getDarkvision = getRaceDarkvision;
 
-export function createEquipmentFromBase(baseItem: BaseEquipmentItem, quantity: number = 1): Omit<Equipment, "id"> {
+export function createEquipmentFromBase(
+  baseItem: BaseEquipmentItem,
+  quantity: number = 1,
+): Omit<Equipment, "id"> {
   return {
     name: baseItem.name,
     quantity,
@@ -428,30 +505,46 @@ export function createEquipmentFromBase(baseItem: BaseEquipmentItem, quantity: n
   };
 }
 
-export function getCharacterClasses(character: { class: string; level: number; subclass?: string; classes?: ClassEntry[] }): ClassEntry[] {
+export function getCharacterClasses(character: {
+  class: string;
+  level: number;
+  subclass?: string;
+  classes?: ClassEntry[];
+}): ClassEntry[] {
   if (character.classes && character.classes.length > 0) {
     return character.classes;
   }
-  return [{ name: character.class, level: character.level, subclass: character.subclass }];
+  return [
+    {
+      name: character.class,
+      level: character.level,
+      subclass: character.subclass,
+    },
+  ];
 }
 
 export function getTotalLevel(classes: ClassEntry[]): number {
-  return Math.min(20, classes.reduce((sum, c) => sum + c.level, 0));
+  return Math.min(
+    20,
+    classes.reduce((sum, c) => sum + c.level, 0),
+  );
 }
 
 export function formatClassesDisplay(classes: ClassEntry[]): string {
   if (classes.length <= 1) {
     return classes[0]?.name || "";
   }
-  return classes.map(c => `${c.name} ${c.level}`).join(" / ");
+  return classes.map((c) => `${c.name} ${c.level}`).join(" / ");
 }
 
-export function getMulticlassHitDice(classes: ClassEntry[]): { dice: string; count: number }[] {
+export function getMulticlassHitDice(
+  classes: ClassEntry[],
+): { dice: string; count: number }[] {
   const result: { dice: string; count: number }[] = [];
   for (const entry of classes) {
     const classData = CLASS_DATA[entry.name];
     const dice = classData?.hitDice || "d10";
-    const existing = result.find(r => r.dice === dice);
+    const existing = result.find((r) => r.dice === dice);
     if (existing) {
       existing.count += entry.level;
     } else {
@@ -462,19 +555,23 @@ export function getMulticlassHitDice(classes: ClassEntry[]): { dice: string; cou
 }
 
 export function hasAnyCasterClass(classes: ClassEntry[]): boolean {
-  return classes.some(c => CLASS_DATA[c.name]?.spellcastingAbility);
+  return classes.some((c) => CLASS_DATA[c.name]?.spellcastingAbility);
 }
 
-export const DEFAULT_SKILLS_PROFICIENCY: Record<string, SkillProficiency> = Object.fromEntries(
-  SKILLS.map(skill => [skill.name, { proficient: false, expertise: false }])
-);
+export const DEFAULT_SKILLS_PROFICIENCY: Record<string, SkillProficiency> =
+  Object.fromEntries(
+    SKILLS.map((skill) => [
+      skill.name,
+      { proficient: false, expertise: false },
+    ]),
+  );
 
 export function createDefaultCharacter(): InsertCharacter {
   const defaultClass = "Воин";
   const classData = CLASS_DATA[defaultClass];
   const defaultConMod = 0;
   const defaultMaxHp = calculateMaxHp(defaultClass, 1, defaultConMod);
-  
+
   return {
     name: "Новый персонаж",
     class: defaultClass,
@@ -486,13 +583,13 @@ export function createDefaultCharacter(): InsertCharacter {
     experience: 0,
     abilityScores: { STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10 },
     customAbilityBonuses: { STR: 0, DEX: 0, CON: 0, INT: 0, WIS: 0, CHA: 0 },
-    savingThrows: { 
-      STR: classData.savingThrows.includes("STR"), 
-      DEX: classData.savingThrows.includes("DEX"), 
-      CON: classData.savingThrows.includes("CON"), 
-      INT: classData.savingThrows.includes("INT"), 
-      WIS: classData.savingThrows.includes("WIS"), 
-      CHA: classData.savingThrows.includes("CHA") 
+    savingThrows: {
+      STR: classData.savingThrows.includes("STR"),
+      DEX: classData.savingThrows.includes("DEX"),
+      CON: classData.savingThrows.includes("CON"),
+      INT: classData.savingThrows.includes("INT"),
+      WIS: classData.savingThrows.includes("WIS"),
+      CHA: classData.savingThrows.includes("CHA"),
     },
     skills: { ...DEFAULT_SKILLS_PROFICIENCY },
     armorClass: 10,
@@ -501,6 +598,7 @@ export function createDefaultCharacter(): InsertCharacter {
     customInitiativeBonus: 0,
     speed: 30,
     maxHp: defaultMaxHp,
+    customMaxHpBonus: 0,
     currentHp: defaultMaxHp,
     tempHp: 0,
     hitDice: `1${classData.hitDice}`,

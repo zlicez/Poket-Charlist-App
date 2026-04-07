@@ -1,12 +1,20 @@
 import { useState } from "react";
+
 import { generateId } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   ResponsiveDialog,
   ResponsiveDialogTrigger,
@@ -15,7 +23,17 @@ import {
   ResponsiveDialogTitle,
   ResponsiveDialogFooter,
 } from "@/components/ui/responsive-dialog";
-import { Sparkles, Plus, Trash2, ChevronDown, ChevronRight, Lock, Unlock } from "lucide-react";
+import { RichTextContent } from "@/components/RichTextContent";
+import { RichTextField } from "@/components/RichTextField";
+import {
+  Sparkles,
+  Plus,
+  Trash2,
+  ChevronDown,
+  ChevronRight,
+  Lock,
+  Unlock,
+} from "lucide-react";
 import type { Feature } from "@shared/schema";
 
 interface FeaturesListProps {
@@ -26,7 +44,11 @@ interface FeaturesListProps {
   onToggleLock?: () => void;
 }
 
-function AddFeatureDialog({ onAdd }: { onAdd: (feature: Omit<Feature, "id">) => void }) {
+function AddFeatureDialog({
+  onAdd,
+}: {
+  onAdd: (feature: Omit<Feature, "id">) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [source, setSource] = useState("");
@@ -34,6 +56,7 @@ function AddFeatureDialog({ onAdd }: { onAdd: (feature: Omit<Feature, "id">) => 
 
   const handleSubmit = () => {
     if (!name.trim()) return;
+
     onAdd({ name, source, description });
     setName("");
     setSource("");
@@ -44,7 +67,12 @@ function AddFeatureDialog({ onAdd }: { onAdd: (feature: Omit<Feature, "id">) => 
   return (
     <ResponsiveDialog open={open} onOpenChange={setOpen}>
       <ResponsiveDialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1 h-9 sm:h-8" data-testid="button-add-feature">
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1 h-9 sm:h-8"
+          data-testid="button-add-feature"
+        >
           <Plus className="w-4 h-4" />
           Добавить
         </Button>
@@ -58,7 +86,7 @@ function AddFeatureDialog({ onAdd }: { onAdd: (feature: Omit<Feature, "id">) => 
             <label className="text-sm text-muted-foreground">Название</label>
             <Input
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(event) => setName(event.target.value)}
               placeholder="Второе дыхание"
               data-testid="input-feature-name"
             />
@@ -67,37 +95,54 @@ function AddFeatureDialog({ onAdd }: { onAdd: (feature: Omit<Feature, "id">) => 
             <label className="text-sm text-muted-foreground">Источник</label>
             <Input
               value={source}
-              onChange={(e) => setSource(e.target.value)}
+              onChange={(event) => setSource(event.target.value)}
               placeholder="Воин 1"
               data-testid="input-feature-source"
             />
           </div>
           <div>
             <label className="text-sm text-muted-foreground">Описание</label>
-            <Textarea
+            <RichTextField
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={setDescription}
               placeholder="Опишите, как работает эта способность..."
               rows={4}
-              data-testid="input-feature-description"
+              textareaTestId="input-feature-description"
+              previewTestId="preview-feature-description"
+              previewContainerClassName="min-h-[140px]"
             />
           </div>
         </div>
         <ResponsiveDialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Отмена</Button>
-          <Button onClick={handleSubmit} data-testid="button-save-feature">Сохранить</Button>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Отмена
+          </Button>
+          <Button onClick={handleSubmit} data-testid="button-save-feature">
+            Сохранить
+          </Button>
         </ResponsiveDialogFooter>
       </ResponsiveDialogContent>
     </ResponsiveDialog>
   );
 }
 
-function FeatureItem({ feature, onRemove, canModify }: { feature: Feature; onRemove: () => void; canModify: boolean }) {
+function FeatureItem({
+  feature,
+  onRemove,
+  canModify,
+}: {
+  feature: Feature;
+  onRemove: () => void;
+  canModify: boolean;
+}) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <div className="rounded-md bg-muted/30 overflow-hidden" data-testid={`feature-${feature.id}`}>
+      <div
+        className="rounded-md bg-muted/30 overflow-hidden"
+        data-testid={`feature-${feature.id}`}
+      >
         <CollapsibleTrigger className="w-full">
           <div className="flex items-center gap-2 p-2 hover-elevate min-h-[44px] sm:min-h-0">
             {isOpen ? (
@@ -105,17 +150,21 @@ function FeatureItem({ feature, onRemove, canModify }: { feature: Feature; onRem
             ) : (
               <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
             )}
-            <span className="font-medium text-sm text-left flex-1">{feature.name}</span>
+            <span className="font-medium text-sm text-left flex-1">
+              {feature.name}
+            </span>
             {feature.source && (
-              <Badge variant="outline" className="text-xs shrink-0">{feature.source}</Badge>
+              <Badge variant="outline" className="text-xs shrink-0">
+                {feature.source}
+              </Badge>
             )}
             {canModify && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 className="text-destructive shrink-0 h-9 w-9 sm:h-8 sm:w-8"
-                onClick={(e) => {
-                  e.stopPropagation();
+                onClick={(event) => {
+                  event.stopPropagation();
                   onRemove();
                 }}
                 data-testid={`button-remove-feature-${feature.id}`}
@@ -127,9 +176,12 @@ function FeatureItem({ feature, onRemove, canModify }: { feature: Feature; onRem
         </CollapsibleTrigger>
         <CollapsibleContent>
           <div className="px-2 pb-2 pt-0">
-            <p className="text-xs text-muted-foreground whitespace-pre-wrap pl-6">
-              {feature.description || "Описание отсутствует"}
-            </p>
+            <RichTextContent
+              content={feature.description}
+              className="pl-6"
+              emptyState="Описание отсутствует"
+              testId={`feature-description-${feature.id}`}
+            />
           </div>
         </CollapsibleContent>
       </div>
@@ -137,7 +189,13 @@ function FeatureItem({ feature, onRemove, canModify }: { feature: Feature; onRem
   );
 }
 
-export function FeaturesList({ features, onChange, isEditing, isLocked = false, onToggleLock }: FeaturesListProps) {
+export function FeaturesList({
+  features,
+  onChange,
+  isEditing,
+  isLocked = false,
+  onToggleLock,
+}: FeaturesListProps) {
   const canModify = isEditing || !isLocked;
 
   const addFeature = (feature: Omit<Feature, "id">) => {
@@ -145,7 +203,7 @@ export function FeaturesList({ features, onChange, isEditing, isLocked = false, 
   };
 
   const removeFeature = (id: string) => {
-    onChange(features.filter((f) => f.id !== id));
+    onChange(features.filter((feature) => feature.id !== id));
   };
 
   return (
@@ -163,14 +221,22 @@ export function FeaturesList({ features, onChange, isEditing, isLocked = false, 
                   variant="ghost"
                   size="icon"
                   onClick={onToggleLock}
-                  className={`h-9 w-9 sm:h-8 sm:w-8 ${isLocked ? "text-muted-foreground" : "text-accent"}`}
+                  className={`h-9 w-9 sm:h-8 sm:w-8 ${
+                    isLocked ? "text-muted-foreground" : "text-accent"
+                  }`}
                   data-testid="button-toggle-features-lock"
                 >
-                  {isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                  {isLocked ? (
+                    <Lock className="w-4 h-4" />
+                  ) : (
+                    <Unlock className="w-4 h-4" />
+                  )}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                {isLocked ? "Разблокировать редактирование" : "Заблокировать редактирование"}
+                {isLocked
+                  ? "Разблокировать редактирование"
+                  : "Заблокировать редактирование"}
               </TooltipContent>
             </Tooltip>
           )}
@@ -180,12 +246,14 @@ export function FeaturesList({ features, onChange, isEditing, isLocked = false, 
 
       {features.length === 0 ? (
         <div className="text-center py-4 text-muted-foreground text-xs">
-          {isEditing ? "Нажмите \"Добавить\" чтобы добавить способность" : "Нет способностей"}
+          {isEditing
+            ? 'Нажмите "Добавить" чтобы добавить способность'
+            : "Нет способностей"}
         </div>
       ) : (
         <div className="space-y-2">
           {features.map((feature) => (
-            <FeatureItem 
+            <FeatureItem
               key={feature.id}
               feature={feature}
               onRemove={() => removeFeature(feature.id)}

@@ -301,6 +301,7 @@ function parseLSSData(data: any): InsertCharacter {
     skills,
     armorClass,
     customACBonus: 0,
+    customMaxHpBonus: 0,
     initiative: 0,
     customInitiativeBonus: 0,
     speed,
