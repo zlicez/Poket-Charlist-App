@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
@@ -156,23 +157,18 @@ export function AbilityWithSkills({
           </span>
           {isEditing ? (
             <div className="flex items-center gap-1.5">
-              <Input
-                type="number"
-                inputMode="numeric"
+              <NumericInput
                 min={1}
                 max={30}
                 value={baseScore}
-                onChange={(e) => onScoreChange(parseInt(e.target.value) || 10)}
+                onChange={onScoreChange}
                 className="text-center text-sm font-bold h-7 w-12 bg-background"
                 data-testid={`input-ability-${ability.toLowerCase()}`}
               />
-              <Input
-                type="number"
-                inputMode="numeric"
+              <NumericInput
                 value={customBonus}
-                onChange={(e) => onCustomBonusChange(parseInt(e.target.value) || 0)}
+                onChange={onCustomBonusChange}
                 className="text-center text-xs h-7 w-10 bg-background"
-                placeholder="бонус"
                 data-testid={`input-ability-bonus-${ability.toLowerCase()}`}
               />
             </div>
@@ -261,24 +257,20 @@ export function AbilityWithSkills({
 
               {isEditing ? (
                 <div className="mt-1.5 space-y-1">
-                  <Input
-                    type="number"
-                    inputMode="numeric"
+                  <NumericInput
                     min={1}
                     max={30}
                     value={baseScore}
-                    onChange={(e) => onScoreChange(parseInt(e.target.value) || 10)}
+                    onChange={onScoreChange}
                     className="text-center text-base font-bold h-10 w-14 bg-background"
                     onClick={(e) => e.stopPropagation()}
                     data-testid={`input-ability-${ability.toLowerCase()}`}
                   />
                   <div className="flex items-center justify-center gap-1">
                     <span className="text-xs text-muted-foreground">бонус</span>
-                    <Input
-                      type="number"
-                      inputMode="numeric"
+                    <NumericInput
                       value={customBonus}
-                      onChange={(e) => onCustomBonusChange(parseInt(e.target.value) || 0)}
+                      onChange={onCustomBonusChange}
                       className="text-center text-xs h-8 w-10 bg-background"
                       onClick={(e) => e.stopPropagation()}
                       data-testid={`input-ability-bonus-${ability.toLowerCase()}`}

@@ -27,6 +27,8 @@ import {
   formatModifier,
   getRacialBonuses,
   getCharacterClasses,
+  getTotalLevel,
+  calculateMaxHp,
   hasAnyCasterClass,
   type AbilityName,
   type Weapon,
@@ -252,6 +254,14 @@ function CharacterSheetContent() {
   }
 
   const racialBonuses = getRacialBonuses(character.race, character.subrace);
+  const charClassesForHp = getCharacterClasses(character);
+  const totalLevelForHp = getTotalLevel(charClassesForHp);
+  const conModForHp = calculateModifier(character.abilityScores.CON + (racialBonuses.CON || 0) + (character.customAbilityBonuses?.CON || 0));
+  const isLevel1ForHp = totalLevelForHp === 1;
+  const calculatedMaxHp = calculateMaxHp(charClassesForHp[0]?.name || character.class, 1, conModForHp);
+  const effectiveMaxHp = isLevel1ForHp
+    ? calculatedMaxHp + (character.customMaxHpBonus || 0)
+    : character.maxHp;
   const showSpellsSection = isEditing || !!character.spellcasting || hasAnyCasterClass(getCharacterClasses(character));
   const sectionNavItems = [
     { id: "section-combat", label: "Общее", icon: User },
@@ -433,7 +443,10 @@ function CharacterSheetContent() {
               <div className="space-y-3">
                 <HpTracker
                   current={character.currentHp}
-                  max={character.maxHp}
+                  max={effectiveMaxHp}
+                  calculatedMax={calculatedMaxHp}
+                  customMaxHpBonus={character.customMaxHpBonus || 0}
+                  isAutoCalc={isLevel1ForHp}
                   temp={character.tempHp}
                   onChange={handleChange}
                   isEditing={isEditing}
