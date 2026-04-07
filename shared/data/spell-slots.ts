@@ -1,9 +1,8 @@
 /**
- * D&D 5e Spell Slot Tables
- * Index: [characterLevel - 1] → [1st, 2nd, 3rd, 4th, 5th, 6th, 7th, 8th, 9th]
+ * D&D 5e spell slot tables.
+ * Index: [characterLevel - 1] -> [1st, 2nd, 3rd, 4th, 5th, 6th, 7th, 8th, 9th]
  */
 
-// Full Casters: Бард, Волшебник, Друид, Жрец, Чародей
 const FULL_CASTER: number[][] = [
   [2, 0, 0, 0, 0, 0, 0, 0, 0], // 1
   [3, 0, 0, 0, 0, 0, 0, 0, 0], // 2
@@ -27,7 +26,6 @@ const FULL_CASTER: number[][] = [
   [4, 3, 3, 3, 3, 2, 2, 1, 1], // 20
 ];
 
-// Half Casters: Паладин, Следопыт (spell slots start at class level 2)
 const HALF_CASTER: number[][] = [
   [0, 0, 0, 0, 0, 0, 0, 0, 0], // 1
   [2, 0, 0, 0, 0, 0, 0, 0, 0], // 2
@@ -51,7 +49,6 @@ const HALF_CASTER: number[][] = [
   [4, 3, 3, 3, 2, 0, 0, 0, 0], // 20
 ];
 
-// Изобретатель (Artificer) — half-caster, but spell slots start at class level 1
 const ARTIFICER: number[][] = [
   [2, 0, 0, 0, 0, 0, 0, 0, 0], // 1
   [2, 0, 0, 0, 0, 0, 0, 0, 0], // 2
@@ -75,30 +72,38 @@ const ARTIFICER: number[][] = [
   [4, 3, 3, 3, 2, 0, 0, 0, 0], // 20
 ];
 
-// Колдун (Warlock) — Pact Magic, stored in 9-slot format.
-// All pact slots are the same level; represented as N slots at the appropriate level index.
-const WARLOCK: number[][] = [
-  [1, 0, 0, 0, 0, 0, 0, 0, 0], // 1: 1×1st
-  [2, 0, 0, 0, 0, 0, 0, 0, 0], // 2: 2×1st
-  [0, 2, 0, 0, 0, 0, 0, 0, 0], // 3: 2×2nd
-  [0, 2, 0, 0, 0, 0, 0, 0, 0], // 4: 2×2nd
-  [0, 0, 2, 0, 0, 0, 0, 0, 0], // 5: 2×3rd
-  [0, 0, 2, 0, 0, 0, 0, 0, 0], // 6: 2×3rd
-  [0, 0, 0, 2, 0, 0, 0, 0, 0], // 7: 2×4th
-  [0, 0, 0, 2, 0, 0, 0, 0, 0], // 8: 2×4th
-  [0, 0, 0, 0, 2, 0, 0, 0, 0], // 9: 2×5th
-  [0, 0, 0, 0, 2, 0, 0, 0, 0], // 10: 2×5th
-  [0, 0, 0, 0, 3, 0, 0, 0, 0], // 11: 3×5th
-  [0, 0, 0, 0, 3, 0, 0, 0, 0], // 12
-  [0, 0, 0, 0, 3, 0, 0, 0, 0], // 13
-  [0, 0, 0, 0, 3, 0, 0, 0, 0], // 14
-  [0, 0, 0, 0, 3, 0, 0, 0, 0], // 15
-  [0, 0, 0, 0, 3, 0, 0, 0, 0], // 16
-  [0, 0, 0, 0, 4, 0, 0, 0, 0], // 17: 4×5th
-  [0, 0, 0, 0, 4, 0, 0, 0, 0], // 18
-  [0, 0, 0, 0, 4, 0, 0, 0, 0], // 19
-  [0, 0, 0, 0, 4, 0, 0, 0, 0], // 20
+export interface PactMagicProgression {
+  slotLevel: number;
+  max: number;
+}
+
+const WARLOCK_PACT_MAGIC: PactMagicProgression[] = [
+  { slotLevel: 1, max: 1 }, // 1
+  { slotLevel: 1, max: 2 }, // 2
+  { slotLevel: 2, max: 2 }, // 3
+  { slotLevel: 2, max: 2 }, // 4
+  { slotLevel: 3, max: 2 }, // 5
+  { slotLevel: 3, max: 2 }, // 6
+  { slotLevel: 4, max: 2 }, // 7
+  { slotLevel: 4, max: 2 }, // 8
+  { slotLevel: 5, max: 2 }, // 9
+  { slotLevel: 5, max: 2 }, // 10
+  { slotLevel: 5, max: 3 }, // 11
+  { slotLevel: 5, max: 3 }, // 12
+  { slotLevel: 5, max: 3 }, // 13
+  { slotLevel: 5, max: 3 }, // 14
+  { slotLevel: 5, max: 3 }, // 15
+  { slotLevel: 5, max: 3 }, // 16
+  { slotLevel: 5, max: 4 }, // 17
+  { slotLevel: 5, max: 4 }, // 18
+  { slotLevel: 5, max: 4 }, // 19
+  { slotLevel: 5, max: 4 }, // 20
 ];
+
+export interface SpellcastingProgression {
+  spellSlots: number[] | null;
+  pactMagic: PactMagicProgression | null;
+}
 
 type CasterType = "full" | "half" | "artificer" | "warlock";
 
@@ -114,51 +119,98 @@ export const CLASS_CASTER_TYPE: Record<string, CasterType> = {
   Колдун: "warlock",
 };
 
-const TABLE_BY_TYPE: Record<CasterType, number[][]> = {
+const TABLE_BY_TYPE: Record<Exclude<CasterType, "warlock">, number[][]> = {
   full: FULL_CASTER,
   half: HALF_CASTER,
   artificer: ARTIFICER,
-  warlock: WARLOCK,
 };
 
-/**
- * Returns the max spell slots (array of 9) for a single-class caster at the given level,
- * or null if the class has no spellcasting.
- */
-export function getSpellSlotsForClass(
-  className: string,
-  level: number
-): number[] | null {
-  const casterType = CLASS_CASTER_TYPE[className];
-  if (!casterType) return null;
-  const safeLevel = Math.max(1, Math.min(20, level));
-  return TABLE_BY_TYPE[casterType][safeLevel - 1];
+function clampLevel(level: number): number {
+  return Math.max(1, Math.min(20, level));
 }
 
 /**
- * Computes multiclass spell slots per D&D 5e rules.
+ * Returns regular Spellcasting slots for a single-class caster.
+ * Warlock uses Pact Magic and therefore returns null here.
+ */
+export function getSpellSlotsForClass(
+  className: string,
+  level: number,
+): number[] | null {
+  const casterType = CLASS_CASTER_TYPE[className];
+  if (!casterType || casterType === "warlock") return null;
+
+  return TABLE_BY_TYPE[casterType][clampLevel(level) - 1];
+}
+
+export function getPactMagicForClass(
+  className: string,
+  level: number,
+): PactMagicProgression | null {
+  if (CLASS_CASTER_TYPE[className] !== "warlock") return null;
+  return WARLOCK_PACT_MAGIC[clampLevel(level) - 1];
+}
+
+/**
+ * Computes regular Spellcasting slots per D&D 5e multiclass rules.
  * - Full casters count their full class level
  * - Half casters count floor(level / 2)
  * - Artificer counts ceil(level / 2)
- * - Warlocks (Pact Magic) do not contribute to multiclass spell slots
- *
- * The resulting effective caster level indexes into the full-caster table.
- * Returns null if there are no caster classes.
+ * - Warlock Pact Magic stays separate and does not contribute here
  */
 export function getMulticlassSpellSlots(
-  classes: { name: string; level: number }[]
+  classes: { name: string; level: number }[],
 ): number[] | null {
   let effectiveCasterLevel = 0;
 
-  for (const c of classes) {
-    const type = CLASS_CASTER_TYPE[c.name];
+  for (const characterClass of classes) {
+    const type = CLASS_CASTER_TYPE[characterClass.name];
     if (!type || type === "warlock") continue;
-    if (type === "full") effectiveCasterLevel += c.level;
-    else if (type === "half") effectiveCasterLevel += Math.floor(c.level / 2);
-    else if (type === "artificer") effectiveCasterLevel += Math.ceil(c.level / 2);
+
+    if (type === "full") {
+      effectiveCasterLevel += characterClass.level;
+      continue;
+    }
+
+    if (type === "half") {
+      effectiveCasterLevel += Math.floor(characterClass.level / 2);
+      continue;
+    }
+
+    effectiveCasterLevel += Math.ceil(characterClass.level / 2);
   }
 
   if (effectiveCasterLevel === 0) return null;
-  const safeLevel = Math.max(1, Math.min(20, effectiveCasterLevel));
-  return FULL_CASTER[safeLevel - 1];
+  return FULL_CASTER[clampLevel(effectiveCasterLevel) - 1];
+}
+
+export function getSpellcastingProgression(
+  classes: { name: string; level: number }[],
+): SpellcastingProgression {
+  const standardCasterClasses = classes.filter((characterClass) => {
+    const casterType = CLASS_CASTER_TYPE[characterClass.name];
+    return casterType && casterType !== "warlock";
+  });
+
+  const warlockLevel = classes.reduce((total, characterClass) => {
+    return CLASS_CASTER_TYPE[characterClass.name] === "warlock"
+      ? total + characterClass.level
+      : total;
+  }, 0);
+
+  const spellSlots =
+    standardCasterClasses.length === 0
+      ? null
+      : standardCasterClasses.length === 1
+        ? getSpellSlotsForClass(
+            standardCasterClasses[0].name,
+            standardCasterClasses[0].level,
+          )
+        : getMulticlassSpellSlots(classes);
+
+  return {
+    spellSlots,
+    pactMagic:
+      warlockLevel > 0 ? getPactMagicForClass("Колдун", warlockLevel) : null,
+  };
 }

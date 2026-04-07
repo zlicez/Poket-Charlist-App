@@ -10,13 +10,13 @@ input[type="number"]::-webkit-inner-spin-button {
 
 /* LIGHT MODE - Fantasy Parchment Theme */
 :root {
-  --button-outline: rgba(0, 0, 0, .10);
-  --badge-outline: rgba(0, 0, 0, .05);
+  --button-outline: rgba(0, 0, 0, 0.1);
+  --badge-outline: rgba(0, 0, 0, 0.05);
 
   --opaque-button-border-intensity: -8;
 
-  --elevate-1: rgba(0, 0, 0, .03);
-  --elevate-2: rgba(0, 0, 0, .08);
+  --elevate-1: rgba(0, 0, 0, 0.03);
+  --elevate-2: rgba(0, 0, 0, 0.08);
 
   --background: 35 30% 95%;
   --foreground: 25 30% 15%;
@@ -92,46 +92,77 @@ input[type="number"]::-webkit-inner-spin-button {
   --color-death-success: 142 60% 45%;
   --color-death-fail: 0 60% 50%;
 
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-serif: 'Lora', Georgia, serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
-  --radius: .5rem;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-serif: "Lora", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --radius: 0.5rem;
   --shadow-2xs: 0px 1px 2px 0px rgba(60, 45, 30, 0.05);
   --shadow-xs: 0px 1px 3px 0px rgba(60, 45, 30, 0.08);
-  --shadow-sm: 0px 2px 4px 0px rgba(60, 45, 30, 0.08), 0px 1px 2px -1px rgba(60, 45, 30, 0.05);
-  --shadow: 0px 3px 6px 0px rgba(60, 45, 30, 0.10), 0px 2px 4px -1px rgba(60, 45, 30, 0.06);
-  --shadow-md: 0px 4px 8px 0px rgba(60, 45, 30, 0.12), 0px 2px 4px -2px rgba(60, 45, 30, 0.08);
-  --shadow-lg: 0px 8px 16px 0px rgba(60, 45, 30, 0.15), 0px 4px 8px -4px rgba(60, 45, 30, 0.10);
-  --shadow-xl: 0px 16px 32px 0px rgba(60, 45, 30, 0.18), 0px 8px 16px -8px rgba(60, 45, 30, 0.12);
+  --shadow-sm:
+    0px 2px 4px 0px rgba(60, 45, 30, 0.08),
+    0px 1px 2px -1px rgba(60, 45, 30, 0.05);
+  --shadow:
+    0px 3px 6px 0px rgba(60, 45, 30, 0.1),
+    0px 2px 4px -1px rgba(60, 45, 30, 0.06);
+  --shadow-md:
+    0px 4px 8px 0px rgba(60, 45, 30, 0.12),
+    0px 2px 4px -2px rgba(60, 45, 30, 0.08);
+  --shadow-lg:
+    0px 8px 16px 0px rgba(60, 45, 30, 0.15),
+    0px 4px 8px -4px rgba(60, 45, 30, 0.1);
+  --shadow-xl:
+    0px 16px 32px 0px rgba(60, 45, 30, 0.18),
+    0px 8px 16px -8px rgba(60, 45, 30, 0.12);
   --shadow-2xl: 0px 24px 48px 0px rgba(60, 45, 30, 0.22);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 
   --sidebar-primary-border: hsl(var(--sidebar-primary));
-  --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --sidebar-primary-border: hsl(
+    from hsl(var(--sidebar-primary)) h s
+      calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
   --sidebar-accent-border: hsl(var(--sidebar-accent));
-  --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --sidebar-accent-border: hsl(
+    from hsl(var(--sidebar-accent)) h s
+      calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
   --primary-border: hsl(var(--primary));
-  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --primary-border: hsl(
+    from hsl(var(--primary)) h s
+      calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
   --secondary-border: hsl(var(--secondary));
-  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --secondary-border: hsl(
+    from hsl(var(--secondary)) h s
+      calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
   --muted-border: hsl(var(--muted));
-  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --muted-border: hsl(
+    from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) /
+      alpha
+  );
   --accent-border: hsl(var(--accent));
-  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --accent-border: hsl(
+    from hsl(var(--accent)) h s
+      calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
   --destructive-border: hsl(var(--destructive));
-  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --destructive-border: hsl(
+    from hsl(var(--destructive)) h s
+      calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
 }
 
 /* DARK MODE - Dark Fantasy Theme */
 .dark {
-  --button-outline: rgba(255, 255, 255, .10);
-  --badge-outline: rgba(255, 255, 255, .05);
+  --button-outline: rgba(255, 255, 255, 0.1);
+  --badge-outline: rgba(255, 255, 255, 0.05);
 
   --opaque-button-border-intensity: 9;
 
-  --elevate-1: rgba(255, 255, 255, .04);
-  --elevate-2: rgba(255, 255, 255, .09);
+  --elevate-1: rgba(255, 255, 255, 0.04);
+  --elevate-2: rgba(255, 255, 255, 0.09);
 
   --background: 25 25% 10%;
   --foreground: 38 25% 90%;
@@ -208,13 +239,18 @@ input[type="number"]::-webkit-inner-spin-button {
   --color-death-fail: 0 55% 55%;
 
   --shadow-2xs: 0px 1px 2px 0px rgba(0, 0, 0, 0.15);
-  --shadow-xs: 0px 1px 3px 0px rgba(0, 0, 0, 0.20);
-  --shadow-sm: 0px 2px 4px 0px rgba(0, 0, 0, 0.22), 0px 1px 2px -1px rgba(0, 0, 0, 0.15);
-  --shadow: 0px 3px 6px 0px rgba(0, 0, 0, 0.25), 0px 2px 4px -1px rgba(0, 0, 0, 0.18);
-  --shadow-md: 0px 4px 8px 0px rgba(0, 0, 0, 0.30), 0px 2px 4px -2px rgba(0, 0, 0, 0.20);
-  --shadow-lg: 0px 8px 16px 0px rgba(0, 0, 0, 0.35), 0px 4px 8px -4px rgba(0, 0, 0, 0.25);
-  --shadow-xl: 0px 16px 32px 0px rgba(0, 0, 0, 0.40), 0px 8px 16px -8px rgba(0, 0, 0, 0.30);
-  --shadow-2xl: 0px 24px 48px 0px rgba(0, 0, 0, 0.50);
+  --shadow-xs: 0px 1px 3px 0px rgba(0, 0, 0, 0.2);
+  --shadow-sm:
+    0px 2px 4px 0px rgba(0, 0, 0, 0.22), 0px 1px 2px -1px rgba(0, 0, 0, 0.15);
+  --shadow:
+    0px 3px 6px 0px rgba(0, 0, 0, 0.25), 0px 2px 4px -1px rgba(0, 0, 0, 0.18);
+  --shadow-md:
+    0px 4px 8px 0px rgba(0, 0, 0, 0.3), 0px 2px 4px -2px rgba(0, 0, 0, 0.2);
+  --shadow-lg:
+    0px 8px 16px 0px rgba(0, 0, 0, 0.35), 0px 4px 8px -4px rgba(0, 0, 0, 0.25);
+  --shadow-xl:
+    0px 16px 32px 0px rgba(0, 0, 0, 0.4), 0px 8px 16px -8px rgba(0, 0, 0, 0.3);
+  --shadow-2xl: 0px 24px 48px 0px rgba(0, 0, 0, 0.5);
 }
 
 @layer base {
@@ -238,9 +274,11 @@ input[type="number"]::-webkit-inner-spin-button {
     pointer-events: none;
   }
 
-  .no-default-hover-elevate {}
+  .no-default-hover-elevate {
+  }
 
-  .no-default-active-elevate {}
+  .no-default-active-elevate {
+  }
 
   .toggle-elevate::before,
   .toggle-elevate-2::before {
@@ -305,7 +343,11 @@ input[type="number"]::-webkit-inner-spin-button {
 
   .stat-card {
     @apply relative overflow-visible;
-    background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--card) / 0.9) 100%);
+    background: linear-gradient(
+      135deg,
+      hsl(var(--card)) 0%,
+      hsl(var(--card) / 0.9) 100%
+    );
   }
 
   .stat-card-primary {
@@ -320,7 +362,11 @@ input[type="number"]::-webkit-inner-spin-button {
   }
 
   .ability-block {
-    background: linear-gradient(to bottom, hsl(var(--color-ability-bg)), hsl(var(--color-ability-bg-to)));
+    background: linear-gradient(
+      to bottom,
+      hsl(var(--color-ability-bg)),
+      hsl(var(--color-ability-bg-to))
+    );
     border: 1px solid hsl(var(--color-ability-border));
   }
 
@@ -329,7 +375,8 @@ input[type="number"]::-webkit-inner-spin-button {
   }
 
   @keyframes dice-pulse {
-    0%, 100% {
+    0%,
+    100% {
       box-shadow: 0 0 5px hsl(var(--accent) / 0.3);
     }
     50% {
@@ -338,11 +385,21 @@ input[type="number"]::-webkit-inner-spin-button {
   }
 
   @keyframes roll-dice {
-    0% { transform: rotate(0deg) scale(1); }
-    25% { transform: rotate(90deg) scale(1.1); }
-    50% { transform: rotate(180deg) scale(1); }
-    75% { transform: rotate(270deg) scale(1.1); }
-    100% { transform: rotate(360deg) scale(1); }
+    0% {
+      transform: rotate(0deg) scale(1);
+    }
+    25% {
+      transform: rotate(90deg) scale(1.1);
+    }
+    50% {
+      transform: rotate(180deg) scale(1);
+    }
+    75% {
+      transform: rotate(270deg) scale(1.1);
+    }
+    100% {
+      transform: rotate(360deg) scale(1);
+    }
   }
 
   .rolling {
@@ -351,16 +408,28 @@ input[type="number"]::-webkit-inner-spin-button {
 
   .hp-bar {
     @apply relative h-6 rounded-md overflow-hidden;
-    background: linear-gradient(to bottom, hsl(var(--color-hp-bar-bg)), hsl(var(--color-hp-bar-bg-to)));
+    background: linear-gradient(
+      to bottom,
+      hsl(var(--color-hp-bar-bg)),
+      hsl(var(--color-hp-bar-bg-to))
+    );
   }
 
   .hp-fill {
     @apply h-full transition-all duration-300;
-    background: linear-gradient(to bottom, hsl(var(--color-hp-fill)), hsl(var(--color-hp-fill-to)));
+    background: linear-gradient(
+      to bottom,
+      hsl(var(--color-hp-fill)),
+      hsl(var(--color-hp-fill-to))
+    );
   }
 
   .hp-temp {
-    background: linear-gradient(to bottom, hsl(var(--color-hp-temp)), hsl(var(--color-hp-temp-to)));
+    background: linear-gradient(
+      to bottom,
+      hsl(var(--color-hp-temp)),
+      hsl(var(--color-hp-temp-to))
+    );
   }
 
   .scrollbar-hide {
@@ -370,6 +439,107 @@ input[type="number"]::-webkit-inner-spin-button {
 
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+
+  .equipment-scroll-area {
+    @apply relative overflow-hidden rounded-xl border border-border/60 bg-card/70;
+    background:
+      linear-gradient(
+        180deg,
+        hsl(var(--card) / 0.96) 0%,
+        hsl(var(--card) / 0.82) 100%
+      ),
+      linear-gradient(
+        90deg,
+        hsl(var(--accent) / 0.08) 0%,
+        transparent 18%,
+        transparent 82%,
+        hsl(var(--primary) / 0.07) 100%
+      );
+    box-shadow:
+      inset 0 1px 0 hsl(var(--card) / 0.72),
+      inset 0 0 0 1px hsl(var(--border) / 0.24);
+  }
+
+  .equipment-scroll-area::before,
+  .equipment-scroll-area::after {
+    content: "";
+    position: absolute;
+    left: 0.75rem;
+    right: 1rem;
+    height: 1rem;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .equipment-scroll-area::before {
+    top: 0;
+    background: linear-gradient(
+      180deg,
+      hsl(var(--card) / 0.95) 8%,
+      hsl(var(--card) / 0)
+    );
+  }
+
+  .equipment-scroll-area::after {
+    bottom: 0;
+    background: linear-gradient(
+      0deg,
+      hsl(var(--card) / 0.98) 8%,
+      hsl(var(--card) / 0)
+    );
+  }
+
+  .equipment-scroll-viewport {
+    scrollbar-width: none;
+  }
+
+  .equipment-scroll-viewport::-webkit-scrollbar {
+    display: none;
+  }
+
+  .equipment-scroll-area-dynamic {
+    max-height: min(60vh, 42rem);
+  }
+
+  .equipment-scrollbar {
+    @apply w-3.5 p-[2px];
+    margin: 0.35rem 0.35rem 0.35rem 0;
+    border-left: 0;
+    border-radius: 9999px;
+    background: linear-gradient(
+      180deg,
+      hsl(var(--muted) / 0.34),
+      hsl(var(--border) / 0.18)
+    );
+    box-shadow:
+      inset 0 0 0 1px hsl(var(--border) / 0.42),
+      inset 0 1px 0 hsl(var(--card) / 0.52);
+  }
+
+  .equipment-scrollbar-thumb {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--accent) / 0.95),
+      hsl(var(--primary) / 0.88)
+    );
+    border: 1px solid hsl(var(--primary) / 0.2);
+    box-shadow:
+      0 2px 8px hsl(var(--accent) / 0.25),
+      inset 0 1px 0 hsl(var(--accent-foreground) / 0.18);
+  }
+
+  .equipment-scrollbar-thumb::before {
+    content: "";
+    position: absolute;
+    inset: 18% 24%;
+    border-radius: inherit;
+    background: linear-gradient(
+      180deg,
+      hsl(var(--card) / 0.45),
+      transparent 75%
+    );
+    opacity: 0.7;
   }
 
   /* ── Typography scale ───────────────────────────────────────────────────
@@ -404,6 +574,91 @@ input[type="number"]::-webkit-inner-spin-button {
     @apply text-foreground;
     background-color: hsl(var(--muted) / 0.85);
   }
+  .rich-content {
+    @apply tx-l3 text-foreground;
+  }
+
+  .rich-content > :first-child {
+    @apply mt-0;
+  }
+
+  .rich-content > :last-child {
+    @apply mb-0;
+  }
+
+  .rich-content p,
+  .rich-content ul,
+  .rich-content ol,
+  .rich-content blockquote,
+  .rich-content pre,
+  .rich-content hr {
+    @apply my-2;
+  }
+
+  .rich-content h1,
+  .rich-content h2,
+  .rich-content h3,
+  .rich-content h4 {
+    @apply mt-3 mb-2 font-semibold tracking-tight text-foreground;
+  }
+
+  .rich-content h1 {
+    @apply text-lg;
+  }
+
+  .rich-content h2 {
+    @apply text-base;
+  }
+
+  .rich-content h3,
+  .rich-content h4 {
+    @apply text-sm;
+  }
+
+  .rich-content ul,
+  .rich-content ol {
+    @apply pl-5;
+  }
+
+  .rich-content ul {
+    list-style: disc;
+  }
+
+  .rich-content ol {
+    list-style: decimal;
+  }
+
+  .rich-content li + li {
+    @apply mt-1;
+  }
+
+  .rich-content blockquote {
+    @apply rounded-md border-l-4 border-accent/60 bg-muted/35 px-3 py-2 text-muted-foreground;
+  }
+
+  .rich-content code {
+    @apply rounded bg-muted px-1.5 py-0.5 font-mono text-[0.85em] text-foreground;
+  }
+
+  .rich-content pre {
+    @apply overflow-x-auto rounded-md border border-border/70 bg-card/70 p-3;
+  }
+
+  .rich-content pre code {
+    @apply bg-transparent p-0 text-xs leading-relaxed;
+  }
+
+  .rich-content a {
+    @apply font-medium text-accent underline decoration-accent/50 underline-offset-2 transition-colors;
+  }
+
+  .rich-content a:hover {
+    @apply text-accent/80;
+  }
+
+  .rich-content hr {
+    @apply border-border/70;
+  }
 
   /* ── Nav fade edges (scrollable carousel hint) ──────────────────────── */
   .nav-scroll-container {
@@ -421,11 +676,19 @@ input[type="number"]::-webkit-inner-spin-button {
   }
   .nav-scroll-container::before {
     left: 0;
-    background: linear-gradient(to right, hsl(var(--background) / 0.9), transparent);
+    background: linear-gradient(
+      to right,
+      hsl(var(--background) / 0.9),
+      transparent
+    );
   }
   .nav-scroll-container::after {
     right: 0;
-    background: linear-gradient(to left, hsl(var(--background) / 0.9), transparent);
+    background: linear-gradient(
+      to left,
+      hsl(var(--background) / 0.9),
+      transparent
+    );
   }
 
   @media (min-width: 1024px) {

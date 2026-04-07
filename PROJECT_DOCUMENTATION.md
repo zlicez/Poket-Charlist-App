@@ -53,9 +53,10 @@ flowchart LR
 - Частичная оффлайн-поддержка через service worker, IndexedDB-кэш и очередь отложенных изменений.
 - **Авторасчёт максимума ОЗ на 1-м уровне**: `calculateMaxHp(class, 1, conMod)` из `shared/types/character-types.ts`; поле `customMaxHpBonus` позволяет добавить ручной бонус. Со 2-го уровня — ручной ввод (игрок вносит результат броска кубика).
 - **Авторасчёт КД по типу доспеха**: `calculateAC(dexMod, armor, shield, bonus)` с корректной обработкой тяжёлого доспеха (DEX игнорируется полностью, включая штраф).
-- **Автозаполнение ячеек заклинаний**: таблицы в `shared/data/spell-slots.ts`; функции `getSpellSlotsForClass` и `getMulticlassSpellSlots` поддерживают все классы и правила мультикласса D&D 5e.
+- **Автосинхронизация ячеек заклинаний**: таблицы в `shared/data/spell-slots.ts`; `getSpellcastingProgression` собирает обычные spell slots, мультикласс и отдельный warlock pact magic по правилам D&D 5e. При изменении состава классов или уровней `SpellsSection` сразу применяет расчётные значения, а кнопка `По классу` остаётся ручным ресинком.
 - **Кнопка повышения уровня по XP**: `getLevelFromXP` в `CharacterHeader`; кнопка появляется при накоплении XP, поддерживает прыжок сразу на несколько уровней.
 - **`NumericInput`** (`client/src/components/ui/numeric-input.tsx`): управляемый числовой инпут с локальным state, позволяет очистить поле до нуля без немедленного сброса.
+- **Rich text для длинных текстов**: `notes`, `appearance`, `allies`, `factions`, `feature.description` и `spell.description` хранятся как raw strings, но в UI рендерятся как Markdown + безопасный HTML; в edit-flow используется `Текст / Предпросмотр`.
 
 ### Ограничения
 - Нет email verification.
@@ -99,13 +100,14 @@ flowchart LR
 
 ### Основные клиентские точки
 - `client/src/pages/CharactersList.tsx` — стартовая страница, список персонажей, import/create/delete, account dialog.
-- `client/src/pages/CharacterSheet.tsx` — лист персонажа, шаринг, экспорт, edit/play flow.
+- `client/src/pages/CharacterSheet.tsx` — лист персонажа, шаринг, экспорт, edit/play flow, sticky-навигация по секциям `Общее -> Характеристики -> Оружие -> Инвентарь -> Заклинания -> Заметки` и rich-text notes-блок с preview в edit-mode.
 - `client/src/context/CharacterContext.tsx` — загрузка персонажа, optimistic update, autosave, pending changes и share state.
 - `client/src/hooks/use-auth.ts` — текущий пользователь, login/register/password/logout.
 - `client/src/components/AuthScreen.tsx` — unified start screen для входа и регистрации.
 - `client/src/components/AccountDialog.tsx` — установка первого пароля или смена существующего.
 - `client/src/components/AbilityWithSkills.tsx` — карточка характеристики: модификатор, спасбросок (включая toggle профиценции и бросок), связанные навыки.
-- `client/src/components/SpellsSection.tsx` — spellcasting UI и библиотека заклинаний.
+- `client/src/components/FeaturesList.tsx` — список способностей персонажа, раскрытие описаний и rich-text preview в диалоге создания.
+- `client/src/components/SpellsSection.tsx` — spellcasting UI, реактивная синхронизация spell slots, библиотека заклинаний и rich-text preview/edit для описаний заклинаний.
 
 ### Основные серверные точки
 - `server/routes.ts` — character/share endpoints и rate limits.
@@ -183,6 +185,7 @@ flowchart LR
 - `weaponsLocked`
 - `featuresLocked`
 
+Текстовые поля этого блока хранятся как обычные строки, но readonly/shared UI рендерит их как Markdown + безопасный HTML в стилистике приложения.
 Здесь меньше расчётной логики, но больше риска утечки в public-view и потери данных при неаккуратных изменениях allowlist-модели.
 
 ### 6.2 Что меняется чаще всего
@@ -263,8 +266,8 @@ flowchart LR
 
 Из публичного ответа исключаются:
 - `userId`
-- `notes`
 
+`notes` теперь входит в shared/read-only payload наравне с `appearance`, `allies` и `factions`.
 `GET /api/shared/:token` использует allowlist-подход: наружу возвращается только разрешённый набор полей. Если в модель персонажа добавляется новое приватное поле, его нужно явно учесть в публичной схеме.
 
 ### Ответ `GET /api/auth/user`
@@ -641,7 +644,7 @@ DELETE /api/characters/2fcd6a8e-0d24-45f0-90f9-f3c72f0f4fb1
 
 Важно:
 - ответ режется через `publicCharacterSchema`
-- `userId` и `notes` наружу не отдаются
+- `userId` наружу не отдаётся, а `notes` теперь доступны в shared read-only ответе
 
 Фрагмент ответа:
 ```json
@@ -892,8 +895,12 @@ Pending queue не делает reconcile/rebase:
 - spell save DC
 - spell attack bonus
 - слоты 1–9 уровня
+- реактивная синхронизация расчётных слотов при смене классов и уровней
+- ручной ресинк через кнопку `По классу` и точечные `/{расч.}` подсказки
 - список заклинаний персонажа
 - ручное создание и редактирование заклинаний
+- rich-text preview для описаний заклинаний в create/edit диалогах
+- rich rendering описаний в раскрытых spell cards
 - библиотека заклинаний
 
 ### Поиск в библиотеке
@@ -1054,11 +1061,17 @@ Vitest используется для unit tests:
 - `tests/deep-merge.test.ts`
 - `tests/calculations.test.ts`
 - `tests/password-utils.test.ts`
+- `tests/spell-slots.test.ts`
+- `tests/public-character-schema.test.ts`
+- `tests/rich-text.test.ts`
 
 ### Что именно покрыто
 - deep merge логика
 - расчётные функции D&D 5e
 - email normalization и password hash/verify
+- spell slot progression, включая pact magic / multiclass поведение
+- shared allowlist для `publicCharacterSchema`
+- sanitization и базовый render Markdown + safe HTML
 
 ### Проверочные команды
 ```bash
@@ -1083,6 +1096,11 @@ npm run build
 - `spells_library.json` — сырой источник библиотеки
 - `shared/data/spells-library.ts` — нормализованный экспорт для клиента
 - `client/src/components/SpellsSection.tsx` — UI и поиск
+
+### Где искать rich text
+- `client/src/components/RichTextContent.tsx` — общий renderer Markdown + safe HTML
+- `client/src/components/RichTextField.tsx` — общий `Текст / Предпросмотр` wrapper
+- `client/src/index.css` — слой `.rich-content` с визуальными правилами для rich text
 
 ### Где искать клиентскую state-логику
 - `client/src/hooks/use-auth.ts`

@@ -1,14 +1,21 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { generateId } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   ResponsiveDialog,
   ResponsiveDialogTrigger,
@@ -17,10 +24,29 @@ import {
   ResponsiveDialogTitle,
   ResponsiveDialogFooter,
 } from "@/components/ui/responsive-dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  BookOpen, Plus, Trash2, ChevronDown, ChevronRight, Edit2,
-  Clock, Ruler, Sparkles, Eye, Target, Wand2, Library, Search, RefreshCw,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  BookOpen,
+  Plus,
+  Trash2,
+  ChevronDown,
+  ChevronRight,
+  Edit2,
+  Clock,
+  Ruler,
+  Sparkles,
+  Eye,
+  Target,
+  Wand2,
+  Library,
+  Search,
+  RefreshCw,
 } from "lucide-react";
 import {
   ABILITY_LABELS,
@@ -34,9 +60,19 @@ import {
   getCharacterClasses,
   getTotalLevel,
 } from "@shared/schema";
-import type { Character, Spell, Spellcasting, AbilityName } from "@shared/schema";
-import { spells as spellLibrary, type SpellEntry } from "@shared/data/spells-library";
-import { getSpellSlotsForClass, getMulticlassSpellSlots, CLASS_CASTER_TYPE } from "@shared/data/spell-slots";
+import type {
+  Character,
+  Spell,
+  Spellcasting,
+  AbilityName,
+} from "@shared/schema";
+import {
+  spells as spellLibrary,
+  type SpellEntry,
+} from "@shared/data/spells-library";
+import { RichTextContent } from "@/components/RichTextContent";
+import { RichTextField } from "@/components/RichTextField";
+import { getSpellcastingProgression } from "@shared/data/spell-slots";
 import { NumericInput } from "@/components/ui/numeric-input";
 
 const SPELL_LEVEL_LABELS: Record<number, string> = {
@@ -73,46 +109,46 @@ function SpellLibraryDialog({
 
   const schoolOptions = useMemo(() => {
     return Array.from(
-      new Set(
-        spellLibrary
-          .map((spell) => spell.school.trim())
-          .filter(Boolean),
-      ),
+      new Set(spellLibrary.map((spell) => spell.school.trim()).filter(Boolean)),
     ).sort((a, b) => a.localeCompare(b, "ru"));
   }, []);
 
   const classOptions = useMemo(() => {
     return Array.from(
       new Set(
-        spellLibrary
-          .flatMap((spell) => spell.classes ?? [])
-          .filter(Boolean),
+        spellLibrary.flatMap((spell) => spell.classes ?? []).filter(Boolean),
       ),
     ).sort((a, b) => a.localeCompare(b, "ru"));
   }, []);
 
   const filtered = useMemo(() => {
     return spellLibrary.filter((s) => {
-      if (debouncedSearch.trim() && !s.name.toLowerCase().includes(debouncedSearch.trim().toLowerCase())) return false;
-      if (levelFilter !== "all" && s.level !== Number(levelFilter)) return false;
+      if (
+        debouncedSearch.trim() &&
+        !s.name.toLowerCase().includes(debouncedSearch.trim().toLowerCase())
+      )
+        return false;
+      if (levelFilter !== "all" && s.level !== Number(levelFilter))
+        return false;
       if (schoolFilter !== "all" && s.school !== schoolFilter) return false;
-      if (classFilter !== "all" && !s.classes?.includes(classFilter)) return false;
+      if (classFilter !== "all" && !s.classes?.includes(classFilter))
+        return false;
       return true;
     });
   }, [debouncedSearch, levelFilter, schoolFilter, classFilter]);
 
   const handleAdd = (entry: SpellEntry) => {
     onAdd({
-      name:         entry.name,
-      level:        entry.level,
-      castingTime:  entry.castingTime ?? "1 действие",
-      range:        entry.range ?? "",
-      components:   entry.components ?? "",
-      duration:     entry.duration ?? "",
+      name: entry.name,
+      level: entry.level,
+      castingTime: entry.castingTime ?? "1 действие",
+      range: entry.range ?? "",
+      components: entry.components ?? "",
+      duration: entry.duration ?? "",
       concentration: entry.concentration,
-      ritual:       entry.ritual,
-      description:  entry.description ?? "",
-      prepared:     true,
+      ritual: entry.ritual,
+      description: entry.description ?? "",
+      prepared: true,
     });
     setOpen(false);
   };
@@ -168,7 +204,10 @@ function SpellLibraryDialog({
 
           <div className="grid grid-cols-2 gap-2">
             <Select value={levelFilter} onValueChange={setLevelFilter}>
-              <SelectTrigger className="h-9 text-xs" data-testid="select-spell-library-level">
+              <SelectTrigger
+                className="h-9 text-xs"
+                data-testid="select-spell-library-level"
+              >
                 <SelectValue placeholder="Уровень" />
               </SelectTrigger>
               <SelectContent>
@@ -183,7 +222,10 @@ function SpellLibraryDialog({
             </Select>
 
             <Select value={schoolFilter} onValueChange={setSchoolFilter}>
-              <SelectTrigger className="h-9 text-xs" data-testid="select-spell-library-school">
+              <SelectTrigger
+                className="h-9 text-xs"
+                data-testid="select-spell-library-school"
+              >
                 <SelectValue placeholder="Школа" />
               </SelectTrigger>
               <SelectContent>
@@ -198,7 +240,10 @@ function SpellLibraryDialog({
           </div>
 
           <Select value={classFilter} onValueChange={setClassFilter}>
-            <SelectTrigger className="h-9 text-xs" data-testid="select-spell-library-class">
+            <SelectTrigger
+              className="h-9 text-xs"
+              data-testid="select-spell-library-class"
+            >
               <SelectValue placeholder="Класс" />
             </SelectTrigger>
             <SelectContent>
@@ -228,15 +273,30 @@ function SpellLibraryDialog({
                   data-testid={`spell-library-item-${entry.id}`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium text-sm leading-tight">{entry.name}</span>
+                    <span className="font-medium text-sm leading-tight">
+                      {entry.name}
+                    </span>
                     <div className="flex items-center gap-1 shrink-0">
                       {entry.concentration && (
-                        <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">К</Badge>
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] px-1 py-0 h-4"
+                        >
+                          К
+                        </Badge>
                       )}
                       {entry.ritual && (
-                        <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">Р</Badge>
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] px-1 py-0 h-4"
+                        >
+                          Р
+                        </Badge>
                       )}
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] px-1.5 py-0 h-4"
+                      >
                         {entry.level === 0 ? "Загов." : `${entry.level} ур.`}
                       </Badge>
                     </div>
@@ -267,8 +327,80 @@ function SpellLibraryDialog({
 const DEFAULT_SPELLCASTING: Spellcasting = {
   ability: "INT",
   spellSlots: Array.from({ length: 9 }, () => ({ max: 0, used: 0 })),
+  pactMagic: { slotLevel: 1, max: 0, used: 0 },
   spells: [],
 };
+
+function buildSyncedSpellSlots(
+  currentSlots: Spellcasting["spellSlots"],
+  calculatedSlots: number[] | null,
+) {
+  return Array.from({ length: 9 }, (_, i) => {
+    const currentSlot = currentSlots[i] ?? { max: 0, used: 0 };
+    const nextMax = calculatedSlots?.[i] ?? 0;
+
+    return {
+      max: nextMax,
+      used: Math.min(currentSlot.used, nextMax),
+    };
+  });
+}
+
+function spellSlotsChanged(
+  currentSlots: Spellcasting["spellSlots"],
+  nextSlots: Spellcasting["spellSlots"],
+) {
+  return nextSlots.some((slot, i) => {
+    const currentSlot = currentSlots[i] ?? { max: 0, used: 0 };
+    return currentSlot.max !== slot.max || currentSlot.used !== slot.used;
+  });
+}
+
+function buildSyncedPactMagic(
+  currentPactMagic: Spellcasting["pactMagic"],
+  calculatedPactMagic: { slotLevel: number; max: number } | null,
+) {
+  const nextMax = calculatedPactMagic?.max ?? 0;
+
+  return {
+    slotLevel: calculatedPactMagic?.slotLevel ?? 1,
+    max: nextMax,
+    used: Math.min(currentPactMagic.used, nextMax),
+  };
+}
+
+function pactMagicChanged(
+  currentPactMagic: Spellcasting["pactMagic"],
+  nextPactMagic: Spellcasting["pactMagic"],
+) {
+  return (
+    currentPactMagic.slotLevel !== nextPactMagic.slotLevel ||
+    currentPactMagic.max !== nextPactMagic.max ||
+    currentPactMagic.used !== nextPactMagic.used
+  );
+}
+
+function getLegacyPactMagicFromSpellSlots(
+  currentSlots: Spellcasting["spellSlots"],
+  calculatedPactMagic: { slotLevel: number; max: number } | null,
+) {
+  if (!calculatedPactMagic) return null;
+
+  const nonEmptySlots = currentSlots
+    .map((slot, index) => ({ slot, level: index + 1 }))
+    .filter(({ slot }) => slot.max > 0);
+
+  if (nonEmptySlots.length !== 1) return null;
+
+  const [legacySlot] = nonEmptySlots;
+  if (legacySlot.level !== calculatedPactMagic.slotLevel) return null;
+
+  return {
+    slotLevel: legacySlot.level,
+    max: legacySlot.slot.max,
+    used: Math.min(legacySlot.slot.used, legacySlot.slot.max),
+  };
+}
 
 interface SpellsSectionProps {
   character: Character;
@@ -276,7 +408,13 @@ interface SpellsSectionProps {
   isEditing: boolean;
 }
 
-function AddSpellDialog({ onAdd, defaultLevel }: { onAdd: (spell: Omit<Spell, "id">) => void; defaultLevel?: number }) {
+function AddSpellDialog({
+  onAdd,
+  defaultLevel,
+}: {
+  onAdd: (spell: Omit<Spell, "id">) => void;
+  defaultLevel?: number;
+}) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [level, setLevel] = useState(defaultLevel ?? 0);
@@ -317,7 +455,12 @@ function AddSpellDialog({ onAdd, defaultLevel }: { onAdd: (spell: Omit<Spell, "i
   return (
     <ResponsiveDialog open={open} onOpenChange={setOpen}>
       <ResponsiveDialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1 h-9 sm:h-8" data-testid="button-add-spell">
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1 h-9 sm:h-8"
+          data-testid="button-add-spell"
+        >
           <Plus className="w-4 h-4" />
           Добавить
         </Button>
@@ -328,7 +471,9 @@ function AddSpellDialog({ onAdd, defaultLevel }: { onAdd: (spell: Omit<Spell, "i
         </ResponsiveDialogHeader>
         <div className="space-y-3 p-4">
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Название *</label>
+            <label className="text-xs text-muted-foreground mb-1 block">
+              Название *
+            </label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -339,9 +484,17 @@ function AddSpellDialog({ onAdd, defaultLevel }: { onAdd: (spell: Omit<Spell, "i
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Уровень</label>
-              <Select value={String(level)} onValueChange={(v) => setLevel(Number(v))}>
-                <SelectTrigger className="h-10" data-testid="select-spell-level">
+              <label className="text-xs text-muted-foreground mb-1 block">
+                Уровень
+              </label>
+              <Select
+                value={String(level)}
+                onValueChange={(v) => setLevel(Number(v))}
+              >
+                <SelectTrigger
+                  className="h-10"
+                  data-testid="select-spell-level"
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -354,7 +507,9 @@ function AddSpellDialog({ onAdd, defaultLevel }: { onAdd: (spell: Omit<Spell, "i
               </Select>
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Время сотворения</label>
+              <label className="text-xs text-muted-foreground mb-1 block">
+                Время сотворения
+              </label>
               <Input
                 value={castingTime}
                 onChange={(e) => setCastingTime(e.target.value)}
@@ -366,7 +521,9 @@ function AddSpellDialog({ onAdd, defaultLevel }: { onAdd: (spell: Omit<Spell, "i
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Дистанция</label>
+              <label className="text-xs text-muted-foreground mb-1 block">
+                Дистанция
+              </label>
               <Input
                 value={range}
                 onChange={(e) => setRange(e.target.value)}
@@ -376,7 +533,9 @@ function AddSpellDialog({ onAdd, defaultLevel }: { onAdd: (spell: Omit<Spell, "i
               />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Компоненты</label>
+              <label className="text-xs text-muted-foreground mb-1 block">
+                Компоненты
+              </label>
               <Input
                 value={components}
                 onChange={(e) => setComponents(e.target.value)}
@@ -387,7 +546,9 @@ function AddSpellDialog({ onAdd, defaultLevel }: { onAdd: (spell: Omit<Spell, "i
             </div>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Длительность</label>
+            <label className="text-xs text-muted-foreground mb-1 block">
+              Длительность
+            </label>
             <Input
               value={duration}
               onChange={(e) => setDuration(e.target.value)}
@@ -415,19 +576,27 @@ function AddSpellDialog({ onAdd, defaultLevel }: { onAdd: (spell: Omit<Spell, "i
             </label>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Описание</label>
-            <Textarea
+            <label className="text-xs text-muted-foreground mb-1 block">
+              Описание
+            </label>
+            <RichTextField
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={setDescription}
               placeholder="Описание заклинания..."
               rows={3}
-              className="resize-none"
-              data-testid="textarea-spell-description"
+              textareaClassName="min-h-[132px]"
+              previewContainerClassName="min-h-[132px]"
+              textareaTestId="textarea-spell-description"
+              previewTestId="preview-spell-description"
             />
           </div>
         </div>
         <ResponsiveDialogFooter>
-          <Button onClick={handleSubmit} disabled={!name.trim()} data-testid="button-confirm-add-spell">
+          <Button
+            onClick={handleSubmit}
+            disabled={!name.trim()}
+            data-testid="button-confirm-add-spell"
+          >
             Добавить заклинание
           </Button>
         </ResponsiveDialogFooter>
@@ -437,6 +606,8 @@ function AddSpellDialog({ onAdd, defaultLevel }: { onAdd: (spell: Omit<Spell, "i
 }
 
 function SpellSlotTracker({
+  testIdPrefix = "spell-slots",
+  rowLabel,
   level,
   max,
   used,
@@ -444,6 +615,8 @@ function SpellSlotTracker({
   onChange,
   isEditing,
 }: {
+  testIdPrefix?: string;
+  rowLabel?: string;
   level: number;
   max: number;
   used: number;
@@ -454,8 +627,13 @@ function SpellSlotTracker({
   if (max === 0 && !isEditing) return null;
 
   return (
-    <div className="flex items-center gap-2" data-testid={`spell-slots-level-${level}`}>
-      <span className="text-xs font-medium w-6 text-right text-muted-foreground">{level}</span>
+    <div
+      className="flex items-center gap-2"
+      data-testid={`${testIdPrefix}-level-${level}`}
+    >
+      <span className="text-xs font-medium min-w-0 w-10 text-right text-muted-foreground">
+        {rowLabel ?? level}
+      </span>
       {isEditing ? (
         <div className="flex items-center gap-1.5">
           <NumericInput
@@ -464,14 +642,16 @@ function SpellSlotTracker({
             value={max}
             onChange={(v) => onChange(v, Math.min(used, v))}
             className="h-8 w-14 text-center text-sm font-mono"
-            data-testid={`input-spell-slots-max-${level}`}
+            data-testid={`input-${testIdPrefix}-max-${level}`}
           />
           {calculatedMax !== undefined && calculatedMax !== max && (
             <button
               className="text-[11px] text-muted-foreground hover:text-accent tabular-nums"
-              onClick={() => onChange(calculatedMax, Math.min(used, calculatedMax))}
+              onClick={() =>
+                onChange(calculatedMax, Math.min(used, calculatedMax))
+              }
               title="Заполнить расчётным значением"
-              data-testid={`button-slot-calc-${level}`}
+              data-testid={`button-${testIdPrefix}-calc-${level}`}
             >
               /{calculatedMax}
             </button>
@@ -490,13 +670,15 @@ function SpellSlotTracker({
                     ? "bg-muted border-muted-foreground/30 opacity-40"
                     : "border-accent/50 hover:border-accent bg-accent/10"
                 } active:scale-95`}
-                data-testid={`button-spell-slot-${level}-${i}`}
+                data-testid={`button-${testIdPrefix}-${level}-${i}`}
               >
                 {!isUsed && <Sparkles className="w-3 h-3 text-accent" />}
               </button>
             );
           })}
-          {max === 0 && <span className="text-xs text-muted-foreground">—</span>}
+          {max === 0 && (
+            <span className="text-xs text-muted-foreground">—</span>
+          )}
         </div>
       )}
     </div>
@@ -560,61 +742,134 @@ function EditSpellDialog({
       <ResponsiveDialogTrigger asChild>{trigger}</ResponsiveDialogTrigger>
       <ResponsiveDialogContent>
         <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle>Редактировать заклинание</ResponsiveDialogTitle>
+          <ResponsiveDialogTitle>
+            Редактировать заклинание
+          </ResponsiveDialogTitle>
         </ResponsiveDialogHeader>
         <div className="space-y-3 p-4">
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Название *</label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} className="h-10" data-testid="input-edit-spell-name" />
+            <label className="text-xs text-muted-foreground mb-1 block">
+              Название *
+            </label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="h-10"
+              data-testid="input-edit-spell-name"
+            />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Уровень</label>
-              <Select value={String(level)} onValueChange={(v) => setLevel(Number(v))}>
-                <SelectTrigger className="h-10" data-testid="select-edit-spell-level"><SelectValue /></SelectTrigger>
+              <label className="text-xs text-muted-foreground mb-1 block">
+                Уровень
+              </label>
+              <Select
+                value={String(level)}
+                onValueChange={(v) => setLevel(Number(v))}
+              >
+                <SelectTrigger
+                  className="h-10"
+                  data-testid="select-edit-spell-level"
+                >
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   {Array.from({ length: 10 }, (_, i) => (
-                    <SelectItem key={i} value={String(i)}>{i === 0 ? "Заговор" : `${i} уровень`}</SelectItem>
+                    <SelectItem key={i} value={String(i)}>
+                      {i === 0 ? "Заговор" : `${i} уровень`}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Время сотворения</label>
-              <Input value={castingTime} onChange={(e) => setCastingTime(e.target.value)} className="h-10" data-testid="input-edit-spell-casting-time" />
+              <label className="text-xs text-muted-foreground mb-1 block">
+                Время сотворения
+              </label>
+              <Input
+                value={castingTime}
+                onChange={(e) => setCastingTime(e.target.value)}
+                className="h-10"
+                data-testid="input-edit-spell-casting-time"
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Дистанция</label>
-              <Input value={range} onChange={(e) => setRange(e.target.value)} className="h-10" data-testid="input-edit-spell-range" />
+              <label className="text-xs text-muted-foreground mb-1 block">
+                Дистанция
+              </label>
+              <Input
+                value={range}
+                onChange={(e) => setRange(e.target.value)}
+                className="h-10"
+                data-testid="input-edit-spell-range"
+              />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Компоненты</label>
-              <Input value={components} onChange={(e) => setComponents(e.target.value)} className="h-10" data-testid="input-edit-spell-components" />
+              <label className="text-xs text-muted-foreground mb-1 block">
+                Компоненты
+              </label>
+              <Input
+                value={components}
+                onChange={(e) => setComponents(e.target.value)}
+                className="h-10"
+                data-testid="input-edit-spell-components"
+              />
             </div>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Длительность</label>
-            <Input value={duration} onChange={(e) => setDuration(e.target.value)} className="h-10" data-testid="input-edit-spell-duration" />
+            <label className="text-xs text-muted-foreground mb-1 block">
+              Длительность
+            </label>
+            <Input
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+              className="h-10"
+              data-testid="input-edit-spell-duration"
+            />
           </div>
           <div className="flex gap-4">
             <label className="flex items-center gap-2 text-sm">
-              <Checkbox checked={concentration} onCheckedChange={(c) => setConcentration(c === true)} data-testid="checkbox-edit-spell-concentration" />
+              <Checkbox
+                checked={concentration}
+                onCheckedChange={(c) => setConcentration(c === true)}
+                data-testid="checkbox-edit-spell-concentration"
+              />
               Концентрация
             </label>
             <label className="flex items-center gap-2 text-sm">
-              <Checkbox checked={ritual} onCheckedChange={(c) => setRitual(c === true)} data-testid="checkbox-edit-spell-ritual" />
+              <Checkbox
+                checked={ritual}
+                onCheckedChange={(c) => setRitual(c === true)}
+                data-testid="checkbox-edit-spell-ritual"
+              />
               Ритуал
             </label>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Описание</label>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="resize-none" data-testid="textarea-edit-spell-description" />
+            <label className="text-xs text-muted-foreground mb-1 block">
+              Описание
+            </label>
+            <RichTextField
+              value={description}
+              onChange={setDescription}
+              rows={3}
+              textareaClassName="min-h-[132px]"
+              previewContainerClassName="min-h-[132px]"
+              textareaTestId="textarea-edit-spell-description"
+              previewTestId="preview-edit-spell-description"
+            />
           </div>
         </div>
         <ResponsiveDialogFooter>
-          <Button onClick={handleSubmit} disabled={!name.trim()} data-testid="button-confirm-edit-spell">Сохранить</Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!name.trim()}
+            data-testid="button-confirm-edit-spell"
+          >
+            Сохранить
+          </Button>
         </ResponsiveDialogFooter>
       </ResponsiveDialogContent>
     </ResponsiveDialog>
@@ -639,7 +894,9 @@ function SpellCard({
   return (
     <div
       className={`border rounded-md px-2.5 py-1.5 text-sm transition-colors ${
-        spell.prepared ? "border-border bg-card" : "border-border/50 bg-muted/30 opacity-60"
+        spell.prepared
+          ? "border-border bg-card"
+          : "border-border/50 bg-muted/30 opacity-60"
       }`}
       data-testid={`spell-card-${spell.id}`}
     >
@@ -657,13 +914,27 @@ function SpellCard({
           onClick={() => setExpanded(!expanded)}
           data-testid={`button-expand-spell-${spell.id}`}
         >
-          {expanded ? <ChevronDown className="w-3.5 h-3.5 shrink-0 text-muted-foreground" /> : <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />}
+          {expanded ? (
+            <ChevronDown className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+          )}
           <span className="font-medium truncate">{spell.name}</span>
           {spell.concentration && (
-            <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 shrink-0">К</Badge>
+            <Badge
+              variant="outline"
+              className="text-[10px] px-1 py-0 h-4 shrink-0"
+            >
+              К
+            </Badge>
           )}
           {spell.ritual && (
-            <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 shrink-0">Р</Badge>
+            <Badge
+              variant="outline"
+              className="text-[10px] px-1 py-0 h-4 shrink-0"
+            >
+              Р
+            </Badge>
           )}
         </button>
         {isEditing && (
@@ -672,7 +943,12 @@ function SpellCard({
               spell={spell}
               onSave={onUpdate}
               trigger={
-                <Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`button-edit-spell-${spell.id}`}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  data-testid={`button-edit-spell-${spell.id}`}
+                >
                   <Edit2 className="w-3.5 h-3.5" />
                 </Button>
               }
@@ -716,7 +992,11 @@ function SpellCard({
             </div>
           )}
           {spell.description && (
-            <p className="mt-1 whitespace-pre-wrap leading-relaxed">{spell.description}</p>
+            <RichTextContent
+              content={spell.description}
+              className="mt-1"
+              testId={`spell-description-${spell.id}`}
+            />
           )}
         </div>
       )}
@@ -724,30 +1004,62 @@ function SpellCard({
   );
 }
 
-export function SpellsSection({ character, onChange, isEditing }: SpellsSectionProps) {
+export function SpellsSection({
+  character,
+  onChange,
+  isEditing,
+}: SpellsSectionProps) {
   const charClasses = getCharacterClasses(character);
-  const casterClass = charClasses.find(c => CLASS_DATA[c.name]?.spellcastingAbility);
-  const classData = casterClass ? CLASS_DATA[casterClass.name] : CLASS_DATA[character.class];
+  const casterClass = charClasses.find(
+    (c) => CLASS_DATA[c.name]?.spellcastingAbility,
+  );
+  const classData = casterClass
+    ? CLASS_DATA[casterClass.name]
+    : CLASS_DATA[character.class];
   const classSpellAbility = classData?.spellcastingAbility;
+  const calculatedProgression = getSpellcastingProgression(charClasses);
+  const calculatedSlots = calculatedProgression.spellSlots;
+  const calculatedPactMagic = calculatedProgression.pactMagic;
 
   const resolvedDefault: Spellcasting = {
     ...DEFAULT_SPELLCASTING,
     ability: classSpellAbility ?? DEFAULT_SPELLCASTING.ability,
   };
+  const rawSpellcasting = character.spellcasting;
+  const currentSpellSlots =
+    rawSpellcasting?.spellSlots ?? DEFAULT_SPELLCASTING.spellSlots;
+  const legacyPactMagic =
+    rawSpellcasting?.pactMagic === undefined
+      ? getLegacyPactMagicFromSpellSlots(currentSpellSlots, calculatedPactMagic)
+      : null;
   const spellcasting = character.spellcasting
-    ? { ...character.spellcasting, ability: character.spellcasting.ability ?? classSpellAbility ?? "INT" }
+    ? {
+        ...DEFAULT_SPELLCASTING,
+        ...character.spellcasting,
+        ability: character.spellcasting.ability ?? classSpellAbility ?? "INT",
+        spellSlots: legacyPactMagic
+          ? DEFAULT_SPELLCASTING.spellSlots
+          : currentSpellSlots,
+        pactMagic: {
+          ...DEFAULT_SPELLCASTING.pactMagic,
+          ...(legacyPactMagic ?? {}),
+          ...(character.spellcasting.pactMagic ?? {}),
+          ...(character.spellcasting.pactMagic === undefined &&
+          calculatedPactMagic
+            ? {
+                slotLevel: calculatedPactMagic.slotLevel,
+                max: calculatedPactMagic.max,
+              }
+            : {}),
+        },
+      }
     : resolvedDefault;
 
   const totalLevel = getTotalLevel(charClasses);
   const profBonus = getProficiencyBonus(totalLevel);
-
-  const casterClasses = charClasses.filter((c) => CLASS_CASTER_TYPE[c.name]);
-  const calculatedSlots: number[] | null =
-    casterClasses.length === 0
-      ? null
-      : casterClasses.length === 1
-        ? getSpellSlotsForClass(casterClasses[0].name, casterClasses[0].level)
-        : getMulticlassSpellSlots(charClasses);
+  const casterSignature =
+    charClasses.map(({ name, level }) => `${name}:${level}`).join("|") ||
+    "none";
 
   const racialBonuses = getRacialBonuses(character.race, character.subrace);
   const abilityScore =
@@ -758,7 +1070,10 @@ export function SpellsSection({ character, onChange, isEditing }: SpellsSectionP
   const spellSaveDC = calculateSpellSaveDC(abilityMod, profBonus);
   const spellAttackBonus = calculateSpellAttackBonus(abilityMod, profBonus);
 
-  const [openLevels, setOpenLevels] = useState<Record<number, boolean>>({ 0: true });
+  const [openLevels, setOpenLevels] = useState<Record<number, boolean>>({
+    0: true,
+  });
+  const lastAutoSyncSignature = useRef<string | null>(null);
 
   const updateSpellcasting = (updates: Partial<Spellcasting>) => {
     onChange({
@@ -776,14 +1091,56 @@ export function SpellsSection({ character, onChange, isEditing }: SpellsSectionP
     updateSpellcasting({ spellSlots: newSlots });
   };
 
-  const handleAutoFillSlots = () => {
-    if (!calculatedSlots) return;
-    const newSlots = spellcasting.spellSlots.map((slot, i) => ({
-      max: calculatedSlots[i],
-      used: Math.min(slot.used, calculatedSlots[i]),
-    }));
-    updateSpellcasting({ spellSlots: newSlots });
+  const handlePactMagicChange = (max: number, used: number) => {
+    updateSpellcasting({
+      pactMagic: {
+        ...spellcasting.pactMagic,
+        max,
+        used: Math.min(used, max),
+      },
+    });
   };
+
+  const syncSpellSlotsToCalculated = () => {
+    const newSlots = buildSyncedSpellSlots(
+      spellcasting.spellSlots,
+      calculatedSlots,
+    );
+    const newPactMagic = buildSyncedPactMagic(
+      spellcasting.pactMagic,
+      calculatedPactMagic,
+    );
+    const slotsHaveChanged = spellSlotsChanged(
+      spellcasting.spellSlots,
+      newSlots,
+    );
+    const pactMagicHasChanged = pactMagicChanged(
+      spellcasting.pactMagic,
+      newPactMagic,
+    );
+
+    if (!slotsHaveChanged && !pactMagicHasChanged) return;
+
+    updateSpellcasting({
+      ...(slotsHaveChanged ? { spellSlots: newSlots } : {}),
+      ...(pactMagicHasChanged ? { pactMagic: newPactMagic } : {}),
+    });
+  };
+
+  const handleAutoFillSlots = () => {
+    syncSpellSlotsToCalculated();
+  };
+
+  useEffect(() => {
+    if (lastAutoSyncSignature.current === null) {
+      lastAutoSyncSignature.current = casterSignature;
+      return;
+    }
+
+    if (lastAutoSyncSignature.current === casterSignature) return;
+    lastAutoSyncSignature.current = casterSignature;
+    syncSpellSlotsToCalculated();
+  }, [casterSignature]);
 
   const handleAddSpell = (spellData: Omit<Spell, "id">) => {
     const newSpell: Spell = {
@@ -802,7 +1159,7 @@ export function SpellsSection({ character, onChange, isEditing }: SpellsSectionP
   const handleTogglePrepared = (spellId: string) => {
     updateSpellcasting({
       spells: spellcasting.spells.map((s) =>
-        s.id === spellId ? { ...s, prepared: !s.prepared } : s
+        s.id === spellId ? { ...s, prepared: !s.prepared } : s,
       ),
     });
   };
@@ -810,7 +1167,7 @@ export function SpellsSection({ character, onChange, isEditing }: SpellsSectionP
   const handleUpdateSpell = (updated: Spell) => {
     updateSpellcasting({
       spells: spellcasting.spells.map((s) =>
-        s.id === updated.id ? updated : s
+        s.id === updated.id ? updated : s,
       ),
     });
   };
@@ -829,8 +1186,17 @@ export function SpellsSection({ character, onChange, isEditing }: SpellsSectionP
     spellsByLevel.set(spell.level, list);
   }
 
-  const hasAnySlots = spellcasting.spellSlots.some((s) => s.max > 0);
+  const hasAnySpellSlots = spellcasting.spellSlots.some((s) => s.max > 0);
+  const hasPactMagic = spellcasting.pactMagic.max > 0;
+  const hasAnySlots = hasAnySpellSlots || hasPactMagic;
   const hasAnySpells = spellcasting.spells.length > 0;
+  const showRegularSpellSlots =
+    calculatedSlots !== null ||
+    hasAnySpellSlots ||
+    (isEditing && !calculatedPactMagic);
+  const showPactMagic = calculatedPactMagic !== null || hasPactMagic;
+  const showAutoFillButton =
+    isEditing && (calculatedSlots !== null || calculatedPactMagic !== null);
 
   const isCasterClass = !!classSpellAbility;
   if (!hasAnySlots && !hasAnySpells && !isEditing && !isCasterClass) {
@@ -855,15 +1221,35 @@ export function SpellsSection({ character, onChange, isEditing }: SpellsSectionP
       <div className="grid grid-cols-3 gap-2 mb-3">
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="text-center p-2 rounded-md bg-accent/10" data-testid="stat-spell-ability">
-              <div className="text-[10px] text-muted-foreground uppercase">Характ.</div>
+            <div
+              className="text-center p-2 rounded-md bg-accent/10"
+              data-testid="stat-spell-ability"
+            >
+              <div className="text-[10px] text-muted-foreground uppercase">
+                Характ.
+              </div>
               {isEditing ? (
-                <Select value={spellcasting.ability} onValueChange={(v) => handleAbilityChange(v as AbilityName)}>
-                  <SelectTrigger className="h-7 text-xs font-bold border-0 bg-transparent p-0 justify-center" data-testid="select-spell-ability">
+                <Select
+                  value={spellcasting.ability}
+                  onValueChange={(v) => handleAbilityChange(v as AbilityName)}
+                >
+                  <SelectTrigger
+                    className="h-7 text-xs font-bold border-0 bg-transparent p-0 justify-center"
+                    data-testid="select-spell-ability"
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {(["STR", "DEX", "CON", "INT", "WIS", "CHA"] as AbilityName[]).map((ab) => (
+                    {(
+                      [
+                        "STR",
+                        "DEX",
+                        "CON",
+                        "INT",
+                        "WIS",
+                        "CHA",
+                      ] as AbilityName[]
+                    ).map((ab) => (
                       <SelectItem key={ab} value={ab}>
                         {ABILITY_LABELS[ab].ru}
                       </SelectItem>
@@ -871,36 +1257,56 @@ export function SpellsSection({ character, onChange, isEditing }: SpellsSectionP
                   </SelectContent>
                 </Select>
               ) : (
-                <div className="text-sm font-bold">{ABILITY_LABELS[spellcasting.ability].ru}</div>
+                <div className="text-sm font-bold">
+                  {ABILITY_LABELS[spellcasting.ability].ru}
+                </div>
               )}
             </div>
           </TooltipTrigger>
           <TooltipContent>
             <p>Заклинательная характеристика</p>
-            <p className="text-xs text-muted-foreground">Модификатор: {formatModifier(abilityMod)}</p>
+            <p className="text-xs text-muted-foreground">
+              Модификатор: {formatModifier(abilityMod)}
+            </p>
           </TooltipContent>
         </Tooltip>
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="text-center p-2 rounded-md bg-accent/10" data-testid="stat-spell-save-dc">
-              <div className="text-[10px] text-muted-foreground uppercase">Сл. спасбр.</div>
+            <div
+              className="text-center p-2 rounded-md bg-accent/10"
+              data-testid="stat-spell-save-dc"
+            >
+              <div className="text-[10px] text-muted-foreground uppercase">
+                Сл. спасбр.
+              </div>
               <div className="text-lg font-bold font-mono">{spellSaveDC}</div>
             </div>
           </TooltipTrigger>
           <TooltipContent>
             <p>Сложность спасброска заклинания</p>
             <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
-              <p>8 + мастерство ({profBonus}) + {ABILITY_LABELS[spellcasting.ability].ru} ({formatModifier(abilityMod)})</p>
+              <p>
+                8 + мастерство ({profBonus}) +{" "}
+                {ABILITY_LABELS[spellcasting.ability].ru} (
+                {formatModifier(abilityMod)})
+              </p>
             </div>
           </TooltipContent>
         </Tooltip>
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="text-center p-2 rounded-md bg-accent/10" data-testid="stat-spell-attack">
-              <div className="text-[10px] text-muted-foreground uppercase">Атака закл.</div>
-              <div className={`text-lg font-bold font-mono ${spellAttackBonus >= 0 ? "text-positive" : "text-negative"}`}>
+            <div
+              className="text-center p-2 rounded-md bg-accent/10"
+              data-testid="stat-spell-attack"
+            >
+              <div className="text-[10px] text-muted-foreground uppercase">
+                Атака закл.
+              </div>
+              <div
+                className={`text-lg font-bold font-mono ${spellAttackBonus >= 0 ? "text-positive" : "text-negative"}`}
+              >
                 {formatModifier(spellAttackBonus)}
               </div>
             </div>
@@ -908,39 +1314,79 @@ export function SpellsSection({ character, onChange, isEditing }: SpellsSectionP
           <TooltipContent>
             <p>Бонус атаки заклинанием</p>
             <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
-              <p>Мастерство ({profBonus}) + {ABILITY_LABELS[spellcasting.ability].ru} ({formatModifier(abilityMod)})</p>
+              <p>
+                Мастерство ({profBonus}) +{" "}
+                {ABILITY_LABELS[spellcasting.ability].ru} (
+                {formatModifier(abilityMod)})
+              </p>
             </div>
           </TooltipContent>
         </Tooltip>
       </div>
 
-      <div className="space-y-1.5 mb-3" data-testid="spell-slots-section">
-        <div className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-          <Target className="w-3 h-3" />
-          Ячейки заклинаний
-          {isEditing && calculatedSlots && (
-            <button
-              onClick={handleAutoFillSlots}
-              className="ml-auto flex items-center gap-1 text-xs text-accent hover:underline"
-              data-testid="button-auto-fill-slots"
-            >
-              <RefreshCw className="w-3 h-3" />
-              По классу
-            </button>
-          )}
+      {showRegularSpellSlots && (
+        <div className="space-y-1.5 mb-3" data-testid="spell-slots-section">
+          <div className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+            <Target className="w-3 h-3" />
+            Ячейки заклинаний
+            {showAutoFillButton && (
+              <button
+                onClick={handleAutoFillSlots}
+                className="ml-auto flex items-center gap-1 text-xs text-accent hover:underline"
+                data-testid="button-auto-fill-slots"
+              >
+                <RefreshCw className="w-3 h-3" />
+                По классу
+              </button>
+            )}
+          </div>
+          {Array.from({ length: 9 }, (_, i) => (
+            <SpellSlotTracker
+              key={i}
+              level={i + 1}
+              max={spellcasting.spellSlots[i]?.max ?? 0}
+              used={spellcasting.spellSlots[i]?.used ?? 0}
+              calculatedMax={calculatedSlots?.[i]}
+              onChange={(max, used) => handleSlotChange(i, max, used)}
+              isEditing={isEditing}
+            />
+          ))}
         </div>
-        {Array.from({ length: 9 }, (_, i) => (
+      )}
+
+      {showPactMagic && (
+        <div
+          className="space-y-1.5 mb-3"
+          data-testid="spell-pact-magic-section"
+        >
+          <div className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+            <Sparkles className="w-3 h-3" />
+            Пактовая магия
+            {!showRegularSpellSlots && showAutoFillButton && (
+              <button
+                onClick={handleAutoFillSlots}
+                className="ml-auto flex items-center gap-1 text-xs text-accent hover:underline"
+                data-testid="button-auto-fill-slots"
+              >
+                <RefreshCw className="w-3 h-3" />
+                По классу
+              </button>
+            )}
+          </div>
           <SpellSlotTracker
-            key={i}
-            level={i + 1}
-            max={spellcasting.spellSlots[i]?.max ?? 0}
-            used={spellcasting.spellSlots[i]?.used ?? 0}
-            calculatedMax={calculatedSlots?.[i]}
-            onChange={(max, used) => handleSlotChange(i, max, used)}
+            testIdPrefix="pact-magic"
+            rowLabel="Пакт"
+            level={spellcasting.pactMagic.slotLevel}
+            max={spellcasting.pactMagic.max}
+            used={spellcasting.pactMagic.used}
+            onChange={handlePactMagicChange}
             isEditing={isEditing}
           />
-        ))}
-      </div>
+          <div className="pl-12 text-[11px] text-muted-foreground">
+            Все ячейки колдуна одного уровня: {spellcasting.pactMagic.slotLevel}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-2" data-testid="spells-list">
         {Array.from({ length: 10 }, (_, level) => {
@@ -950,11 +1396,24 @@ export function SpellsSection({ character, onChange, isEditing }: SpellsSectionP
           const isOpen = openLevels[level] ?? false;
 
           return (
-            <Collapsible key={level} open={isOpen} onOpenChange={() => toggleLevel(level)}>
-              <CollapsibleTrigger className="flex items-center gap-1.5 w-full text-left py-1 hover:bg-muted/50 rounded px-1 transition-colors" data-testid={`spell-level-trigger-${level}`}>
-                {isOpen ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
+            <Collapsible
+              key={level}
+              open={isOpen}
+              onOpenChange={() => toggleLevel(level)}
+            >
+              <CollapsibleTrigger
+                className="flex items-center gap-1.5 w-full text-left py-1 hover:bg-muted/50 rounded px-1 transition-colors"
+                data-testid={`spell-level-trigger-${level}`}
+              >
+                {isOpen ? (
+                  <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+                )}
                 <Wand2 className="w-3.5 h-3.5 text-accent" />
-                <span className="text-xs font-medium flex-1">{SPELL_LEVEL_LABELS[level]}</span>
+                <span className="text-xs font-medium flex-1">
+                  {SPELL_LEVEL_LABELS[level]}
+                </span>
                 <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
                   {spells.length}
                 </Badge>
