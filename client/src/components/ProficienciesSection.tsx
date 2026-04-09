@@ -9,6 +9,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Languages, Swords, Shield, Wrench, Plus, X, ChevronDown, ChevronRight, BookOpen, Eye } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { HelpTooltip, TooltipBody } from "@/components/ui/help-tooltip";
+import { PROFICIENCIES_SECTION_TOOLTIP } from "@/lib/tooltip-content";
 import type { Proficiencies, ProficiencyCategory } from "@shared/schema";
 import { 
   PROFICIENCY_CATEGORY_LABELS, 
@@ -246,21 +248,24 @@ export function ProficienciesSection({ proficiencies, onChange, isEditing, race,
         <div className="flex items-center gap-2">
           <BookOpen className="w-4 h-4 text-accent" />
           <h3 className="font-semibold text-sm">Владения</h3>
+          <HelpTooltip
+            content={<TooltipBody title={PROFICIENCIES_SECTION_TOOLTIP.title} lines={PROFICIENCIES_SECTION_TOOLTIP.lines} />}
+            side="right"
+          />
         </div>
         {autoProfs.darkvision && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span data-testid="darkvision-badge">
-                <Badge variant="secondary" className="gap-1">
-                  <Eye className="w-3 h-3" />
-                  Тёмное зрение {autoProfs.darkvision} фт.
-                </Badge>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Вы видите в темноте на расстоянии {autoProfs.darkvision} футов как при тусклом свете</p>
-            </TooltipContent>
-          </Tooltip>
+          <HelpTooltip
+            content={<p className="text-xs">Вы видите в темноте на расстоянии {autoProfs.darkvision} футов как при тусклом свете</p>}
+            side="bottom"
+            asChild
+          >
+            <span data-testid="darkvision-badge">
+              <Badge variant="secondary" className="gap-1 cursor-help">
+                <Eye className="w-3 h-3" />
+                Тёмное зрение {autoProfs.darkvision} фт.
+              </Badge>
+            </span>
+          </HelpTooltip>
         )}
       </div>
 
@@ -354,22 +359,22 @@ function ProficiencyCategoryWithAuto({
           ) : (
             <>
               {autoItems.map((item) => (
-                <Tooltip key={`auto-${item}`}>
-                  <TooltipTrigger asChild>
-                    <span>
-                      <Badge 
-                        variant="secondary"
-                        className="gap-1"
-                        data-testid={`proficiency-auto-${category}-${item}`}
-                      >
-                        {item}
-                      </Badge>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>От расы/класса</p>
-                  </TooltipContent>
-                </Tooltip>
+                <HelpTooltip
+                  key={`auto-${item}`}
+                  content={<p className="text-xs">От расы/класса</p>}
+                  side="top"
+                  asChild
+                >
+                  <span>
+                    <Badge 
+                      variant="secondary"
+                      className="gap-1 cursor-help"
+                      data-testid={`proficiency-auto-${category}-${item}`}
+                    >
+                      {item}
+                    </Badge>
+                  </span>
+                </HelpTooltip>
               ))}
               {items.filter(item => !autoItems.includes(item)).map((item) => (
                 <Badge 

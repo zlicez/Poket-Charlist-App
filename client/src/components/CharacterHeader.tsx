@@ -16,6 +16,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { Progress } from "@/components/ui/progress";
 import {
   Drawer,
@@ -607,40 +608,38 @@ export function CharacterHeader({
                 </div>
               ) : (
                 <>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="cursor-help" data-testid="badge-race">
-                        <Badge variant="secondary" className="text-xs">
-                          {character.race}
-                          {character.subrace ? ` (${character.subrace})` : ""}
+                  <HelpTooltip
+                    content={<RaceTooltipContent raceName={character.race} subraceName={character.subrace} />}
+                    side="bottom"
+                    asChild
+                    mobileAsChild
+                  >
+                    <span className="cursor-help" data-testid="badge-race">
+                      <Badge variant="secondary" className="text-xs">
+                        {character.race}
+                        {character.subrace ? ` (${character.subrace})` : ""}
+                      </Badge>
+                    </span>
+                  </HelpTooltip>
+                  {charClasses.map((entry, i) => (
+                    <HelpTooltip
+                      key={i}
+                      content={<ClassTooltipContent className={entry.name} />}
+                      side="bottom"
+                      asChild
+                      mobileAsChild
+                    >
+                      <span
+                        className="cursor-help"
+                        data-testid={`badge-class-${i}`}
+                      >
+                        <Badge variant="outline" className="text-xs">
+                          {charClasses.length > 1
+                            ? `${entry.name} ${entry.level}`
+                            : entry.name}
                         </Badge>
                       </span>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="p-3">
-                      <RaceTooltipContent
-                        raceName={character.race}
-                        subraceName={character.subrace}
-                      />
-                    </TooltipContent>
-                  </Tooltip>
-                  {charClasses.map((entry, i) => (
-                    <Tooltip key={i}>
-                      <TooltipTrigger asChild>
-                        <span
-                          className="cursor-help"
-                          data-testid={`badge-class-${i}`}
-                        >
-                          <Badge variant="outline" className="text-xs">
-                            {charClasses.length > 1
-                              ? `${entry.name} ${entry.level}`
-                              : entry.name}
-                          </Badge>
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="p-3">
-                        <ClassTooltipContent className={entry.name} />
-                      </TooltipContent>
-                    </Tooltip>
+                    </HelpTooltip>
                   ))}
                 </>
               )}
@@ -751,6 +750,29 @@ export function CharacterHeader({
           </Button>
         )}
       </div>
+
+      {!isEditing && isDesktop && (
+        <div className="mt-3 pt-3 border-t border-border/50 grid grid-cols-2 gap-3">
+          <div className="flex items-start gap-2">
+            <Scroll className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <div className="text-xs text-muted-foreground">Предыстория</div>
+              <div className="text-sm font-medium truncate">
+                {character.background || "—"}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-start gap-2">
+            <Sparkles className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <div className="text-xs text-muted-foreground">Мировоззрение</div>
+              <div className="text-sm font-medium truncate">
+                {character.alignment || "—"}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isEditing && isDesktop && (
         <div className="mt-3 sm:mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">

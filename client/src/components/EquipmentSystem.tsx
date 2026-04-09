@@ -7,6 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { HelpTooltip, TooltipBody } from "@/components/ui/help-tooltip";
+import {
+  EQUIPPED_ARMOR_TOOLTIP,
+  EQUIPPED_SHIELD_TOOLTIP,
+  EQUIPPED_WEAPON_TOOLTIP,
+  ARMOR_AC_TOOLTIP,
+} from "@/lib/tooltip-content";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -478,19 +485,31 @@ function SortableEquipmentItem({
         </button>
       )}
       {isEquippable && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className={`h-10 w-10 sm:h-9 sm:w-9 shrink-0 ${item.equipped ? 'text-accent' : 'text-muted-foreground'}`}
-          onClick={onToggleEquip}
-          data-testid={`button-equip-${index}`}
+        <HelpTooltip
+          content={
+            item.isArmor && item.armorType === "shield"
+              ? <TooltipBody title={EQUIPPED_SHIELD_TOOLTIP.title} lines={EQUIPPED_SHIELD_TOOLTIP.lines} />
+              : item.isArmor
+              ? <TooltipBody title={EQUIPPED_ARMOR_TOOLTIP.title} lines={EQUIPPED_ARMOR_TOOLTIP.lines} />
+              : <TooltipBody title={EQUIPPED_WEAPON_TOOLTIP.title} lines={EQUIPPED_WEAPON_TOOLTIP.lines} />
+          }
+          side="right"
+          asChild
         >
-          {item.isArmor ? (
-            item.equipped ? <ShieldCheck className="w-4 h-4" /> : <Shield className="w-4 h-4" />
-          ) : (
-            <Sword className={`w-4 h-4 ${item.equipped ? 'text-accent' : ''}`} />
-          )}
-        </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`h-10 w-10 sm:h-9 sm:w-9 shrink-0 ${item.equipped ? 'text-accent' : 'text-muted-foreground'}`}
+            onClick={onToggleEquip}
+            data-testid={`button-equip-${index}`}
+          >
+            {item.isArmor ? (
+              item.equipped ? <ShieldCheck className="w-4 h-4" /> : <Shield className="w-4 h-4" />
+            ) : (
+              <Sword className={`w-4 h-4 ${item.equipped ? 'text-accent' : ''}`} />
+            )}
+          </Button>
+        </HelpTooltip>
       )}
 
       <div className="flex-1 min-w-0">
@@ -502,7 +521,17 @@ function SortableEquipmentItem({
             <Badge variant="secondary" className="text-[10px] sm:text-xs h-4 sm:h-5 px-1">x{item.quantity}</Badge>
           )}
           {item.isArmor && (
-            <Badge variant="outline" className="text-[10px] sm:text-xs h-4 sm:h-5 px-1 hidden sm:inline-flex">КД {item.armorBaseAC}</Badge>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="outline" className="text-[10px] sm:text-xs h-4 sm:h-5 px-1 hidden sm:inline-flex cursor-help">КД {item.armorBaseAC}</Badge>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[240px]">
+                <TooltipBody
+                  title={ARMOR_AC_TOOLTIP(item.armorBaseAC ?? 10, item.armorMaxDexBonus ?? null).title}
+                  lines={ARMOR_AC_TOOLTIP(item.armorBaseAC ?? 10, item.armorMaxDexBonus ?? null).lines}
+                />
+              </TooltipContent>
+            </Tooltip>
           )}
           {item.isWeapon && (
             <Badge variant="outline" className="text-[10px] sm:text-xs h-4 sm:h-5 px-1 hidden sm:inline-flex">{item.damage}</Badge>
@@ -691,22 +720,15 @@ export function EquipmentSystem({
         </div>
         <div className="flex items-center gap-1">
           {!isEditing && onToggleLock && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onToggleLock}
-                  className={`h-10 w-10 sm:h-9 sm:w-9 ${isLocked ? "text-muted-foreground" : "text-accent"}`}
-                  data-testid="button-toggle-equipment-lock"
-                >
-                  {isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {isLocked ? "Разблокировать" : "Заблокировать"}
-              </TooltipContent>
-            </Tooltip>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggleLock}
+              className={`h-10 w-10 sm:h-9 sm:w-9 ${isLocked ? "text-muted-foreground" : "text-accent"}`}
+              data-testid="button-toggle-equipment-lock"
+            >
+              {isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+            </Button>
           )}
           {canModify && <AddFromCatalogDialog onAdd={addEquipment} category={catalogCategory} />}
           {canModify && <AddCustomItemDialog onAdd={addEquipment} defaultCategory={catalogCategory} />}

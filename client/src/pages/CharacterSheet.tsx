@@ -124,11 +124,52 @@ function CharacterSheetContent() {
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false);
 
+  const [pdfToast, setPdfToast] = useState<{
+    title: string;
+    msg: string;
+    progress: number;
+  } | null>(null);
+
   const handleExportPdf = async () => {
     if (!character) return;
-    const { exportCharacterToPDF } = await import("@/lib/pdf-export");
-    await exportCharacterToPDF(character);
-    toast({ title: "PDF генерируется..." });
+
+    const FUNNY_MESSAGES = [
+      "Точим гусиное перо...",
+      "Будим скрайба...",
+      "Торгуемся с драконом за бумагу...",
+      "Считаем кости хитов...",
+      "Спрашиваем разрешения у Мастера...",
+      "Пересчитываем золото в кошельке...",
+      "Застёгиваем доспех персонажа...",
+      "Переводим с эльфийского...",
+      "Проверяем мировоззрение...",
+      "Намазываем чернилами свиток...",
+      "Сворачиваем пергамент...",
+      "Шепчем заклинание архивации...",
+    ];
+
+    let progress = 5;
+    let msgIndex = Math.floor(Math.random() * FUNNY_MESSAGES.length);
+
+    setPdfToast({ title: "Создаём PDF...", msg: FUNNY_MESSAGES[msgIndex], progress });
+
+    const interval = setInterval(() => {
+      progress = Math.min(progress + Math.random() * 18 + 7, 85);
+      msgIndex = (msgIndex + 1) % FUNNY_MESSAGES.length;
+      setPdfToast({ title: "Создаём PDF...", msg: FUNNY_MESSAGES[msgIndex], progress });
+    }, 350);
+
+    try {
+      const { exportCharacterToPDF } = await import("@/lib/pdf-export");
+      await exportCharacterToPDF(character);
+      clearInterval(interval);
+      setPdfToast({ title: "PDF готов!", msg: "Файл сохранён на устройство", progress: 100 });
+      setTimeout(() => setPdfToast(null), 2500);
+    } catch {
+      clearInterval(interval);
+      setPdfToast({ title: "Ошибка", msg: "Не удалось создать PDF", progress: 100 });
+      setTimeout(() => setPdfToast(null), 3000);
+    }
   };
 
   const handleExportJson = () => {
@@ -899,6 +940,21 @@ function CharacterSheetContent() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {pdfToast && (
+        <div className="fixed bottom-4 right-4 z-[100] w-[340px] rounded-lg border bg-background shadow-lg overflow-hidden">
+          <div className="px-4 pt-4 pb-3">
+            <p className="text-sm font-semibold">{pdfToast.title}</p>
+            <p className="text-xs text-muted-foreground mt-1">{pdfToast.msg}</p>
+          </div>
+          <div className="h-1.5 bg-muted w-full">
+            <div
+              className="h-full bg-accent transition-all duration-300"
+              style={{ width: `${pdfToast.progress}%` }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

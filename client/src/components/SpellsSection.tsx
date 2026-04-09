@@ -10,6 +10,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { HelpTooltip, TooltipBody } from "@/components/ui/help-tooltip";
+import {
+  SPELL_SLOTS_TOOLTIP,
+  CANTRIPS_TOOLTIP,
+  PACT_MAGIC_TOOLTIP,
+} from "@/lib/tooltip-content";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Collapsible,
@@ -1219,9 +1225,7 @@ export function SpellsSection({
       </div>
 
       <div className="grid grid-cols-3 gap-2 mb-3">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div
+        <div
               className="text-center p-2 rounded-md bg-accent/10"
               data-testid="stat-spell-ability"
             >
@@ -1261,67 +1265,62 @@ export function SpellsSection({
                   {ABILITY_LABELS[spellcasting.ability].ru}
                 </div>
               )}
+          <div className="mt-1 flex justify-center">
+            <HelpTooltip
+              content={
+                <div className="space-y-0.5">
+                  <p className="font-medium text-sm">Заклинательная характеристика</p>
+                  <p className="text-xs text-muted-foreground">Модификатор используется для расчёта Сл. спасброска и Бонуса атаки.</p>
+                  <p className="text-xs text-muted-foreground">Текущий модификатор: {formatModifier(abilityMod)}</p>
+                </div>
+              }
+              iconSize="xs"
+              side="bottom"
+            />
+          </div>
             </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Заклинательная характеристика</p>
-            <p className="text-xs text-muted-foreground">
-              Модификатор: {formatModifier(abilityMod)}
-            </p>
-          </TooltipContent>
-        </Tooltip>
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div
-              className="text-center p-2 rounded-md bg-accent/10"
-              data-testid="stat-spell-save-dc"
-            >
-              <div className="text-[10px] text-muted-foreground uppercase">
-                Сл. спасбр.
-              </div>
-              <div className="text-lg font-bold font-mono">{spellSaveDC}</div>
+        <div className="text-center p-2 rounded-md bg-accent/10" data-testid="stat-spell-save-dc">
+            <div className="text-[10px] text-muted-foreground uppercase">
+              Сл. спасбр.
             </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Сложность спасброска заклинания</p>
-            <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
-              <p>
-                8 + мастерство ({profBonus}) +{" "}
-                {ABILITY_LABELS[spellcasting.ability].ru} (
-                {formatModifier(abilityMod)})
-              </p>
+            <div className="text-lg font-bold font-mono">{spellSaveDC}</div>
+            <div className="flex justify-center mt-1">
+              <HelpTooltip
+                content={
+                  <div className="space-y-0.5">
+                    <p className="font-medium text-sm">Сложность спасброска заклинания</p>
+                    <p className="text-xs text-muted-foreground">Цель должна превысить это значение своим спасброском.</p>
+                    <p className="text-xs text-muted-foreground">8 + мастерство ({profBonus}) + {ABILITY_LABELS[spellcasting.ability].ru} ({formatModifier(abilityMod)})</p>
+                  </div>
+                }
+                iconSize="xs"
+                side="bottom"
+              />
             </div>
-          </TooltipContent>
-        </Tooltip>
+          </div>
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div
-              className="text-center p-2 rounded-md bg-accent/10"
-              data-testid="stat-spell-attack"
-            >
-              <div className="text-[10px] text-muted-foreground uppercase">
-                Атака закл.
-              </div>
-              <div
-                className={`text-lg font-bold font-mono ${spellAttackBonus >= 0 ? "text-positive" : "text-negative"}`}
-              >
-                {formatModifier(spellAttackBonus)}
-              </div>
+        <div className="text-center p-2 rounded-md bg-accent/10" data-testid="stat-spell-attack">
+            <div className="text-[10px] text-muted-foreground uppercase">
+              Атака закл.
             </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Бонус атаки заклинанием</p>
-            <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
-              <p>
-                Мастерство ({profBonus}) +{" "}
-                {ABILITY_LABELS[spellcasting.ability].ru} (
-                {formatModifier(abilityMod)})
-              </p>
+            <div className={`text-lg font-bold font-mono ${spellAttackBonus >= 0 ? "text-positive" : "text-negative"}`}>
+              {formatModifier(spellAttackBonus)}
             </div>
-          </TooltipContent>
-        </Tooltip>
+            <div className="flex justify-center mt-1">
+              <HelpTooltip
+                content={
+                  <div className="space-y-0.5">
+                    <p className="font-medium text-sm">Бонус атаки заклинанием</p>
+                    <p className="text-xs text-muted-foreground">Добавляется к броску d20 при заклинаниях с атакой.</p>
+                    <p className="text-xs text-muted-foreground">Мастерство ({profBonus}) + {ABILITY_LABELS[spellcasting.ability].ru} ({formatModifier(abilityMod)})</p>
+                  </div>
+                }
+                iconSize="xs"
+                side="bottom"
+              />
+            </div>
+          </div>
       </div>
 
       {showRegularSpellSlots && (
@@ -1329,6 +1328,11 @@ export function SpellsSection({
           <div className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
             <Target className="w-3 h-3" />
             Ячейки заклинаний
+            <HelpTooltip
+              content={<TooltipBody title={SPELL_SLOTS_TOOLTIP.title} lines={SPELL_SLOTS_TOOLTIP.lines} />}
+              side="right"
+              iconSize="xs"
+            />
             {showAutoFillButton && (
               <button
                 onClick={handleAutoFillSlots}
@@ -1362,6 +1366,11 @@ export function SpellsSection({
           <div className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
             <Sparkles className="w-3 h-3" />
             Пактовая магия
+            <HelpTooltip
+              content={<TooltipBody title={PACT_MAGIC_TOOLTIP.title} lines={PACT_MAGIC_TOOLTIP.lines} />}
+              side="right"
+              iconSize="xs"
+            />
             {!showRegularSpellSlots && showAutoFillButton && (
               <button
                 onClick={handleAutoFillSlots}
@@ -1414,6 +1423,15 @@ export function SpellsSection({
                 <span className="text-xs font-medium flex-1">
                   {SPELL_LEVEL_LABELS[level]}
                 </span>
+                {level === 0 && (
+                  <span onClick={(e) => e.stopPropagation()} className="shrink-0">
+                    <HelpTooltip
+                      content={<TooltipBody title={CANTRIPS_TOOLTIP.title} lines={CANTRIPS_TOOLTIP.lines} />}
+                      iconSize="xs"
+                      side="top"
+                    />
+                  </span>
+                )}
                 <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
                   {spells.length}
                 </Badge>

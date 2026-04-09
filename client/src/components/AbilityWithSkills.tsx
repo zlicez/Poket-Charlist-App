@@ -2,18 +2,25 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { NumericInput } from "@/components/ui/numeric-input";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { 
-  calculateModifier, 
-  formatModifier, 
+import { HelpTooltip, TooltipBody } from "@/components/ui/help-tooltip";
+import {
+  calculateModifier,
+  formatModifier,
   getProficiencyBonus,
   getRacialBonuses,
-  ABILITY_LABELS, 
+  ABILITY_LABELS,
   SKILLS_BY_ABILITY,
-  type AbilityName, 
+  type AbilityName,
   type SkillProficiency,
 } from "@shared/schema";
 import { Star } from "lucide-react";
+import {
+  ABILITY_TOOLTIPS_EXTENDED,
+  ABILITY_MODIFIER_FORMULA,
+  ABILITY_MODIFIER_EXAMPLES,
+  SAVING_THROW_BY_ABILITY,
+  SAVING_THROW_SECTION_TOOLTIP,
+} from "@/lib/tooltip-content";
 
 interface AbilityWithSkillsProps {
   ability: AbilityName;
@@ -34,14 +41,7 @@ interface AbilityWithSkillsProps {
   isEditing: boolean;
 }
 
-const ABILITY_TOOLTIPS: Record<AbilityName, string> = {
-  STR: "Сила определяет физическую мощь персонажа",
-  DEX: "Ловкость отражает быстроту и координацию",
-  CON: "Телосложение показывает выносливость и здоровье",
-  INT: "Интеллект отвечает за логику и память",
-  WIS: "Мудрость отражает интуицию и внимательность",
-  CHA: "Харизма определяет силу личности",
-};
+
 
 export function AbilityWithSkills({
   ability,
@@ -133,6 +133,26 @@ export function AbilityWithSkills({
             {skill.name}
           </span>
 
+          {'description' in skill && (
+            <span onClick={(e) => e.stopPropagation()} className="shrink-0">
+              <HelpTooltip
+                content={
+                  <div className="space-y-1">
+                    <p className="font-medium text-sm">{skill.name}</p>
+                    <p className="text-xs text-muted-foreground">{(skill as any).description}</p>
+                    {proficiency.proficient && (
+                      <p className="text-xs text-accent">
+                        {proficiency.expertise ? 'Мастерство' : 'Профессия'}: +{proficiency.expertise ? profBonus * 2 : profBonus} включено
+                      </p>
+                    )}
+                  </div>
+                }
+                iconSize="xs"
+                side="right"
+              />
+            </span>
+          )}
+
           <span className={`
             font-bold font-mono tabular-nums
             ${compact ? 'text-xs' : 'text-xs sm:text-sm'}
@@ -173,9 +193,24 @@ export function AbilityWithSkills({
               />
             </div>
           ) : (
-            <span className="text-xl font-bold font-mono text-ability-score">
-              {totalScore}
-            </span>
+            <div className="flex items-center gap-1">
+              <span className="text-xl font-bold font-mono text-ability-score">
+                {totalScore}
+              </span>
+              <HelpTooltip
+                content={
+                  <div className="space-y-1">
+                    <p className="font-medium text-sm">{ABILITY_TOOLTIPS_EXTENDED[ability].title}</p>
+                    <p className="text-xs text-muted-foreground">{ABILITY_TOOLTIPS_EXTENDED[ability].description}</p>
+                    <div className="border-t border-border/40 pt-1">
+                      <p className="text-xs text-muted-foreground">Спасбросок: {SAVING_THROW_BY_ABILITY[ability]}</p>
+                    </div>
+                  </div>
+                }
+                iconSize="xs"
+                side="top"
+              />
+            </div>
           )}
         </div>
 
@@ -235,8 +270,22 @@ export function AbilityWithSkills({
 
       {/* ── Desktop layout (≥ sm) ─────────────────────────────────────────── */}
       <div className="hidden sm:flex items-stretch gap-3 flex-1 p-3">
-        <Tooltip>
-          <TooltipTrigger asChild>
+        <HelpTooltip
+          side="right"
+          asChild
+          content={
+            <div className="space-y-1.5 max-w-[240px]">
+              <p className="font-medium text-sm">{ABILITY_TOOLTIPS_EXTENDED[ability].title}</p>
+              <p className="text-xs text-muted-foreground">{ABILITY_TOOLTIPS_EXTENDED[ability].description}</p>
+              <p className="text-xs text-muted-foreground">{ABILITY_TOOLTIPS_EXTENDED[ability].usedFor}</p>
+              <div className="border-t border-border/40 pt-1">
+                <p className="text-xs text-muted-foreground">Модификатор: {ABILITY_MODIFIER_FORMULA}</p>
+                <p className="text-xs text-muted-foreground">{ABILITY_MODIFIER_EXAMPLES}</p>
+              </div>
+              {!isEditing && <p className="text-xs text-muted-foreground/60 mt-0.5">Нажмите для броска</p>}
+            </div>
+          }
+        >
             <div
               className={`
                 flex flex-col items-center justify-center
@@ -299,12 +348,7 @@ export function AbilityWithSkills({
                 </>
               )}
             </div>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="max-w-[200px]">
-            <p className="text-xs">{ABILITY_TOOLTIPS[ability]}</p>
-            {!isEditing && <p className="text-xs text-muted-foreground mt-1">Нажмите для броска</p>}
-          </TooltipContent>
-        </Tooltip>
+        </HelpTooltip>
 
         <div className="flex-1 min-w-0 flex flex-col gap-0.5">
           {/* Saving throw row — visually distinct from skills */}
@@ -322,7 +366,25 @@ export function AbilityWithSkills({
             }`}>
               {savingThrowProficient && <div className="w-1.5 h-1.5 rounded-full bg-accent-foreground" />}
             </div>
-            <span className="tx-l4 flex-1">Спасбросок</span>
+            <span className="tx-l4">Спасбросок</span>
+            <span onClick={(e) => e.stopPropagation()} className="shrink-0">
+              <HelpTooltip
+                content={
+                  <div className="space-y-1">
+                    <p className="font-medium text-sm">{SAVING_THROW_SECTION_TOOLTIP.title}</p>
+                    {SAVING_THROW_SECTION_TOOLTIP.lines.map((l, i) => (
+                      <p key={i} className="text-xs text-muted-foreground">{l}</p>
+                    ))}
+                    <div className="border-t border-border/40 pt-1">
+                      <p className="text-xs text-muted-foreground/80">{SAVING_THROW_BY_ABILITY[ability]}</p>
+                    </div>
+                  </div>
+                }
+                iconSize="xs"
+                side="top"
+              />
+            </span>
+            <span className="flex-1" />
             <span className={`text-xs font-bold font-mono tabular-nums ${savingThrowBonus >= 0 ? 'text-positive' : 'text-negative'}`}>
               {formatModifier(savingThrowBonus)}
             </span>

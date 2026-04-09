@@ -5,6 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { HelpTooltip, TooltipBody } from "@/components/ui/help-tooltip";
+import {
+  WEAPON_PROFICIENCY_TOOLTIP,
+  FINESSE_TOOLTIP,
+} from "@/lib/tooltip-content";
 import {
   ResponsiveDialog,
   ResponsiveDialogTrigger,
@@ -159,22 +164,15 @@ export function WeaponsList({
         </div>
         <div className="flex items-center gap-1">
           {!isEditing && onToggleLock && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onToggleLock}
-                  className={`h-9 w-9 sm:h-8 sm:w-8 ${isLocked ? "text-muted-foreground" : "text-accent"}`}
-                  data-testid="button-toggle-weapons-lock"
-                >
-                  {isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {isLocked ? "Разблокировать редактирование" : "Заблокировать редактирование"}
-              </TooltipContent>
-            </Tooltip>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggleLock}
+              className={`h-9 w-9 sm:h-8 sm:w-8 ${isLocked ? "text-muted-foreground" : "text-accent"}`}
+              data-testid="button-toggle-weapons-lock"
+            >
+              {isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+            </Button>
           )}
           {canModify && <AddWeaponDialog onAdd={addWeapon} />}
         </div>
@@ -204,8 +202,32 @@ export function WeaponsList({
                   <div className="flex items-center gap-1.5">
                     <Backpack className="w-3 h-3 text-accent shrink-0" />
                     <span className="font-medium text-sm truncate text-accent">{weapon.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {abilityLabel}{weapon.isFinesse ? " • фехт." : ""}{isProficient ? " • влад." : ""}
+                    <span className="flex items-center gap-0.5 text-xs text-muted-foreground flex-wrap">
+                      <span>{abilityLabel}</span>
+                      {weapon.isFinesse && (
+                        <>
+                          <span>• фехт.</span>
+                          <span onClick={(e) => e.stopPropagation()}>
+                            <HelpTooltip
+                              content={<TooltipBody title={FINESSE_TOOLTIP.title} lines={FINESSE_TOOLTIP.lines} />}
+                              iconSize="xs"
+                              side="top"
+                            />
+                          </span>
+                        </>
+                      )}
+                      {isProficient && (
+                        <>
+                          <span>• влад.</span>
+                          <span onClick={(e) => e.stopPropagation()}>
+                            <HelpTooltip
+                              content={<TooltipBody title={WEAPON_PROFICIENCY_TOOLTIP(proficiencyBonus).title} lines={WEAPON_PROFICIENCY_TOOLTIP(proficiencyBonus).lines} />}
+                              iconSize="xs"
+                              side="top"
+                            />
+                          </span>
+                        </>
+                      )}
                     </span>
                   </div>
                   <div className="text-xs text-muted-foreground">
@@ -216,35 +238,37 @@ export function WeaponsList({
 
                 {!isEditing && (
                   <div className="flex items-center gap-1">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-9 sm:h-7 px-2 gap-1"
-                          onClick={() => onRollAttack(weapon as Weapon, totalAttack, isProficient)}
-                          data-testid={`button-attack-inv-${weapon.id}`}
-                        >
-                          <Dices className="w-3 h-3" />
-                          <span className="text-xs">{formatModifier(totalAttack)}</span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Атака: 1d20{formatModifier(totalAttack)}{!isProficient && " (без владения)"}</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-9 sm:h-7 px-2"
-                          onClick={() => onRollDamage(weapon as Weapon, abilityModValue)}
-                          data-testid={`button-damage-inv-${weapon.id}`}
-                        >
-                          <span className="text-xs">{weapon.damage}{damageModStr}</span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Урон: {weapon.damage}{damageModStr}</TooltipContent>
-                    </Tooltip>
+                    <HelpTooltip
+                      content={`Атака: 1d20${formatModifier(totalAttack)}${!isProficient ? " (без владения)" : ""}`}
+                      side="top"
+                      asChild
+                    >
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-9 sm:h-7 px-2 gap-1"
+                        onClick={() => onRollAttack(weapon as Weapon, totalAttack, isProficient)}
+                        data-testid={`button-attack-inv-${weapon.id}`}
+                      >
+                        <Dices className="w-3 h-3" />
+                        <span className="text-xs">{formatModifier(totalAttack)}</span>
+                      </Button>
+                    </HelpTooltip>
+                    <HelpTooltip
+                      content={`Урон: ${weapon.damage}${damageModStr}`}
+                      side="top"
+                      asChild
+                    >
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-9 sm:h-7 px-2"
+                        onClick={() => onRollDamage(weapon as Weapon, abilityModValue)}
+                        data-testid={`button-damage-inv-${weapon.id}`}
+                      >
+                        <span className="text-xs">{weapon.damage}{damageModStr}</span>
+                      </Button>
+                    </HelpTooltip>
                   </div>
                 )}
               </div>
@@ -268,8 +292,32 @@ export function WeaponsList({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="font-medium text-sm truncate">{weapon.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {abilityLabel}{weapon.isFinesse ? " • фехт." : ""}{isProficient ? " • влад." : ""}
+                    <span className="flex items-center gap-0.5 text-xs text-muted-foreground flex-wrap">
+                      <span>{abilityLabel}</span>
+                      {weapon.isFinesse && (
+                        <>
+                          <span>• фехт.</span>
+                          <span onClick={(e) => e.stopPropagation()}>
+                            <HelpTooltip
+                              content={<TooltipBody title={FINESSE_TOOLTIP.title} lines={FINESSE_TOOLTIP.lines} />}
+                              iconSize="xs"
+                              side="top"
+                            />
+                          </span>
+                        </>
+                      )}
+                      {isProficient && (
+                        <>
+                          <span>• влад.</span>
+                          <span onClick={(e) => e.stopPropagation()}>
+                            <HelpTooltip
+                              content={<TooltipBody title={WEAPON_PROFICIENCY_TOOLTIP(proficiencyBonus).title} lines={WEAPON_PROFICIENCY_TOOLTIP(proficiencyBonus).lines} />}
+                              iconSize="xs"
+                              side="top"
+                            />
+                          </span>
+                        </>
+                      )}
                     </span>
                   </div>
                   <div className="text-xs text-muted-foreground">
@@ -280,35 +328,37 @@ export function WeaponsList({
 
                 {!isEditing && (
                   <div className="flex items-center gap-1">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-9 sm:h-7 px-2 gap-1"
-                          onClick={() => onRollAttack(weapon, totalAttack, isProficient)}
-                          data-testid={`button-attack-${weapon.id}`}
-                        >
-                          <Dices className="w-3 h-3" />
-                          <span className="text-xs">{formatModifier(totalAttack)}</span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Атака: 1d20{formatModifier(totalAttack)}{!isProficient && " (без владения)"}</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-9 sm:h-7 px-2"
-                          onClick={() => onRollDamage(weapon, abilityModValue)}
-                          data-testid={`button-damage-${weapon.id}`}
-                        >
-                          <span className="text-xs">{weapon.damage}{damageModStr}</span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Урон: {weapon.damage}{damageModStr}</TooltipContent>
-                    </Tooltip>
+                    <HelpTooltip
+                      content={`Атака: 1d20${formatModifier(totalAttack)}${!isProficient ? " (без владения)" : ""}`}
+                      side="top"
+                      asChild
+                    >
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-9 sm:h-7 px-2 gap-1"
+                        onClick={() => onRollAttack(weapon, totalAttack, isProficient)}
+                        data-testid={`button-attack-${weapon.id}`}
+                      >
+                        <Dices className="w-3 h-3" />
+                        <span className="text-xs">{formatModifier(totalAttack)}</span>
+                      </Button>
+                    </HelpTooltip>
+                    <HelpTooltip
+                      content={`Урон: ${weapon.damage}${damageModStr}`}
+                      side="top"
+                      asChild
+                    >
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-9 sm:h-7 px-2"
+                        onClick={() => onRollDamage(weapon, abilityModValue)}
+                        data-testid={`button-damage-${weapon.id}`}
+                      >
+                        <span className="text-xs">{weapon.damage}{damageModStr}</span>
+                      </Button>
+                    </HelpTooltip>
                   </div>
                 )}
 
