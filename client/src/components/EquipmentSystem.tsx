@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { cn, generateId } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,16 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   ResponsiveDialog,
   ResponsiveDialogTrigger,
   ResponsiveDialogContent,
@@ -25,10 +35,10 @@ import {
   ResponsiveDialogDescription,
   ResponsiveDialogFooter,
 } from "@/components/ui/responsive-dialog";
-import { 
+import {
   Backpack, Plus, Trash2, Package, Shield, ShieldCheck, Lock, Unlock,
   Sword, Apple, FlaskConical, Wrench, Search,
-  Minus, ChevronDown, ChevronRight, Sparkles, GripVertical
+  Minus, ChevronDown, ChevronRight, Sparkles, GripVertical, Pencil
 } from "lucide-react";
 import { 
   DndContext, 
@@ -216,37 +226,79 @@ function AddFromCatalogDialog({
   );
 }
 
-function AddCustomItemDialog({ 
+function AddCustomItemDialog({
   onAdd,
-  defaultCategory = "misc"
-}: { 
-  onAdd: (item: Omit<Equipment, "id">) => void;
+  onUpdate,
+  defaultCategory = "misc",
+  initialItem,
+  isEdit = false,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+}: {
+  onAdd?: (item: Omit<Equipment, "id">) => void;
+  onUpdate?: (item: Equipment) => void;
   defaultCategory?: EquipmentCategory;
+  initialItem?: Equipment;
+  isEdit?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const initialCategory = defaultCategory === "weapon" || defaultCategory === "armor" ? "misc" : defaultCategory;
-  const defaultIsWeapon = defaultCategory === "weapon";
-  const defaultIsArmor = defaultCategory === "armor";
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [category, setCategory] = useState<EquipmentCategory>(initialCategory);
-  const [quantity, setQuantity] = useState(1);
-  const [weight, setWeight] = useState<number | undefined>(undefined);
-  const [description, setDescription] = useState("");
+  const initialCategory = initialItem
+    ? (initialItem.isWeapon ? "misc" : initialItem.isArmor ? "misc" : (initialItem.category ?? "misc") as EquipmentCategory)
+    : defaultCategory === "weapon" || defaultCategory === "armor" ? "misc" : defaultCategory;
+  const defaultIsWeapon = initialItem ? !!initialItem.isWeapon : defaultCategory === "weapon";
+  const defaultIsArmor = initialItem ? !!initialItem.isArmor : defaultCategory === "armor";
+
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = controlledOnOpenChange !== undefined ? controlledOnOpenChange : setInternalOpen;
+
+  const [name, setName] = useState(initialItem?.name ?? "");
+  const [category, setCategory] = useState<EquipmentCategory>(initialCategory as EquipmentCategory);
+  const [quantity, setQuantity] = useState(initialItem?.quantity ?? 1);
+  const [weight, setWeight] = useState<number | undefined>(initialItem?.weight);
+  const [description, setDescription] = useState(initialItem?.description ?? "");
   const [isWeapon, setIsWeapon] = useState(defaultIsWeapon);
   const [isArmor, setIsArmor] = useState(defaultIsArmor);
-  const [weaponForm, setWeaponForm] = useState<WeaponFormValues>(DEFAULT_WEAPON_FORM_VALUES);
-  const [armorBaseAC, setArmorBaseAC] = useState(12);
+  const [weaponForm, setWeaponForm] = useState<WeaponFormValues>(
+    initialItem?.isWeapon
+      ? {
+          ...DEFAULT_WEAPON_FORM_VALUES,
+          damage: initialItem.damage ?? DEFAULT_WEAPON_FORM_VALUES.damage,
+          damageType: initialItem.damageType ?? DEFAULT_WEAPON_FORM_VALUES.damageType,
+          properties: initialItem.weaponProperties ?? DEFAULT_WEAPON_FORM_VALUES.properties,
+        }
+      : DEFAULT_WEAPON_FORM_VALUES
+  );
+  const [armorBaseAC, setArmorBaseAC] = useState(initialItem?.armorBaseAC ?? 12);
+
+  // Sync state when initialItem changes (edit dialog re-opens with new item)
+  const prevItemId = useRef<string | undefined>(undefined);
+  if (open && initialItem && initialItem.id !== prevItemId.current) {
+    prevItemId.current = initialItem.id;
+    setName(initialItem.name ?? "");
+    setQuantity(initialItem.quantity ?? 1);
+    setWeight(initialItem.weight);
+    setDescription(initialItem.description ?? "");
+    setIsWeapon(!!initialItem.isWeapon);
+    setIsArmor(!!initialItem.isArmor);
+    setArmorBaseAC(initialItem.armorBaseAC ?? 12);
+    const cat = initialItem.isWeapon || initialItem.isArmor
+      ? "misc"
+      : ((initialItem.category ?? "misc") as EquipmentCategory);
+    setCategory(cat);
+  }
 
   const handleSubmit = () => {
     if (!name.trim()) return;
-    
+
     let item: Omit<Equipment, "id"> = {
       name: name.trim(),
       quantity,
       weight,
       description: description || undefined,
       category: isWeapon ? "weapon" : isArmor ? "armor" : category,
-      equipped: false,
+      equipped: initialItem?.equipped ?? false,
     };
 
     if (isWeapon) {
@@ -254,7 +306,7 @@ function AddCustomItemDialog({
         quantity,
         weight,
         description,
-        equipped: false,
+        equipped: initialItem?.equipped ?? false,
       });
     }
 
@@ -265,22 +317,173 @@ function AddCustomItemDialog({
       item.armorMaxDexBonus = null;
     }
 
-    onAdd(item);
+    if (isEdit && initialItem && onUpdate) {
+      onUpdate({ ...item, id: initialItem.id });
+    } else if (onAdd) {
+      onAdd(item);
+    }
     resetForm();
     setOpen(false);
   };
 
   const resetForm = () => {
-    setName("");
-    setCategory(initialCategory);
-    setQuantity(1);
-    setWeight(undefined);
-    setDescription("");
-    setIsWeapon(defaultIsWeapon);
-    setIsArmor(defaultIsArmor);
-    setWeaponForm(DEFAULT_WEAPON_FORM_VALUES);
-    setArmorBaseAC(12);
+    if (!isEdit) {
+      setName("");
+      setCategory(initialCategory as EquipmentCategory);
+      setQuantity(1);
+      setWeight(undefined);
+      setDescription("");
+      setIsWeapon(defaultIsWeapon);
+      setIsArmor(defaultIsArmor);
+      setWeaponForm(DEFAULT_WEAPON_FORM_VALUES);
+      setArmorBaseAC(12);
+      prevItemId.current = undefined;
+    }
   };
+
+  const dialogContent = (
+    <ResponsiveDialogContent>
+      <ResponsiveDialogHeader>
+        <ResponsiveDialogTitle>{isEdit ? "Редактировать предмет" : "Создать предмет"}</ResponsiveDialogTitle>
+        <ResponsiveDialogDescription>
+          {isEdit ? "Изменить данные предмета" : "Добавьте собственный предмет в инвентарь"}
+        </ResponsiveDialogDescription>
+      </ResponsiveDialogHeader>
+
+      <div className="space-y-3">
+        <div>
+          <label className="text-sm text-muted-foreground">Название</label>
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Название предмета"
+            data-testid="input-custom-name"
+          />
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="is-weapon"
+              checked={isWeapon}
+              onCheckedChange={(checked) => {
+                setIsWeapon(!!checked);
+                if (checked) setIsArmor(false);
+              }}
+              data-testid="checkbox-is-weapon"
+            />
+            <label htmlFor="is-weapon" className="text-sm">Оружие</label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="is-armor"
+              checked={isArmor}
+              onCheckedChange={(checked) => {
+                setIsArmor(!!checked);
+                if (checked) setIsWeapon(false);
+              }}
+              data-testid="checkbox-is-armor"
+            />
+            <label htmlFor="is-armor" className="text-sm">Доспех</label>
+          </div>
+        </div>
+
+        {!isWeapon && !isArmor && (
+          <div>
+            <label className="text-sm text-muted-foreground">Категория</label>
+            <Select value={category} onValueChange={(v) => setCategory(v as EquipmentCategory)}>
+              <SelectTrigger data-testid="select-category">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {EQUIPMENT_CATEGORIES.filter(c => c !== "weapon" && c !== "armor").map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    <span className="flex items-center gap-2">
+                      {CATEGORY_ICONS[cat]}
+                      {CATEGORY_LABELS[cat]}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {isWeapon && (
+          <div className="p-2 bg-muted/30 rounded-md">
+            <WeaponFormFields
+              values={weaponForm}
+              onChange={(updates) => setWeaponForm((prev) => ({ ...prev, ...updates }))}
+            />
+          </div>
+        )}
+
+        {isArmor && (
+          <div className="p-2 bg-muted/30 rounded-md">
+            <label className="text-xs text-muted-foreground">Базовый КД</label>
+            <Input
+              type="number"
+              min={10}
+              max={20}
+              value={armorBaseAC}
+              onChange={(e) => setArmorBaseAC(parseInt(e.target.value) || 10)}
+              data-testid="input-armor-ac"
+            />
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-sm text-muted-foreground">Количество</label>
+            <Input
+              type="number"
+              min={1}
+              value={quantity}
+              onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+              data-testid="input-custom-quantity"
+            />
+          </div>
+          <div>
+            <label className="text-sm text-muted-foreground">Вес (фунты)</label>
+            <Input
+              type="number"
+              min={0}
+              step={0.1}
+              value={weight ?? ""}
+              onChange={(e) => setWeight(e.target.value ? parseFloat(e.target.value) : undefined)}
+              placeholder="—"
+              data-testid="input-custom-weight"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-sm text-muted-foreground">Описание</label>
+          <Input
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Описание предмета..."
+            data-testid="input-custom-description"
+          />
+        </div>
+      </div>
+
+      <ResponsiveDialogFooter>
+        <Button variant="outline" onClick={() => { setOpen(false); resetForm(); }}>Отмена</Button>
+        <Button onClick={handleSubmit} disabled={!name.trim()} data-testid="button-save-custom">
+          {isEdit ? "Сохранить" : "Добавить"}
+        </Button>
+      </ResponsiveDialogFooter>
+    </ResponsiveDialogContent>
+  );
+
+  if (isEdit) {
+    return (
+      <ResponsiveDialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetForm(); }}>
+        {dialogContent}
+      </ResponsiveDialog>
+    );
+  }
 
   return (
     <ResponsiveDialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetForm(); }}>
@@ -290,146 +493,13 @@ function AddCustomItemDialog({
           <Sparkles className="w-3 h-3" />
         </Button>
       </ResponsiveDialogTrigger>
-      <ResponsiveDialogContent>
-        <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle>Создать предмет</ResponsiveDialogTitle>
-          <ResponsiveDialogDescription>
-            Добавьте собственный предмет в инвентарь
-          </ResponsiveDialogDescription>
-        </ResponsiveDialogHeader>
-        
-        <div className="space-y-3">
-          <div>
-            <label className="text-sm text-muted-foreground">Название</label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Название предмета"
-              data-testid="input-custom-name"
-            />
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="is-weapon"
-                checked={isWeapon}
-                onCheckedChange={(checked) => {
-                  setIsWeapon(!!checked);
-                  if (checked) {
-                    setIsArmor(false);
-                  }
-                }}
-                data-testid="checkbox-is-weapon"
-              />
-              <label htmlFor="is-weapon" className="text-sm">Оружие</label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="is-armor"
-                checked={isArmor}
-                onCheckedChange={(checked) => {
-                  setIsArmor(!!checked);
-                  if (checked) {
-                    setIsWeapon(false);
-                  }
-                }}
-                data-testid="checkbox-is-armor"
-              />
-              <label htmlFor="is-armor" className="text-sm">Доспех</label>
-            </div>
-          </div>
-
-          {!isWeapon && !isArmor && (
-            <div>
-              <label className="text-sm text-muted-foreground">Категория</label>
-              <Select value={category} onValueChange={(v) => setCategory(v as EquipmentCategory)}>
-                <SelectTrigger data-testid="select-category">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {EQUIPMENT_CATEGORIES.filter(c => c !== "weapon" && c !== "armor").map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      <span className="flex items-center gap-2">
-                        {CATEGORY_ICONS[cat]}
-                        {CATEGORY_LABELS[cat]}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {isWeapon && (
-            <div className="p-2 bg-muted/30 rounded-md">
-              <WeaponFormFields
-                values={weaponForm}
-                onChange={(updates) => setWeaponForm((prev) => ({ ...prev, ...updates }))}
-              />
-            </div>
-          )}
-
-          {isArmor && (
-            <div className="p-2 bg-muted/30 rounded-md">
-              <label className="text-xs text-muted-foreground">Базовый КД</label>
-              <Input
-                type="number"
-                min={10}
-                max={20}
-                value={armorBaseAC}
-                onChange={(e) => setArmorBaseAC(parseInt(e.target.value) || 10)}
-                data-testid="input-armor-ac"
-              />
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-sm text-muted-foreground">Количество</label>
-              <Input
-                type="number"
-                min={1}
-                value={quantity}
-                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                data-testid="input-custom-quantity"
-              />
-            </div>
-            <div>
-              <label className="text-sm text-muted-foreground">Вес (фунты)</label>
-              <Input
-                type="number"
-                min={0}
-                step={0.1}
-                value={weight ?? ""}
-                onChange={(e) => setWeight(e.target.value ? parseFloat(e.target.value) : undefined)}
-                placeholder="—"
-                data-testid="input-custom-weight"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="text-sm text-muted-foreground">Описание</label>
-            <Input
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Описание предмета..."
-              data-testid="input-custom-description"
-            />
-          </div>
-        </div>
-
-        <ResponsiveDialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Отмена</Button>
-          <Button onClick={handleSubmit} disabled={!name.trim()} data-testid="button-save-custom">
-            Добавить
-          </Button>
-        </ResponsiveDialogFooter>
-      </ResponsiveDialogContent>
+      {dialogContent}
     </ResponsiveDialog>
   );
 }
+
+// Width of the action strip when snapped open (edit + delete buttons + gap + padding)
+const SWIPE_REVEAL_PX = 112;
 
 function SortableEquipmentItem({
   item,
@@ -437,155 +507,358 @@ function SortableEquipmentItem({
   onToggleEquip,
   onUpdateQuantity,
   onRemove,
+  onEdit,
   canModify,
   isEditing,
   canReorder,
+  isSwipeOpen,
+  onSwipeActivate,
 }: {
   item: Equipment;
   index: number;
   onToggleEquip: () => void;
   onUpdateQuantity: (delta: number) => void;
   onRemove: () => void;
+  onEdit: () => void;
   canModify: boolean;
   isEditing: boolean;
   canReorder: boolean;
+  isSwipeOpen: boolean;
+  onSwipeActivate: () => void;
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: item.id, disabled: !canReorder });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: item.id,
+    disabled: !canReorder,
+  });
 
-  const style = {
+  // Container ref to measure actual rendered width for trigger threshold
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(320);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setContainerWidth(entry.contentRect.width));
+    ro.observe(el);
+    setContainerWidth(el.offsetWidth);
+    return () => ro.disconnect();
+  }, []);
+
+  const [swipeX, setSwipeX] = useState(0);
+  // snapping=true: CSS transition enabled (finger lifted); false: instant follow
+  const [snapping, setSnapping] = useState(false);
+
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const swipeXAtTouchStart = useRef(0);
+  const dirLocked = useRef<'h' | 'v' | null>(null);
+  const touchMoved = useRef(false);
+
+  // Close smoothly when another item becomes active or outside tap happens
+  useEffect(() => {
+    if (!isSwipeOpen && swipeX > 0) {
+      setSnapping(true);
+      setSwipeX(0);
+    }
+  }, [isSwipeOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The threshold at which a full swipe commits delete (65% of row width)
+  const triggerAt = Math.min(containerWidth * 0.65, containerWidth - 16);
+
+  // t: progress from REVEAL to commit (0..1) — drives phase-2 visuals
+  const t = containerWidth > 0
+    ? Math.min(1, Math.max(0, (swipeX - SWIPE_REVEAL_PX) / Math.max(1, triggerAt - SWIPE_REVEAL_PX)))
+    : 0;
+  const isCommitting = t >= 0.92;
+
+  // Edit button collapses as t goes 0 → 0.5
+  const editWidthPx = Math.round(52 * Math.max(0, 1 - t / 0.5));
+  const editOpacity = Math.max(0, 1 - t / 0.35);
+  const showEditBtn = editWidthPx > 3;
+  const gapPx = showEditBtn ? 4 : 0;
+
+  const snapTransition = `transform 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+  const snapFastTransition = `transform 0.18s cubic-bezier(0.4, 0, 1, 1)`;
+
+  const snapOpen = () => { setSnapping(true); setSwipeX(SWIPE_REVEAL_PX); };
+  const snapClose = () => { setSnapping(true); setSwipeX(0); };
+  const commitDelete = () => {
+    // Animate item off-screen then call delete
+    setSnapping(true);
+    setSwipeX(containerWidth + 20);
+    setTimeout(() => {
+      onRemove();
+      setSwipeX(0);
+      setSnapping(false);
+    }, 200);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    // Always stop propagation so parent doesn't close this item
+    e.stopPropagation();
+    // Notify parent: this is the active item (closes all others)
+    onSwipeActivate();
+    if (!canModify) return;
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    swipeXAtTouchStart.current = swipeX;
+    dirLocked.current = null;
+    touchMoved.current = false;
+    setSnapping(false);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!canModify) return;
+    const dx = touchStartX.current - e.touches[0].clientX; // positive = leftward
+    const dy = Math.abs(e.touches[0].clientY - touchStartY.current);
+
+    // Lock swipe direction on first significant movement
+    if (dirLocked.current === null) {
+      if (Math.abs(dx) < 4 && dy < 4) return;
+      dirLocked.current = Math.abs(dx) >= dy ? 'h' : 'v';
+    }
+    if (dirLocked.current === 'v') return;
+
+    touchMoved.current = true;
+    e.preventDefault(); // stop page scroll while swiping horizontally
+
+    const target = Math.max(0, Math.min(containerWidth * 0.85, swipeXAtTouchStart.current + dx));
+    setSwipeX(target);
+  };
+
+  const handleTouchEnd = () => {
+    if (!canModify) return;
+
+    // Tap on already-open item (no horizontal movement) → close
+    if (!touchMoved.current && swipeX > 0) {
+      snapClose();
+      return;
+    }
+
+    if (isCommitting || swipeX >= triggerAt) {
+      commitDelete();
+    } else if (swipeX >= SWIPE_REVEAL_PX / 2) {
+      snapOpen();
+    } else {
+      snapClose();
+    }
+  };
+
+  const dndStyle = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.4 : 1,
   };
 
   const isEquippable = item.isWeapon || item.isArmor;
+  const actionAreaVisible = swipeX > 2;
 
   return (
-    <div 
-      ref={setNodeRef}
-      style={style}
-      className={`flex items-center gap-1.5 sm:gap-2 py-1.5 px-1.5 sm:px-2 rounded-md ${item.equipped ? 'bg-accent/10' : 'hover-elevate'} ${isDragging ? 'z-50' : ''}`}
+    <div
+      ref={(node) => {
+        setNodeRef(node);
+        // @ts-ignore — dual ref
+        containerRef.current = node;
+      }}
+      style={dndStyle}
+      className={`relative rounded-md overflow-hidden ${isDragging ? 'z-50' : ''}`}
       data-testid={`equipment-item-${index}`}
     >
-      {canReorder && (
-        <button
-          {...attributes}
-          {...listeners}
-          className="cursor-grab active:cursor-grabbing p-0.5 text-muted-foreground hover:text-foreground touch-none min-w-[32px] min-h-[36px] flex items-center justify-center shrink-0"
-          data-testid={`drag-handle-${index}`}
+      {/* ── iOS-style swipe action strip (mobile only) ─────────────────── */}
+      {canModify && (
+        <div
+          className="absolute inset-y-[2px] right-0 sm:hidden flex items-stretch overflow-hidden rounded-md"
+          onTouchStart={(e) => e.stopPropagation()}
+          style={{
+            width: actionAreaVisible ? swipeX : 0,
+            // Background fills in as phase-2 progresses (delete zone takes over)
+            background: t > 0.05
+              ? `hsl(var(--destructive) / ${0.12 + t * 0.88})`
+              : 'transparent',
+            transition: snapping
+              ? `width 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 0.2s ease`
+              : 'none',
+          }}
         >
-          <GripVertical className="w-3.5 h-3.5" />
-        </button>
-      )}
-      {isEquippable && (
-        <HelpTooltip
-          content={
-            item.isArmor && item.armorType === "shield"
-              ? <TooltipBody title={EQUIPPED_SHIELD_TOOLTIP.title} lines={EQUIPPED_SHIELD_TOOLTIP.lines} />
-              : item.isArmor
-              ? <TooltipBody title={EQUIPPED_ARMOR_TOOLTIP.title} lines={EQUIPPED_ARMOR_TOOLTIP.lines} />
-              : <TooltipBody title={EQUIPPED_WEAPON_TOOLTIP.title} lines={EQUIPPED_WEAPON_TOOLTIP.lines} />
-          }
-          side="right"
-          asChild
-        >
-          <Button
-            variant="ghost"
-            size="icon"
-            className={`h-10 w-10 sm:h-9 sm:w-9 shrink-0 ${item.equipped ? 'text-accent' : 'text-muted-foreground'}`}
-            onClick={onToggleEquip}
-            data-testid={`button-equip-${index}`}
+          {/* Edit button — collapses as phase 2 begins */}
+          {showEditBtn && (
+            <button
+              onClick={(e) => { e.stopPropagation(); snapClose(); onEdit(); }}
+              aria-label="Редактировать"
+              style={{
+                width: editWidthPx,
+                opacity: editOpacity,
+                flexShrink: 0,
+                marginRight: gapPx,
+                transition: snapping ? 'width 0.2s ease, opacity 0.15s ease' : 'none',
+              }}
+              className="flex items-center justify-center rounded-md bg-accent text-accent-foreground overflow-hidden"
+            >
+              <Pencil size={16} />
+            </button>
+          )}
+
+          {/* Delete button — expands to fill all remaining space */}
+          <button
+            onClick={(e) => { e.stopPropagation(); snapClose(); onRemove(); }}
+            aria-label="Удалить"
+            className="flex-1 flex items-center justify-center rounded-md text-white"
+            style={{
+              // Phase 1: standard red bg; phase 2: transparent (action area bg takes over)
+              background: t > 0.15 ? 'transparent' : 'hsl(var(--destructive))',
+              minWidth: 48,
+              transition: snapping ? 'background-color 0.2s ease' : 'none',
+            }}
           >
-            {item.isArmor ? (
-              item.equipped ? <ShieldCheck className="w-4 h-4" /> : <Shield className="w-4 h-4" />
-            ) : (
-              <Sword className={`w-4 h-4 ${item.equipped ? 'text-accent' : ''}`} />
-            )}
-          </Button>
-        </HelpTooltip>
+            <Trash2
+              size={isCommitting ? 22 : 18}
+              style={{
+                transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                transform: isCommitting ? 'scale(1.25)' : 'scale(1)',
+              }}
+            />
+          </button>
+        </div>
       )}
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1 flex-wrap">
-          <span className={`text-sm font-medium truncate ${item.equipped ? 'text-accent' : ''}`}>
-            {item.name}
-          </span>
-          {item.quantity > 1 && (
-            <Badge variant="secondary" className="text-[10px] sm:text-xs h-4 sm:h-5 px-1">x{item.quantity}</Badge>
-          )}
-          {item.isArmor && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Badge variant="outline" className="text-[10px] sm:text-xs h-4 sm:h-5 px-1 hidden sm:inline-flex cursor-help">КД {item.armorBaseAC}</Badge>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-[240px]">
-                <TooltipBody
-                  title={ARMOR_AC_TOOLTIP(item.armorBaseAC ?? 10, item.armorMaxDexBonus ?? null).title}
-                  lines={ARMOR_AC_TOOLTIP(item.armorBaseAC ?? 10, item.armorMaxDexBonus ?? null).lines}
-                />
-              </TooltipContent>
-            </Tooltip>
-          )}
-          {item.isWeapon && (
-            <Badge variant="outline" className="text-[10px] sm:text-xs h-4 sm:h-5 px-1 hidden sm:inline-flex">{item.damage}</Badge>
+      {/* ── Main item row ───────────────────────────────────────────────── */}
+      <div
+        className={`group flex items-center gap-1.5 sm:gap-2 py-1.5 px-1.5 sm:px-2 rounded-md ${item.equipped ? 'bg-accent/10' : 'hover-elevate'}`}
+        style={{
+          transform: `translateX(-${swipeX}px)`,
+          transition: snapping ? snapTransition : 'none',
+          willChange: 'transform',
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {canReorder && (
+          <button
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing p-0.5 text-muted-foreground hover:text-foreground touch-none min-w-[32px] min-h-[36px] flex items-center justify-center shrink-0"
+            data-testid={`drag-handle-${index}`}
+          >
+            <GripVertical className="w-3.5 h-3.5" />
+          </button>
+        )}
+
+        {isEquippable && (
+          <HelpTooltip
+            content={
+              item.isArmor && item.armorType === "shield"
+                ? <TooltipBody title={EQUIPPED_SHIELD_TOOLTIP.title} lines={EQUIPPED_SHIELD_TOOLTIP.lines} />
+                : item.isArmor
+                ? <TooltipBody title={EQUIPPED_ARMOR_TOOLTIP.title} lines={EQUIPPED_ARMOR_TOOLTIP.lines} />
+                : <TooltipBody title={EQUIPPED_WEAPON_TOOLTIP.title} lines={EQUIPPED_WEAPON_TOOLTIP.lines} />
+            }
+            side="right"
+            asChild
+          >
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-10 w-10 sm:h-9 sm:w-9 shrink-0 ${item.equipped ? 'text-accent' : 'text-muted-foreground'}`}
+              onClick={onToggleEquip}
+              data-testid={`button-equip-${index}`}
+            >
+              {item.isArmor ? (
+                item.equipped ? <ShieldCheck className="w-4 h-4" /> : <Shield className="w-4 h-4" />
+              ) : (
+                <Sword className={`w-4 h-4 ${item.equipped ? 'text-accent' : ''}`} />
+              )}
+            </Button>
+          </HelpTooltip>
+        )}
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1 flex-wrap">
+            <span className={`text-sm font-medium truncate ${item.equipped ? 'text-accent' : ''}`}>
+              {item.name}
+            </span>
+            {item.quantity > 1 && (
+              <Badge variant="secondary" className="text-[10px] sm:text-xs h-4 sm:h-5 px-1">x{item.quantity}</Badge>
+            )}
+            {item.isArmor && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className="text-[10px] sm:text-xs h-4 sm:h-5 px-1 hidden sm:inline-flex cursor-help">КД {item.armorBaseAC}</Badge>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[240px]">
+                  <TooltipBody
+                    title={ARMOR_AC_TOOLTIP(item.armorBaseAC ?? 10, item.armorMaxDexBonus ?? null).title}
+                    lines={ARMOR_AC_TOOLTIP(item.armorBaseAC ?? 10, item.armorMaxDexBonus ?? null).lines}
+                  />
+                </TooltipContent>
+              </Tooltip>
+            )}
+            {item.isWeapon && (
+              <Badge variant="outline" className="text-[10px] sm:text-xs h-4 sm:h-5 px-1 hidden sm:inline-flex">{item.damage}</Badge>
+            )}
+          </div>
+          {(item.description || item.weaponProperties || item.damageType) && (
+            <div className="text-[10px] sm:text-xs text-muted-foreground truncate">
+              {item.isWeapon && item.damageType && <span>{item.damageType}</span>}
+              {item.weaponProperties && <span> • {item.weaponProperties}</span>}
+              {!item.isWeapon && item.description && <span>{item.description}</span>}
+            </div>
           )}
         </div>
-        {(item.description || item.weaponProperties || item.damageType) && (
-          <div className="text-[10px] sm:text-xs text-muted-foreground truncate">
-            {item.isWeapon && item.damageType && <span>{item.damageType}</span>}
-            {item.weaponProperties && <span> • {item.weaponProperties}</span>}
-            {!item.isWeapon && item.description && <span>{item.description}</span>}
+
+        {item.weight !== undefined && (
+          <span className="text-[10px] sm:text-xs text-muted-foreground shrink-0 hidden sm:inline">
+            {(item.weight * item.quantity).toFixed(1)}ф
+          </span>
+        )}
+
+        {!isEditing && !isEquippable && (
+          <div className="flex items-center shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 sm:h-9 sm:w-9"
+              onClick={() => onUpdateQuantity(-1)}
+              data-testid={`button-qty-minus-${index}`}
+            >
+              <Minus className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 sm:h-9 sm:w-9"
+              onClick={() => onUpdateQuantity(1)}
+              data-testid={`button-qty-plus-${index}`}
+            >
+              <Plus className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
+            </Button>
+          </div>
+        )}
+
+        {/* Desktop: hover-reveal edit + delete (no swipe needed) */}
+        {canModify && (
+          <div className="hidden sm:flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 text-muted-foreground hover:text-foreground"
+              onClick={onEdit}
+              data-testid={`button-edit-${index}`}
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 text-destructive hover:text-destructive"
+              onClick={onRemove}
+              data-testid={`button-remove-${index}`}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </Button>
           </div>
         )}
       </div>
-
-      {item.weight !== undefined && (
-        <span className="text-[10px] sm:text-xs text-muted-foreground shrink-0 hidden sm:inline">
-          {(item.weight * item.quantity).toFixed(1)}ф
-        </span>
-      )}
-
-      {!isEditing && !isEquippable && (
-        <div className="flex items-center shrink-0">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-10 w-10 sm:h-9 sm:w-9"
-            onClick={() => onUpdateQuantity(-1)}
-            data-testid={`button-qty-minus-${index}`}
-          >
-            <Minus className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-10 w-10 sm:h-9 sm:w-9"
-            onClick={() => onUpdateQuantity(1)}
-            data-testid={`button-qty-plus-${index}`}
-          >
-            <Plus className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
-          </Button>
-        </div>
-      )}
-
-      {canModify && (
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-10 w-10 sm:h-9 sm:w-9 text-destructive shrink-0"
-          onClick={onRemove}
-          data-testid={`button-remove-${index}`}
-        >
-          <Trash2 className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
-        </Button>
-      )}
     </div>
   );
 }
@@ -603,7 +876,14 @@ export function EquipmentSystem({
   onMoneyChange,
 }: EquipmentSystemProps) {
   const [activeTab, setActiveTab] = useState<TabValue>("all");
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [editingItem, setEditingItem] = useState<Equipment | null>(null);
+  // Tracks which item has an open swipe; null = all closed
+  const [openSwipeItemId, setOpenSwipeItemId] = useState<string | null>(null);
   const canModify = isEditing || !isLocked;
+
+  // Close any open swipe when tapping outside of items
+  const handleListAreaTouchStart = () => setOpenSwipeItemId(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -671,6 +951,16 @@ export function EquipmentSystem({
     onChange(equipment.filter((e) => e.id !== id));
   };
 
+  const updateEquipmentItem = (updated: Equipment) => {
+    onChange(equipment.map((e) => e.id === updated.id ? updated : e));
+  };
+
+  const requestDelete = (id: string) => setDeleteTarget(id);
+  const confirmDelete = () => {
+    if (deleteTarget) removeEquipment(deleteTarget);
+    setDeleteTarget(null);
+  };
+
   const toggleEquipped = (id: string) => {
     const toggledItem = equipment.find(e => e.id === id);
     if (!toggledItem) return;
@@ -735,22 +1025,12 @@ export function EquipmentSystem({
         </div>
       </div>
 
-      {equippedItems.length > 0 && (
-        <div className="mb-2 p-2 bg-accent/10 rounded-md">
-          <div className="text-xs text-muted-foreground mb-1">Экипировано:</div>
-          <div className="flex flex-wrap gap-1">
-            {equippedItems.map((item) => (
-              <Badge key={item.id} variant="secondary" className="gap-1 text-xs">
-                {item.isArmor ? <ShieldCheck className="w-3 h-3" /> : <Sword className="w-3 h-3" />}
-                {item.name}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)} className="flex flex-col">
-        <div className="nav-scroll-container -mx-2 sm:mx-0 mb-3">
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => { setActiveTab(v as TabValue); setOpenSwipeItemId(null); }}
+        className="flex flex-col"
+      >
+        <div className="nav-scroll-container -mx-2 sm:mx-0 mb-2">
           <div className="overflow-x-auto scrollbar-hide px-2 sm:px-0 lg:overflow-visible">
             <TabsList className="inline-flex w-max min-w-full h-auto rounded-xl border border-border/60 bg-muted/50 p-1 gap-1 lg:flex lg:w-full lg:min-w-0 lg:flex-nowrap lg:justify-start">
               <TabsTrigger
@@ -786,6 +1066,20 @@ export function EquipmentSystem({
           </div>
         </div>
 
+        {equippedItems.length > 0 && (
+          <div className="mb-2 p-2 bg-accent/10 rounded-md">
+            <div className="text-xs text-muted-foreground mb-1">Экипировано:</div>
+            <div className="flex flex-wrap gap-1">
+              {equippedItems.map((item) => (
+                <Badge key={item.id} variant="secondary" className="gap-1 text-xs">
+                  {item.isArmor ? <ShieldCheck className="w-3 h-3" /> : <Sword className="w-3 h-3" />}
+                  {item.name}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
         <TabsContent value="all" className="mt-0">
           {equipment.length === 0 ? (
             <div className="text-center py-4 text-muted-foreground text-sm">
@@ -805,7 +1099,8 @@ export function EquipmentSystem({
                 items={equipment.map(e => e.id)}
                 strategy={verticalListSortingStrategy}
               >
-                <EquipmentScrollArea className="equipment-scroll-area-dynamic" contentClassName="space-y-0.5 py-0.5">
+                <div onTouchStart={handleListAreaTouchStart}>
+                  <EquipmentScrollArea className="equipment-scroll-area-dynamic" contentClassName="space-y-0.5 py-0.5">
                     {equipment.map((item, index) => (
                       <SortableEquipmentItem
                         key={item.id}
@@ -813,13 +1108,17 @@ export function EquipmentSystem({
                         index={index}
                         onToggleEquip={() => toggleEquipped(item.id)}
                         onUpdateQuantity={(delta: number) => updateQuantity(item.id, delta)}
-                        onRemove={() => removeEquipment(item.id)}
+                        onRemove={() => requestDelete(item.id)}
+                        onEdit={() => setEditingItem(item)}
                         canModify={canModify}
                         isEditing={isEditing}
                         canReorder={canModify}
+                        isSwipeOpen={openSwipeItemId === item.id}
+                        onSwipeActivate={() => setOpenSwipeItemId(item.id)}
                       />
                     ))}
-                </EquipmentScrollArea>
+                  </EquipmentScrollArea>
+                </div>
               </SortableContext>
             </DndContext>
           )}
@@ -851,7 +1150,8 @@ export function EquipmentSystem({
                   items={categorizedEquipment[cat].map(e => e.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  <EquipmentScrollArea className="equipment-scroll-area-dynamic" contentClassName="space-y-0.5 py-0.5">
+                  <div onTouchStart={handleListAreaTouchStart}>
+                    <EquipmentScrollArea className="equipment-scroll-area-dynamic" contentClassName="space-y-0.5 py-0.5">
                       {categorizedEquipment[cat].map((item, index) => (
                         <SortableEquipmentItem
                           key={item.id}
@@ -859,13 +1159,17 @@ export function EquipmentSystem({
                           index={index}
                           onToggleEquip={() => toggleEquipped(item.id)}
                           onUpdateQuantity={(delta: number) => updateQuantity(item.id, delta)}
-                          onRemove={() => removeEquipment(item.id)}
+                          onRemove={() => requestDelete(item.id)}
+                          onEdit={() => setEditingItem(item)}
                           canModify={canModify}
                           isEditing={isEditing}
                           canReorder={canModify}
+                          isSwipeOpen={openSwipeItemId === item.id}
+                          onSwipeActivate={() => setOpenSwipeItemId(item.id)}
                         />
                       ))}
-                  </EquipmentScrollArea>
+                    </EquipmentScrollArea>
+                  </div>
                 </SortableContext>
               </DndContext>
             )}
@@ -877,6 +1181,41 @@ export function EquipmentSystem({
         <div className="mt-auto pt-3 border-t border-border">
           <MoneyBlock flat money={money} onChange={onMoneyChange} isEditing={isEditing} />
         </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить предмет?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget && equipment.find(e => e.id === deleteTarget)?.name
+                ? `«${equipment.find(e => e.id === deleteTarget)!.name}» будет удалён из инвентаря.`
+                : "Предмет будет удалён из инвентаря."}
+              {" "}Это действие нельзя отменить.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Удалить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit item dialog */}
+      {editingItem && (
+        <AddCustomItemDialog
+          isEdit
+          initialItem={editingItem}
+          onUpdate={updateEquipmentItem}
+          open={!!editingItem}
+          onOpenChange={(open) => { if (!open) setEditingItem(null); }}
+        />
       )}
     </Card>
   );

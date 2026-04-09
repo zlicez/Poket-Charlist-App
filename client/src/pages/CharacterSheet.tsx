@@ -13,6 +13,7 @@ import {
 import { WeaponsList } from "@/components/WeaponsList";
 import { FeaturesList } from "@/components/FeaturesList";
 import { EquipmentSystem } from "@/components/EquipmentSystem";
+import { CharacterLoadingScreen } from "@/components/CharacterLoadingScreen";
 import { SpellsSection } from "@/components/SpellsSection";
 import { ProficienciesSection } from "@/components/ProficienciesSection";
 import {
@@ -296,19 +297,7 @@ function CharacterSheetContent() {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background p-4">
-        <div className="max-w-7xl mx-auto space-y-4">
-          <Skeleton className="h-32 w-full" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {[...Array(6)].map((_, i) => (
-              <Skeleton key={i} className="h-24" />
-            ))}
-          </div>
-          <Skeleton className="h-64 w-full" />
-        </div>
-      </div>
-    );
+    return <CharacterLoadingScreen />;
   }
 
   if (error || !character) {

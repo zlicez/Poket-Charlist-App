@@ -57,6 +57,8 @@ flowchart LR
 - **Кнопка повышения уровня по XP**: `getLevelFromXP` в `CharacterHeader`; кнопка появляется при накоплении XP, поддерживает прыжок сразу на несколько уровней.
 - **`NumericInput`** (`client/src/components/ui/numeric-input.tsx`): управляемый числовой инпут с локальным state, позволяет очистить поле до нуля без немедленного сброса.
 - **Rich text для длинных текстов**: `notes`, `appearance`, `allies`, `factions`, `feature.description` и `spell.description` хранятся как raw strings, но в UI рендерятся как Markdown + безопасный HTML; в edit-flow используется `Текст / Предпросмотр`.
+- **Система снаряжения — скролл и жесты**: список предметов скроллируется внутри карточки (`max-height: min(60vh, 42rem)`). На мобиле — свайп влево открывает кнопки «Редактировать» (акцент) и «Удалить» (красный); длинный свайп (>65% ширины) сразу инициирует удаление. На десктопе — кнопки появляются при наведении. Удаление всегда требует подтверждения через `AlertDialog`. Редактирование предмета открывает `AddCustomItemDialog` с предзаполненными данными.
+- **Экран загрузки**: двухуровневый loading screen — HTML pre-loader в `index.html` (рендерится до загрузки JS-бандла, включает определение темы из `localStorage`) и React-компонент `CharacterLoadingScreen` с теми же CSS-классами `.pkt-loader` для pixel-perfect перехода. `CharacterContext` учитывает `isAuthLoading` и не показывает «персонаж не найден» пока auth не завершился.
 
 ### Ограничения
 - Нет email verification.

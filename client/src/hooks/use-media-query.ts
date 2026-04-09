@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
 
 export function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(false);
+  // Initialize synchronously so the first render uses the correct value
+  // and avoids Drawer → Dialog flicker on desktop
+  const [matches, setMatches] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia(query).matches;
+  });
 
   useEffect(() => {
     const mql = window.matchMedia(query);

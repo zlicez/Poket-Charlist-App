@@ -13,8 +13,222 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lora:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">
+
+    <!-- ═══ Pocket Charlist — loading screen styles (shared by HTML pre-loader & React) ═══ -->
+    <style>
+      /* ── Shell ── */
+      .pkt-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2rem;
+        padding: 1.5rem;
+        font-family: "Inter", system-ui, -apple-system, sans-serif;
+        background: hsl(35 30% 95%);
+        color: hsl(25 30% 15%);
+        transition: opacity 0.45s ease;
+      }
+      .dark .pkt-loader {
+        background: hsl(25 25% 10%);
+        color: hsl(38 25% 90%);
+      }
+
+      /* ── Dice cluster ── */
+      .pkt-loader .ld-dice {
+        position: relative;
+        width: 7rem;
+        height: 7rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .pkt-loader .ld-ring {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        border: 1px solid hsl(35 60% 50% / 0.22);
+        animation: ld-spin 9s linear infinite;
+      }
+      .dark .pkt-loader .ld-ring {
+        border-color: hsl(35 55% 50% / 0.25);
+      }
+      .pkt-loader .ld-d20 {
+        width: 5rem;
+        height: 5rem;
+        color: hsl(35 60% 50%);
+        filter: drop-shadow(0 0 10px hsl(35 60% 50% / 0.45));
+        animation: ld-d20 3.4s ease-in-out infinite;
+        flex-shrink: 0;
+      }
+      .dark .pkt-loader .ld-d20 {
+        color: hsl(35 55% 52%);
+        filter: drop-shadow(0 0 12px hsl(35 55% 50% / 0.5));
+      }
+      .pkt-loader .ld-dot1 {
+        position: absolute;
+        width: 0.6rem;
+        height: 0.6rem;
+        border-radius: 50%;
+        background: hsl(35 60% 50% / 0.75);
+        animation: ld-orbit1 2.5s linear infinite;
+      }
+      .pkt-loader .ld-dot2 {
+        position: absolute;
+        width: 0.45rem;
+        height: 0.45rem;
+        border-radius: 50%;
+        background: hsl(35 40% 60% / 0.5);
+        animation: ld-orbit2 3.8s linear infinite;
+      }
+      .dark .pkt-loader .ld-dot1 { background: hsl(35 55% 55% / 0.8); }
+      .dark .pkt-loader .ld-dot2 { background: hsl(35 40% 55% / 0.5); }
+
+      /* ── Text area ── */
+      .pkt-loader .ld-text {
+        text-align: center;
+      }
+      .pkt-loader .ld-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        margin: 0 0 0.5rem;
+        color: hsl(25 30% 18%);
+      }
+      .dark .pkt-loader .ld-title {
+        color: hsl(38 25% 88%);
+      }
+
+      /* ── Rotating messages ── */
+      .pkt-loader .ld-msgs {
+        position: relative;
+        height: 1.4rem;
+        width: 18rem;
+        max-width: 100%;
+        overflow: hidden;
+        margin: 0 auto;
+      }
+      .pkt-loader .ld-msgs span {
+        position: absolute;
+        inset: 0;
+        text-align: center;
+        font-size: 0.85rem;
+        color: hsl(25 15% 48%);
+        opacity: 0;
+        transform: translateY(5px);
+        animation: ld-msg 18s linear infinite;
+      }
+      .dark .pkt-loader .ld-msgs span {
+        color: hsl(38 15% 58%);
+      }
+      .pkt-loader .ld-msgs span:nth-child(1) { animation-delay:  0s; }
+      .pkt-loader .ld-msgs span:nth-child(2) { animation-delay:  3s; }
+      .pkt-loader .ld-msgs span:nth-child(3) { animation-delay:  6s; }
+      .pkt-loader .ld-msgs span:nth-child(4) { animation-delay:  9s; }
+      .pkt-loader .ld-msgs span:nth-child(5) { animation-delay: 12s; }
+      .pkt-loader .ld-msgs span:nth-child(6) { animation-delay: 15s; }
+
+      /* ── Pulse dots ── */
+      .pkt-loader .ld-dots {
+        display: flex;
+        gap: 0.35rem;
+        align-items: center;
+        justify-content: center;
+        margin-top: 0.6rem;
+      }
+      .pkt-loader .ld-dots i {
+        display: block;
+        width: 0.4rem;
+        height: 0.4rem;
+        border-radius: 50%;
+        background: hsl(35 60% 50%);
+        animation: ld-pulse 1.4s ease-in-out infinite;
+        font-style: normal;
+      }
+      .dark .pkt-loader .ld-dots i {
+        background: hsl(35 55% 52%);
+      }
+      .pkt-loader .ld-dots i:nth-child(2) { animation-delay: 0.22s; }
+      .pkt-loader .ld-dots i:nth-child(3) { animation-delay: 0.44s; }
+
+      /* ── Keyframes ── */
+      @keyframes ld-spin {
+        to { transform: rotate(360deg); }
+      }
+      @keyframes ld-d20 {
+        0%   { transform: rotate(0deg)   scale(1);    }
+        28%  { transform: rotate(14deg)  scale(1.05); }
+        58%  { transform: rotate(-7deg)  scale(0.97); }
+        100% { transform: rotate(360deg) scale(1);    }
+      }
+      @keyframes ld-orbit1 {
+        from { transform: rotate(0deg)   translateX(52px) rotate(0deg);    }
+        to   { transform: rotate(360deg) translateX(52px) rotate(-360deg); }
+      }
+      @keyframes ld-orbit2 {
+        from { transform: rotate(160deg) translateX(44px) rotate(-160deg); }
+        to   { transform: rotate(520deg) translateX(44px) rotate(-520deg); }
+      }
+      @keyframes ld-msg {
+        0%     { opacity: 0; transform: translateY(5px);  }
+        5.5%   { opacity: 1; transform: translateY(0);    }
+        11.1%  { opacity: 1; transform: translateY(0);    }
+        16.7%  { opacity: 0; transform: translateY(-4px); }
+        100%   { opacity: 0; transform: translateY(-4px); }
+      }
+      @keyframes ld-pulse {
+        0%, 80%, 100% { transform: scale(0.6); opacity: 0.35; }
+        40%           { transform: scale(1.2); opacity: 1;    }
+      }
+    </style>
   </head>
   <body>
+    <!-- ① Читаем тему ДО первого рендера — фон лоадера сразу правильного цвета -->
+    <script>
+      (function () {
+        var t = localStorage.getItem("dnd-theme") ||
+          (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.classList.add(t);
+      })();
+    </script>
+
+    <!-- ② HTML pre-loader: рендерится с первым байтом HTML, убирается React-ом -->
+    <div id="app-loader" class="pkt-loader" aria-hidden="true">
+      <div class="ld-dice">
+        <div class="ld-ring"></div>
+        <svg class="ld-d20" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="40,4 74,22 74,58 40,76 6,58 6,22"
+            stroke="currentColor" stroke-width="2" stroke-linejoin="round" fill="none" opacity="0.85"/>
+          <polygon points="40,4 74,22 40,38"  stroke="currentColor" stroke-width="1.2" fill="none" opacity="0.5"/>
+          <polygon points="74,22 74,58 40,38" stroke="currentColor" stroke-width="1.2" fill="none" opacity="0.5"/>
+          <polygon points="74,58 40,76 40,38" stroke="currentColor" stroke-width="1.2" fill="none" opacity="0.5"/>
+          <polygon points="40,76 6,58 40,38"  stroke="currentColor" stroke-width="1.2" fill="none" opacity="0.5"/>
+          <polygon points="6,58 6,22 40,38"   stroke="currentColor" stroke-width="1.2" fill="none" opacity="0.5"/>
+          <polygon points="6,22 40,4 40,38"   stroke="currentColor" stroke-width="1.2" fill="none" opacity="0.5"/>
+          <text x="40" y="44" text-anchor="middle"
+            font-size="15" font-weight="700" font-family="inherit"
+            fill="currentColor" opacity="0.92">20</text>
+        </svg>
+        <div class="ld-dot1"></div>
+        <div class="ld-dot2"></div>
+      </div>
+      <div class="ld-text">
+        <p class="ld-title">Подготовка персонажа</p>
+        <div class="ld-msgs">
+          <span>Ищем вашего персонажа&hellip;</span>
+          <span>Листаем книгу заклинаний&hellip;</span>
+          <span>Считаем очки здоровья&hellip;</span>
+          <span>Застёгиваем доспех&hellip;</span>
+          <span>Готовим снаряжение&hellip;</span>
+          <span>Читаем карту приключений&hellip;</span>
+        </div>
+        <div class="ld-dots"><i></i><i></i><i></i></div>
+      </div>
+    </div>
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

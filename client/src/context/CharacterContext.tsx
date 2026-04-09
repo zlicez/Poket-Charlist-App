@@ -231,7 +231,7 @@ export function CharacterProvider({
     <CharacterContext.Provider
       value={{
         character: currentCharacter,
-        isLoading,
+        isLoading: isAuthLoading || isLoading,
         error: error as Error | null,
         isEditing,
         setIsEditing,

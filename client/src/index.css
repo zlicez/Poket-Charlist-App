@@ -492,6 +492,8 @@ input[type="number"]::-webkit-inner-spin-button {
 
   .equipment-scroll-viewport {
     scrollbar-width: none;
+    max-height: inherit;
+    overflow-y: auto;
   }
 
   .equipment-scroll-viewport::-webkit-scrollbar {
