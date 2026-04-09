@@ -127,7 +127,7 @@ function CharacterSheetContent() {
   const handleExportPdf = async () => {
     if (!character) return;
     const { exportCharacterToPDF } = await import("@/lib/pdf-export");
-    exportCharacterToPDF(character);
+    await exportCharacterToPDF(character);
     toast({ title: "PDF генерируется..." });
   };
 

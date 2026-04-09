@@ -1,403 +1,977 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import fontkit from "@pdf-lib/fontkit";
 import {
-  ABILITY_LABELS,
+  PDFDocument,
+  PDFRadioGroup,
+  PDFTextField,
+  TextAlignment,
+  type PDFForm,
+  type PDFFont,
+} from "pdf-lib";
+import {
   ABILITY_NAMES,
-  SKILLS_BY_ABILITY,
+  CLASS_DATA,
+  PROFICIENCY_CATEGORY_LABELS,
+  SKILLS,
   calculateModifier,
-  getProficiencyBonus,
-  formatModifier,
-  getRacialBonuses,
-  getCharacterClasses,
-  getTotalLevel,
+  calculateSpellAttackBonus,
+  calculateSpellSaveDC,
   formatClassesDisplay,
-  type Character,
+  formatModifier,
+  getCharacterClasses,
+  getProficiencyBonus,
+  getRacialBonuses,
+  getRaceAndClassProficiencies,
+  getTotalLevel,
   type AbilityName,
+  type Character,
+  type ClassEntry,
+  type SkillName,
 } from "@shared/schema";
 import { getCombinedWeapons } from "@/lib/weapons";
 
-declare module "jspdf" {
-  interface jsPDF {
-    lastAutoTable: { finalY: number };
-  }
+const PDF_TEMPLATE_URL = "/charlist_blank.pdf";
+const PDF_FONT_URL = "/fonts/NotoSans-Regular.ttf";
+
+const SPELL_ROW_FIELD_RE = /^spell_lvl_(\d)_row_(\d{2})_name$/;
+const SPELL_SLOT_FIELD_RE = /^spell_lvl_(\d)_slots_(total|used)$/;
+const ATTACK_FIELD_RE = /^attack_(\d+)_(name|bonus|damage)$/;
+
+const FEATURE_FIELD_BUDGETS = [1350, 820] as const;
+const SPELL_NAME_FONT_SIZE = 8;
+const MIN_ADAPTIVE_FONT_SIZE = 6;
+const ADAPTIVE_TEXT_FIELD_NAMES = new Set([
+  "background",
+  "features_primary",
+  "features_secondary",
+  "allies_text",
+  "equipment_text",
+]);
+
+const ABILITY_TO_LOWERCASE_FIELD: Record<AbilityName, string> = {
+  STR: "str",
+  DEX: "dex",
+  CON: "con",
+  INT: "int",
+  WIS: "wis",
+  CHA: "cha",
+};
+
+const ABILITY_TO_RUSSIAN_SHORT_LABEL: Record<AbilityName, string> = {
+  STR: "СИЛ",
+  DEX: "ЛОВ",
+  CON: "ТЕЛ",
+  INT: "ИНТ",
+  WIS: "МУД",
+  CHA: "ХАР",
+};
+
+const SKILL_FIELD_BINDINGS: { slug: string; skill: SkillName }[] = [
+  { slug: "acrobatics", skill: "Акробатика" },
+  { slug: "investigation", skill: "Анализ" },
+  { slug: "athletics", skill: "Атлетика" },
+  { slug: "perception", skill: "Восприятие" },
+  { slug: "survival", skill: "Выживание" },
+  { slug: "performance", skill: "Выступление" },
+  { slug: "intimidation", skill: "Запугивание" },
+  { slug: "history", skill: "История" },
+  { slug: "sleight_of_hand", skill: "Ловкость рук" },
+  { slug: "arcana", skill: "Магия" },
+  { slug: "medicine", skill: "Медицина" },
+  { slug: "deception", skill: "Обман" },
+  { slug: "nature", skill: "Природа" },
+  { slug: "insight", skill: "Проницательность" },
+  { slug: "religion", skill: "Религия" },
+  { slug: "stealth", skill: "Скрытность" },
+  { slug: "persuasion", skill: "Убеждение" },
+  { slug: "animal_handling", skill: "Уход за животными" },
+];
+
+const SKILL_TO_ABILITY = new Map<SkillName, AbilityName>(
+  SKILLS.map((skill) => [skill.name, skill.ability]),
+);
+
+interface TextFieldBinding {
+  value: string;
 }
 
-const PAGE_W = 210;
-const PAGE_H = 297;
-const MARGIN = 12;
-const CONTENT_W = PAGE_W - MARGIN * 2;
-
-import { ROBOTO_REGULAR_BASE64 } from "@/assets/roboto-regular-base64";
-
-function loadCyrillicFont(doc: jsPDF): void {
-  try {
-    doc.addFileToVFS("Roboto-Regular.ttf", ROBOTO_REGULAR_BASE64);
-    doc.addFont("Roboto-Regular.ttf", "Roboto", "normal");
-    doc.addFileToVFS("Roboto-Bold.ttf", ROBOTO_REGULAR_BASE64);
-    doc.addFont("Roboto-Bold.ttf", "Roboto", "bold");
-  } catch (e) {
-    console.warn("Failed to load Cyrillic font", e);
-  }
+interface RadioFieldBinding {
+  selected: boolean;
 }
 
-function setFont(doc: jsPDF, style: "normal" | "bold" = "normal", size: number = 9) {
-  doc.setFont("Roboto", style);
-  doc.setFontSize(size);
+interface PdfExportViewModel {
+  textFields: Record<string, TextFieldBinding>;
+  radioFields: Record<string, RadioFieldBinding>;
 }
 
-function drawSectionHeader(doc: jsPDF, title: string, y: number): number {
-  setFont(doc, "bold", 11);
-  doc.setFillColor(50, 50, 50);
-  doc.rect(MARGIN, y, CONTENT_W, 7, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.text(title, MARGIN + 3, y + 5);
-  doc.setTextColor(0, 0, 0);
-  return y + 9;
+interface TemplateFieldIndex {
+  fieldNames: Set<string>;
+  attackRows: number[];
+  spellRowFields: Map<number, string[]>;
+  spellSlotTotalFields: Map<number, string>;
+  spellSlotUsedFields: Map<number, string>;
 }
 
-function drawLabelValue(
-  doc: jsPDF,
-  label: string,
-  value: string,
-  x: number,
-  y: number,
-  labelWidth: number = 40
-): number {
-  setFont(doc, "normal", 7);
-  doc.setTextColor(100, 100, 100);
-  doc.text(label, x, y);
-  setFont(doc, "normal", 9);
-  doc.setTextColor(0, 0, 0);
-  doc.text(String(value), x + labelWidth, y);
-  return y + 5;
+interface TextFieldSettings {
+  alignment?: TextAlignment;
+  fontSize?: number;
+  multiline?: boolean;
 }
 
-function checkNewPage(doc: jsPDF, y: number, needed: number = 20): number {
-  if (y + needed > PAGE_H - MARGIN) {
-    doc.addPage();
-    return MARGIN + 5;
-  }
-  return y;
+function normalizeWhitespace(input: string): string {
+  return input.replace(/\r\n/g, "\n").replace(/\u00a0/g, " ");
 }
 
-export function exportCharacterToPDF(character: Character): void {
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-  loadCyrillicFont(doc);
-  doc.setFont("Roboto", "normal");
+function decodeBasicHtmlEntities(input: string): string {
+  return input
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">");
+}
 
-  const charClasses = getCharacterClasses(character);
-  const totalLevel = getTotalLevel(charClasses);
-  const profBonus = getProficiencyBonus(totalLevel);
-  const racialBonuses = getRacialBonuses(character.race, character.subrace);
+function stripHtmlKeepingStructure(input: string): string {
+  return input
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|section|article|blockquote|h[1-6]|li|ul|ol|pre)>/gi, "\n")
+    .replace(/<li>/gi, "- ")
+    .replace(/<[^>]+>/g, "");
+}
 
-  const getScore = (ab: AbilityName) => {
-    const base = character.abilityScores[ab];
-    const racial = racialBonuses[ab] || 0;
-    const custom = character.customAbilityBonuses?.[ab] || 0;
-    return base + racial + custom;
-  };
-  const getMod = (ab: AbilityName) => calculateModifier(getScore(ab));
-  const displayWeapons = getCombinedWeapons(character.weapons, character.equipment);
+function stripMarkdownSyntax(input: string): string {
+  return input
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, "$1")
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^\s*>\s?/gm, "")
+    .replace(/^\s*[-*+]\s+/gm, "- ")
+    .replace(/^\s*\d+\.\s+/gm, "")
+    .replace(/`{1,3}([^`]+)`{1,3}/g, "$1")
+    .replace(/[*_~]{1,3}/g, "");
+}
 
-  let y = MARGIN;
+function normalizeRichTextToPlainText(input?: string): string {
+  if (!input) return "";
 
-  setFont(doc, "bold", 18);
-  doc.text(character.name, MARGIN, y + 6);
-  y += 10;
+  return decodeBasicHtmlEntities(
+    stripMarkdownSyntax(stripHtmlKeepingStructure(normalizeWhitespace(input))),
+  )
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
 
-  setFont(doc, "normal", 10);
-  const classDisplay = formatClassesDisplay(charClasses);
-  const headerLine = [
-    classDisplay,
-    character.race + (character.subrace ? ` (${character.subrace})` : ""),
-    `Ур. ${totalLevel}`,
-    character.background ? `${character.background}` : "",
-    character.alignment || "",
-  ]
-    .filter(Boolean)
-    .join("  •  ");
-  const headerLines = doc.splitTextToSize(headerLine, CONTENT_W);
-  for (const line of headerLines) {
-    doc.text(line, MARGIN, y + 4);
-    y += 5;
-  }
-  y += 3;
+function sanitizeFilename(input: string): string {
+  return input
+    .replace(/[^a-zA-Zа-яА-ЯёЁ0-9\s_-]/g, "_")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
-  doc.setDrawColor(180, 180, 180);
-  doc.line(MARGIN, y, PAGE_W - MARGIN, y);
-  y += 4;
+function toUint8Array(bytes: ArrayBuffer | Uint8Array): Uint8Array {
+  return bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+}
 
-  y = drawSectionHeader(doc, "ХАРАКТЕРИСТИКИ", y);
+function buildTemplateFieldIndex(form: PDFForm): TemplateFieldIndex {
+  const fieldNames = new Set<string>();
+  const attackRows = new Set<number>();
+  const spellRowFields = new Map<number, string[]>();
+  const spellSlotTotalFields = new Map<number, string>();
+  const spellSlotUsedFields = new Map<number, string>();
 
-  const colW = CONTENT_W / 6;
-  ABILITY_NAMES.forEach((ab, i) => {
-    const x = MARGIN + i * colW;
-    const score = getScore(ab);
-    const mod = getMod(ab);
+  for (const field of form.getFields()) {
+    const fieldName = field.getName();
+    fieldNames.add(fieldName);
 
-    doc.setFillColor(240, 240, 240);
-    doc.roundedRect(x + 1, y, colW - 2, 22, 2, 2, "F");
+    const attackMatch = fieldName.match(ATTACK_FIELD_RE);
+    if (attackMatch) {
+      attackRows.add(Number(attackMatch[1]));
+    }
 
-    setFont(doc, "bold", 7);
-    doc.setTextColor(100, 100, 100);
-    doc.text(ABILITY_LABELS[ab].ru, x + colW / 2, y + 4, { align: "center" });
+    const spellRowMatch = fieldName.match(SPELL_ROW_FIELD_RE);
+    if (spellRowMatch) {
+      const level = Number(spellRowMatch[1]);
+      const rows = spellRowFields.get(level) || [];
+      rows.push(fieldName);
+      spellRowFields.set(level, rows);
+    }
 
-    setFont(doc, "bold", 16);
-    doc.setTextColor(0, 0, 0);
-    doc.text(formatModifier(mod), x + colW / 2, y + 13, { align: "center" });
-
-    setFont(doc, "normal", 8);
-    doc.text(String(score), x + colW / 2, y + 19, { align: "center" });
-  });
-  y += 26;
-
-  const leftColX = MARGIN;
-  const rightColX = MARGIN + CONTENT_W / 2 + 2;
-  const halfW = CONTENT_W / 2 - 2;
-
-  y = drawSectionHeader(doc, "СПАСБРОСКИ И НАВЫКИ", y);
-  let yLeft = y;
-  let yRight = y;
-
-  setFont(doc, "bold", 8);
-  doc.text("Спасброски", leftColX, yLeft + 4);
-  yLeft += 7;
-
-  ABILITY_NAMES.forEach((ab) => {
-    const mod = getMod(ab);
-    const isProficient = character.savingThrows[ab];
-    const totalMod = isProficient ? mod + profBonus : mod;
-    const marker = isProficient ? "●" : "○";
-
-    setFont(doc, "normal", 8);
-    doc.text(
-      `${marker} ${formatModifier(totalMod)}  ${ABILITY_LABELS[ab].ru}`,
-      leftColX + 2,
-      yLeft + 3
-    );
-    yLeft += 4.5;
-  });
-
-  setFont(doc, "bold", 8);
-  doc.text("Навыки", rightColX, yRight + 4);
-  yRight += 7;
-
-  for (const ab of ABILITY_NAMES) {
-    const abMod = getMod(ab);
-    const abSkills = SKILLS_BY_ABILITY[ab];
-    for (const skill of abSkills) {
-      const prof = character.skills[skill.name];
-      let totalMod = abMod;
-      let marker = "○";
-      if (prof?.expertise) {
-        totalMod += profBonus * 2;
-        marker = "◆";
-      } else if (prof?.proficient) {
-        totalMod += profBonus;
-        marker = "●";
+    const spellSlotMatch = fieldName.match(SPELL_SLOT_FIELD_RE);
+    if (spellSlotMatch) {
+      const level = Number(spellSlotMatch[1]);
+      const slotType = spellSlotMatch[2];
+      if (slotType === "total") {
+        spellSlotTotalFields.set(level, fieldName);
+      } else {
+        spellSlotUsedFields.set(level, fieldName);
       }
-      setFont(doc, "normal", 7);
-      doc.text(
-        `${marker} ${formatModifier(totalMod)}  ${skill.name}`,
-        rightColX + 2,
-        yRight + 3
-      );
-      yRight += 4;
     }
   }
 
-  y = Math.max(yLeft, yRight) + 4;
-
-  y = checkNewPage(doc, y, 35);
-  y = drawSectionHeader(doc, "БОЕВЫЕ ПАРАМЕТРЫ", y);
-
-  const combatData = [
-    ["КД", String(character.armorClass)],
-    ["Инициатива", formatModifier(getMod("DEX") + (character.customInitiativeBonus || 0))],
-    ["Скорость", `${character.speed} фт.`],
-    ["Хиты", `${character.currentHp} / ${character.maxHp}`],
-    ["Врем. хиты", String(character.tempHp)],
-    ["Кости хитов", character.hitDice],
-    ["Бонус мастерства", formatModifier(profBonus)],
-  ];
-
-  const combatColW = CONTENT_W / 4;
-  combatData.forEach((item, i) => {
-    const col = i % 4;
-    const row = Math.floor(i / 4);
-    const x = MARGIN + col * combatColW;
-    const cy = y + row * 12;
-
-    setFont(doc, "normal", 7);
-    doc.setTextColor(100, 100, 100);
-    doc.text(item[0], x + 2, cy + 4);
-
-    setFont(doc, "bold", 11);
-    doc.setTextColor(0, 0, 0);
-    doc.text(item[1], x + 2, cy + 10);
+  spellRowFields.forEach((rows) => {
+    rows.sort((left: string, right: string) => left.localeCompare(right, "en"));
   });
-  y += Math.ceil(combatData.length / 4) * 12 + 4;
 
-  if (displayWeapons.length > 0) {
-    y = checkNewPage(doc, y, 20);
-    y = drawSectionHeader(doc, "ОРУЖИЕ", y);
+  return {
+    fieldNames,
+    attackRows: Array.from(attackRows).sort((left, right) => left - right),
+    spellRowFields,
+    spellSlotTotalFields,
+    spellSlotUsedFields,
+  };
+}
 
-    const weaponRows = displayWeapons.map((w) => [
-      w.name,
-      formatModifier(w.attackBonus + getMod(w.abilityMod === "dex" ? "DEX" : "STR") + profBonus),
-      w.damage,
-      w.damageType,
-      w.properties || "",
-    ]);
+function getTotalLevelSafe(classes: ClassEntry[]): number {
+  return classes.length > 0 ? getTotalLevel(classes) : 1;
+}
 
-    autoTable(doc, {
-      startY: y,
-      head: [["Название", "Атака", "Урон", "Тип", "Свойства"]],
-      body: weaponRows,
-      margin: { left: MARGIN, right: MARGIN },
-      styles: { font: "Roboto", fontSize: 8, cellPadding: 1.5 },
-      headStyles: { fillColor: [80, 80, 80], font: "Roboto", fontStyle: "bold" },
-      theme: "grid",
-    });
-    y = doc.lastAutoTable.finalY + 4;
+function formatClassAndLevel(classes: ClassEntry[]): string {
+  if (classes.length === 0) return "";
+  if (classes.length === 1) {
+    return `${classes[0].name} ${classes[0].level}`;
+  }
+  return formatClassesDisplay(classes);
+}
+
+function getTotalAbilityScore(character: Character, ability: AbilityName): number {
+  const racialBonuses = getRacialBonuses(character.race, character.subrace);
+  return (
+    character.abilityScores[ability] +
+    (racialBonuses[ability] || 0) +
+    (character.customAbilityBonuses?.[ability] || 0)
+  );
+}
+
+function getAbilityModifier(character: Character, ability: AbilityName): number {
+  return calculateModifier(getTotalAbilityScore(character, ability));
+}
+
+function getSavingThrowTotal(
+  character: Character,
+  ability: AbilityName,
+  proficiencyBonus: number,
+): number {
+  const modifier = getAbilityModifier(character, ability);
+  return character.savingThrows[ability]
+    ? modifier + proficiencyBonus
+    : modifier;
+}
+
+function getSkillTotal(
+  character: Character,
+  skillName: SkillName,
+  proficiencyBonus: number,
+): { total: number; proficient: boolean; expertise: boolean } {
+  const skillEntry = character.skills[skillName];
+  const ability = SKILL_TO_ABILITY.get(skillName) || "INT";
+  const abilityModifier = getAbilityModifier(character, ability);
+
+  if (skillEntry?.expertise) {
+    return {
+      total: abilityModifier + proficiencyBonus * 2,
+      proficient: true,
+      expertise: true,
+    };
   }
 
-  if (character.features.length > 0) {
-    y = checkNewPage(doc, y, 20);
-    y = drawSectionHeader(doc, "СПОСОБНОСТИ И ЧЕРТЫ", y);
+  if (skillEntry?.proficient) {
+    return {
+      total: abilityModifier + proficiencyBonus,
+      proficient: true,
+      expertise: false,
+    };
+  }
 
-    for (const feat of character.features) {
-      y = checkNewPage(doc, y, 15);
-      setFont(doc, "bold", 8);
-      doc.text(`${feat.name} (${feat.source})`, MARGIN + 2, y + 4);
-      y += 5;
+  return { total: abilityModifier, proficient: false, expertise: false };
+}
 
-      if (feat.description) {
-        setFont(doc, "normal", 7);
-        const lines = doc.splitTextToSize(feat.description, CONTENT_W - 4);
-        for (const line of lines) {
-          y = checkNewPage(doc, y, 5);
-          doc.text(line, MARGIN + 2, y + 3);
-          y += 3.5;
+function getPassivePerception(character: Character, proficiencyBonus: number): number {
+  const perception = getSkillTotal(character, "Восприятие", proficiencyBonus);
+  return 10 + perception.total;
+}
+
+function mergeUniqueValues(...groups: ReadonlyArray<readonly string[]>): string[] {
+  return Array.from(
+    new Set(groups.flat().map((value) => value.trim()).filter(Boolean)),
+  );
+}
+
+function buildProficienciesText(character: Character): string {
+  const autoProficiencies = getRaceAndClassProficiencies(
+    character.race,
+    character.class,
+    character.subrace,
+  );
+
+  const lines = (
+    ["languages", "weapons", "armor", "tools"] as const
+  ).flatMap((category) => {
+    const values = mergeUniqueValues(
+      autoProficiencies[category] || [],
+      character.proficiencies?.[category] || [],
+    );
+    if (values.length === 0) return [];
+    return [`${PROFICIENCY_CATEGORY_LABELS[category]}: ${values.join(", ")}`];
+  });
+
+  return lines.join("\n");
+}
+
+function buildEquipmentText(character: Character): string {
+  return character.equipment
+    .map((item) => {
+      const quantity = item.quantity > 1 ? `${item.quantity}x ` : "";
+      return `${quantity}${item.name}`;
+    })
+    .join("\n");
+}
+
+function buildFeatureBlocks(character: Character): string[] {
+  return character.features.map((feature) => {
+    const title = feature.source
+      ? `${feature.name} (${feature.source})`
+      : feature.name;
+    const description = normalizeRichTextToPlainText(feature.description);
+    return description ? `${title}\n${description}` : title;
+  });
+}
+
+function splitBlockByBudget(block: string, budget: number): [string, string] {
+  if (block.length <= budget) {
+    return [block, ""];
+  }
+
+  const boundary = Math.max(
+    block.lastIndexOf("\n", budget),
+    block.lastIndexOf(" ", budget),
+  );
+  const safeIndex = boundary > Math.floor(budget * 0.45) ? boundary : budget;
+
+  return [
+    block.slice(0, safeIndex).trim(),
+    block.slice(safeIndex).trim(),
+  ];
+}
+
+function splitBlocksAcrossBudgets(
+  blocks: string[],
+  budgets: readonly number[],
+): string[] {
+  const segments = budgets.map(() => "");
+  let blockIndex = 0;
+  let carry = "";
+
+  for (let segmentIndex = 0; segmentIndex < budgets.length; segmentIndex += 1) {
+    const budget = budgets[segmentIndex];
+    const segmentBlocks: string[] = [];
+    let used = 0;
+
+    while (carry || blockIndex < blocks.length) {
+      const nextBlock = carry || blocks[blockIndex];
+      const separatorLength = segmentBlocks.length > 0 ? 2 : 0;
+      const nextLength = separatorLength + nextBlock.length;
+
+      if (used + nextLength <= budget) {
+        segmentBlocks.push(nextBlock);
+        used += nextLength;
+        carry = "";
+        if (blockIndex < blocks.length) {
+          blockIndex += 1;
+        }
+        continue;
+      }
+
+      if (segmentBlocks.length === 0) {
+        const [head, tail] = splitBlockByBudget(nextBlock, budget);
+        if (head) {
+          segmentBlocks.push(head);
+        }
+        carry = tail;
+        if (!carry && blockIndex < blocks.length) {
+          blockIndex += 1;
         }
       }
-      y += 2;
+      break;
     }
+
+    segments[segmentIndex] = segmentBlocks.join("\n\n");
   }
 
-  if (character.spellcasting && character.spellcasting.spells.length > 0) {
-    y = checkNewPage(doc, y, 20);
-    y = drawSectionHeader(doc, "ЗАКЛИНАНИЯ", y);
+  return segments;
+}
 
-    const spellAbMod = getMod(character.spellcasting.ability);
-    const spellSaveDC = 8 + profBonus + spellAbMod;
-    const spellAttack = profBonus + spellAbMod;
+function buildFeatureTextSegments(character: Character): {
+  primary: string;
+  secondary: string;
+} {
+  const blocks = buildFeatureBlocks(character);
+  const [primary = "", secondary = ""] = splitBlocksAcrossBudgets(
+    blocks,
+    FEATURE_FIELD_BUDGETS,
+  );
 
-    setFont(doc, "normal", 8);
-    doc.text(
-      `Базовая характеристика: ${ABILITY_LABELS[character.spellcasting.ability].ru}  |  Сложность спасброска: ${spellSaveDC}  |  Бонус атаки: ${formatModifier(spellAttack)}`,
-      MARGIN + 2,
-      y + 4
+  return { primary, secondary };
+}
+
+function buildAlliesAndFactionsText(character: Character): string {
+  const allies = normalizeRichTextToPlainText(character.allies);
+  const factions = normalizeRichTextToPlainText(character.factions);
+
+  if (allies && factions) {
+    return `${allies}\n\nФракции:\n${factions}`;
+  }
+
+  return allies || factions;
+}
+
+function getWeaponDisplayRows(character: Character, proficiencyBonus: number) {
+  return getCombinedWeapons(character.weapons, character.equipment).map((weapon) => {
+    const ability = weapon.abilityMod === "dex" ? "DEX" : "STR";
+    const abilityModifier = getAbilityModifier(character, ability);
+    const attackBonus = formatModifier(
+      proficiencyBonus + abilityModifier + weapon.attackBonus,
     );
-    y += 8;
+    const damageModifier =
+      abilityModifier !== 0 ? formatModifier(abilityModifier) : "";
+    const damageTypeSuffix = weapon.damageType ? ` ${weapon.damageType}` : "";
 
-    const slotInfo = character.spellcasting.spellSlots
-      .map((s, i) => (s.max > 0 ? `${i + 1}-й: ${s.max - s.used}/${s.max}` : null))
-      .filter(Boolean);
-    if (slotInfo.length > 0) {
-      setFont(doc, "normal", 7);
-      doc.text(`Ячейки: ${slotInfo.join("  ")}`, MARGIN + 2, y + 3);
-      y += 6;
+    return {
+      name: weapon.name,
+      attackBonus,
+      damage: `${weapon.damage}${damageModifier}${damageTypeSuffix}`.trim(),
+    };
+  });
+}
+
+function getSpellSlotSummary(character: Character): { max: number; used: number }[] {
+  const slots = Array.from({ length: 9 }, (_, index) => {
+    const current = character.spellcasting?.spellSlots[index];
+    return {
+      max: current?.max || 0,
+      used: current?.used || 0,
+    };
+  });
+
+  const pactMagic = character.spellcasting?.pactMagic;
+  if (pactMagic && pactMagic.max > 0) {
+    const pactIndex = pactMagic.slotLevel - 1;
+    if (pactIndex >= 0 && pactIndex < slots.length) {
+      slots[pactIndex] = {
+        max: slots[pactIndex].max + pactMagic.max,
+        used: slots[pactIndex].used + pactMagic.used,
+      };
     }
-
-    const spellRows = character.spellcasting.spells.map((s) => [
-      s.level === 0 ? "Заговор" : String(s.level),
-      s.name,
-      s.castingTime,
-      s.range,
-      [s.concentration ? "К" : "", s.ritual ? "Р" : ""].filter(Boolean).join(", ") || "—",
-    ]);
-
-    autoTable(doc, {
-      startY: y,
-      head: [["Ур.", "Название", "Время", "Дистанция", "К/Р"]],
-      body: spellRows,
-      margin: { left: MARGIN, right: MARGIN },
-      styles: { font: "Roboto", fontSize: 7, cellPadding: 1.2 },
-      headStyles: { fillColor: [80, 80, 80], font: "Roboto", fontStyle: "bold" },
-      theme: "grid",
-    });
-    y = doc.lastAutoTable.finalY + 4;
   }
 
-  if (character.equipment.length > 0 || (character.money && Object.values(character.money).some((v) => v > 0))) {
-    y = checkNewPage(doc, y, 20);
-    y = drawSectionHeader(doc, "СНАРЯЖЕНИЕ И МОНЕТЫ", y);
+  return slots;
+}
 
-    const moneyStr = [
-      character.money.pp > 0 ? `ПМ: ${character.money.pp}` : "",
-      character.money.gp > 0 ? `ЗМ: ${character.money.gp}` : "",
-      character.money.ep > 0 ? `ЭМ: ${character.money.ep}` : "",
-      character.money.sp > 0 ? `СМ: ${character.money.sp}` : "",
-      character.money.cp > 0 ? `ММ: ${character.money.cp}` : "",
-    ]
-      .filter(Boolean)
-      .join("  ");
+function getSpellcastingClasses(classes: ClassEntry[]): ClassEntry[] {
+  return classes.filter((entry) => Boolean(CLASS_DATA[entry.name]?.spellcastingAbility));
+}
 
-    if (moneyStr) {
-      setFont(doc, "bold", 8);
-      doc.text("Монеты: ", MARGIN + 2, y + 4);
-      setFont(doc, "normal", 8);
-      doc.text(moneyStr, MARGIN + 22, y + 4);
-      y += 7;
+function getTextFieldSettings(fieldName: string): TextFieldSettings {
+  if (
+    fieldName === "character_name_p1" ||
+    fieldName === "character_name_p2"
+  ) {
+    return { fontSize: 16 };
+  }
+
+  if (
+    fieldName === "class_level" ||
+    fieldName === "background" ||
+    fieldName === "race_display" ||
+    fieldName === "alignment" ||
+    fieldName === "experience" ||
+    fieldName === "spellcasting_class"
+  ) {
+    return { fontSize: 10 };
+  }
+
+  if (
+    fieldName === "armor_class" ||
+    fieldName === "initiative" ||
+    fieldName === "speed" ||
+    fieldName === "hp_current" ||
+    fieldName === "spellcasting_ability" ||
+    fieldName === "spell_save_dc" ||
+    fieldName === "spell_attack_bonus"
+  ) {
+    return { alignment: TextAlignment.Center, fontSize: 12 };
+  }
+
+  if (
+    fieldName === "hp_max" ||
+    fieldName === "hp_temp" ||
+    fieldName === "hit_dice_total" ||
+    fieldName === "hit_dice_value" ||
+    fieldName === "passive_perception" ||
+    fieldName === "proficiency_bonus"
+  ) {
+    return { alignment: TextAlignment.Center, fontSize: 10 };
+  }
+
+  if (/^ability_[a-z]+_score$/.test(fieldName)) {
+    return { alignment: TextAlignment.Center, fontSize: 18 };
+  }
+
+  if (/^ability_[a-z]+_mod$/.test(fieldName)) {
+    return { alignment: TextAlignment.Center, fontSize: 12 };
+  }
+
+  if (/^save_throw_[a-z]+_value$/.test(fieldName)) {
+    return { alignment: TextAlignment.Center, fontSize: 9 };
+  }
+
+  if (/^skill_[a-z_]+_value$/.test(fieldName)) {
+    return { alignment: TextAlignment.Center, fontSize: 8 };
+  }
+
+  if (/^attack_\d+_bonus$/.test(fieldName)) {
+    return { alignment: TextAlignment.Center, fontSize: 8 };
+  }
+
+  if (/^attack_\d+_name$/.test(fieldName)) {
+    return { fontSize: 8 };
+  }
+
+  if (/^attack_\d+_damage$/.test(fieldName)) {
+    return { fontSize: 7 };
+  }
+
+  if (
+    fieldName === "features_primary" ||
+    fieldName === "features_secondary" ||
+    fieldName === "equipment_text" ||
+    fieldName === "proficiencies_text" ||
+    fieldName === "allies_text" ||
+    fieldName === "backstory_text" ||
+    fieldName === "treasure_text"
+  ) {
+    const fontSize =
+      fieldName === "features_primary" || fieldName === "features_secondary"
+        ? 8
+        : fieldName === "backstory_text"
+          ? 8
+          : 8.5;
+    return { multiline: true, fontSize };
+  }
+
+  if (/^coins_(cp|sp|ep|gp|pp)$/.test(fieldName)) {
+    return { alignment: TextAlignment.Center, fontSize: 9 };
+  }
+
+  if (/^spell_lvl_\d_row_\d{2}_name$/.test(fieldName)) {
+    return { fontSize: SPELL_NAME_FONT_SIZE };
+  }
+
+  if (/^spell_lvl_\d_slots_(total|used)$/.test(fieldName)) {
+    return { alignment: TextAlignment.Center, fontSize: 10 };
+  }
+
+  return {};
+}
+
+function countWrappedLines(
+  text: string,
+  maxWidth: number,
+  font: PDFFont,
+  fontSize: number,
+): number {
+  const normalizedLines = text.replace(/\r\n/g, "\n").split("\n");
+  let linesUsed = 0;
+
+  for (const rawLine of normalizedLines) {
+    linesUsed += 1;
+
+    const words = rawLine.split(" ");
+    let spaceInLineRemaining = maxWidth;
+
+    for (let index = 0; index < words.length; index += 1) {
+      const isLastWord = index === words.length - 1;
+      const word = isLastWord ? words[index] : `${words[index]} `;
+      const widthOfWord = font.widthOfTextAtSize(word, fontSize);
+
+      spaceInLineRemaining -= widthOfWord;
+      if (spaceInLineRemaining <= 0) {
+        linesUsed += 1;
+        spaceInLineRemaining = maxWidth - widthOfWord;
+      }
+    }
+  }
+
+  return linesUsed;
+}
+
+function getAdaptiveFontSizeForField(
+  field: PDFTextField,
+  text: string,
+  font: PDFFont,
+  preferredFontSize: number,
+): number {
+  const [widget] = field.acroField.getWidgets();
+  if (!widget) return preferredFontSize;
+
+  const rectangle = widget.getRectangle();
+  const borderWidth = widget.getBorderStyle()?.getWidth() ?? 0;
+  const padding = field.isCombed() ? 0 : 1;
+  const availableWidth = Math.abs(rectangle.width) - (borderWidth + padding) * 2;
+  const availableHeight =
+    Math.abs(rectangle.height) - (borderWidth + padding) * 2;
+
+  if (availableWidth <= 0 || availableHeight <= 0) {
+    return preferredFontSize;
+  }
+
+  const singleLineText = text.replace(/\r?\n/g, " ");
+
+  for (
+    let fontSize = preferredFontSize;
+    fontSize >= MIN_ADAPTIVE_FONT_SIZE;
+    fontSize -= 0.5
+  ) {
+    if (field.isMultiline()) {
+      const lineHeight = font.heightAtSize(fontSize) * 1.2;
+      const linesUsed = countWrappedLines(text, availableWidth, font, fontSize);
+
+      if (linesUsed * lineHeight <= availableHeight) {
+        return fontSize;
+      }
+
+      continue;
     }
 
-    if (character.equipment.length > 0) {
-      const eqRows = character.equipment.map((eq) => [
-        eq.name,
-        String(eq.quantity),
-        eq.description || "",
-      ]);
+    const textWidth = font.widthOfTextAtSize(singleLineText, fontSize);
+    const textHeight = font.heightAtSize(fontSize, { descender: false });
 
-      autoTable(doc, {
-        startY: y,
-        head: [["Предмет", "Кол-во", "Описание"]],
-        body: eqRows,
-        margin: { left: MARGIN, right: MARGIN },
-        styles: { font: "Roboto", fontSize: 7, cellPadding: 1.2 },
-        headStyles: { fillColor: [80, 80, 80], font: "Roboto", fontStyle: "bold" },
-        theme: "grid",
-        columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 15 } },
+    if (textWidth <= availableWidth && textHeight <= availableHeight) {
+      return fontSize;
+    }
+  }
+
+  return MIN_ADAPTIVE_FONT_SIZE;
+}
+
+function getExistingTextField(form: PDFForm, fieldName: string): PDFTextField | null {
+  try {
+    return form.getTextField(fieldName);
+  } catch {
+    return null;
+  }
+}
+
+function getExistingRadioGroup(form: PDFForm, fieldName: string): PDFRadioGroup | null {
+  try {
+    return form.getRadioGroup(fieldName);
+  } catch {
+    return null;
+  }
+}
+
+function applyTextFieldBinding(
+  form: PDFForm,
+  fieldName: string,
+  binding: TextFieldBinding,
+): void {
+  const field = getExistingTextField(form, fieldName);
+  if (!field) return;
+
+  const settings = getTextFieldSettings(fieldName);
+  if (settings.multiline) {
+    field.enableMultiline();
+  } else {
+    field.disableMultiline();
+  }
+
+  if (settings.alignment !== undefined) {
+    field.setAlignment(settings.alignment);
+  }
+
+  if (settings.fontSize !== undefined) {
+    field.setFontSize(settings.fontSize);
+  }
+
+  field.setText(binding.value);
+}
+
+function applyAdaptiveTextSizing(
+  form: PDFForm,
+  viewModel: PdfExportViewModel,
+  font: PDFFont,
+): void {
+  for (const [fieldName, binding] of Object.entries(viewModel.textFields)) {
+    if (!ADAPTIVE_TEXT_FIELD_NAMES.has(fieldName) || !binding.value) continue;
+
+    const field = getExistingTextField(form, fieldName);
+    if (!field) continue;
+
+    const preferredFontSize = getTextFieldSettings(fieldName).fontSize;
+    if (!preferredFontSize) continue;
+
+    field.setFontSize(
+      getAdaptiveFontSizeForField(field, binding.value, font, preferredFontSize),
+    );
+  }
+}
+
+function applyRadioFieldBinding(
+  form: PDFForm,
+  fieldName: string,
+  binding: RadioFieldBinding,
+): void {
+  const field = getExistingRadioGroup(form, fieldName);
+  if (!field) return;
+
+  if (!binding.selected) {
+    field.clear();
+    return;
+  }
+
+  const [firstOption] = field.getOptions();
+  if (firstOption) {
+    field.select(firstOption);
+  }
+}
+
+function buildPdfExportViewModel(
+  character: Character,
+  template: TemplateFieldIndex,
+): PdfExportViewModel {
+  const textFields: Record<string, TextFieldBinding> = {};
+  const radioFields: Record<string, RadioFieldBinding> = {};
+
+  const characterClasses = getCharacterClasses(character);
+  const totalLevel = getTotalLevelSafe(characterClasses);
+  const proficiencyBonus = getProficiencyBonus(totalLevel);
+  const featureSegments = buildFeatureTextSegments(character);
+  const skillValues = SKILL_FIELD_BINDINGS.map(({ slug, skill }) => ({
+    slug,
+    skill,
+    total: getSkillTotal(character, skill, proficiencyBonus),
+  }));
+
+  const setText = (fieldName: string, value: string | null | undefined) => {
+    if (!template.fieldNames.has(fieldName)) return;
+    if (!value) return;
+    textFields[fieldName] = { value };
+  };
+
+  const setRadio = (fieldName: string, selected: boolean) => {
+    if (!template.fieldNames.has(fieldName)) return;
+    radioFields[fieldName] = { selected };
+  };
+
+  setText("character_name_p1", character.name);
+  setText("character_name_p2", character.name);
+  setText("class_level", formatClassAndLevel(characterClasses));
+  setText("background", character.background || "");
+  setText("race_display", [character.race, character.subrace].filter(Boolean).join(" "));
+  setText("alignment", character.alignment || "");
+  setText("experience", String(character.experience || 0));
+  setText("proficiency_bonus", formatModifier(proficiencyBonus));
+  setText("armor_class", String(character.armorClass || 0));
+  setText(
+    "initiative",
+    formatModifier(
+      getAbilityModifier(character, "DEX") + (character.customInitiativeBonus || 0),
+    ),
+  );
+  setText("speed", String(character.speed || 0));
+  setText("hp_max", String(character.maxHp || 0));
+  setText("hp_current", String(character.currentHp || 0));
+  setText("hp_temp", String(character.tempHp || 0));
+  setText("hit_dice_total", String(character.hitDiceRemaining || 0));
+  setText("hit_dice_value", character.hitDice || "");
+  setText(
+    "passive_perception",
+    String(getPassivePerception(character, proficiencyBonus)),
+  );
+  setText("proficiencies_text", buildProficienciesText(character));
+  setText("equipment_text", buildEquipmentText(character));
+  setText("features_primary", featureSegments.primary);
+  setText("features_secondary", featureSegments.secondary);
+  setText("allies_text", buildAlliesAndFactionsText(character));
+  setText("backstory_text", normalizeRichTextToPlainText(character.notes));
+
+  for (const ability of ABILITY_NAMES) {
+    const abilityField = ABILITY_TO_LOWERCASE_FIELD[ability];
+    setText(
+      `ability_${abilityField}_score`,
+      String(getTotalAbilityScore(character, ability)),
+    );
+    setText(
+      `ability_${abilityField}_mod`,
+      formatModifier(getAbilityModifier(character, ability)),
+    );
+    setText(
+      `save_throw_${abilityField}_value`,
+      formatModifier(getSavingThrowTotal(character, ability, proficiencyBonus)),
+    );
+    setRadio(
+      `save_throw_${abilityField}_prof`,
+      Boolean(character.savingThrows[ability]),
+    );
+  }
+
+  for (const skillValue of skillValues) {
+    setText(
+      `skill_${skillValue.slug}_value`,
+      formatModifier(skillValue.total.total),
+    );
+    setRadio(
+      `skill_${skillValue.slug}_prof`,
+      skillValue.total.proficient || skillValue.total.expertise,
+    );
+  }
+
+  for (let index = 1; index <= 3; index += 1) {
+    setRadio(
+      `death_save_success_${index}`,
+      index <= (character.deathSaves?.successes || 0),
+    );
+    setRadio(
+      `death_save_failure_${index}`,
+      index <= (character.deathSaves?.failures || 0),
+    );
+  }
+
+  (["cp", "sp", "ep", "gp", "pp"] as const).forEach((coinType) => {
+    const value = character.money?.[coinType] ?? 0;
+    if (value > 0) {
+      setText(`coins_${coinType}`, String(value));
+    }
+  });
+
+  const weaponRows = getWeaponDisplayRows(character, proficiencyBonus);
+  template.attackRows.forEach((attackRowNumber, index) => {
+    const weaponRow = weaponRows[index];
+    if (!weaponRow) return;
+    setText(`attack_${attackRowNumber}_name`, weaponRow.name);
+    setText(`attack_${attackRowNumber}_bonus`, weaponRow.attackBonus);
+    setText(`attack_${attackRowNumber}_damage`, weaponRow.damage);
+  });
+
+  const casterClasses = getSpellcastingClasses(characterClasses);
+  if (casterClasses.length > 0 && character.spellcasting) {
+    const ability = character.spellcasting.ability;
+    const abilityModifier = getAbilityModifier(character, ability);
+    const spellSaveDc = calculateSpellSaveDC(abilityModifier, proficiencyBonus);
+    const spellAttackBonus = calculateSpellAttackBonus(
+      abilityModifier,
+      proficiencyBonus,
+    );
+    const spellSlotSummary = getSpellSlotSummary(character);
+
+    setText("spellcasting_class", formatClassAndLevel(casterClasses));
+    setText("spellcasting_ability", ABILITY_TO_RUSSIAN_SHORT_LABEL[ability]);
+    setText("spell_save_dc", String(spellSaveDc));
+    setText("spell_attack_bonus", formatModifier(spellAttackBonus));
+
+    const spellsByLevel = new Map<number, string[]>();
+    for (let level = 0; level <= 9; level += 1) {
+      spellsByLevel.set(
+        level,
+        (character.spellcasting.spells || [])
+          .filter((spell) => spell.level === level)
+          .map((spell) => spell.name),
+      );
+    }
+
+    template.spellRowFields.forEach((fieldNames, level) => {
+      const spellNames = spellsByLevel.get(level) || [];
+      fieldNames.forEach((fieldName, index) => {
+        const spellName = spellNames[index];
+        if (spellName) {
+          setText(fieldName, spellName);
+        }
       });
-      y = doc.lastAutoTable.finalY + 4;
-    }
+    });
+
+    template.spellSlotTotalFields.forEach((fieldName, level) => {
+      const summary = spellSlotSummary[level - 1];
+      if (summary && summary.max > 0) {
+        setText(fieldName, String(summary.max));
+      }
+    });
+
+    template.spellSlotUsedFields.forEach((fieldName, level) => {
+      const summary = spellSlotSummary[level - 1];
+      if (summary && summary.used > 0) {
+        setText(fieldName, String(summary.used));
+      }
+    });
   }
 
-  if (character.notes) {
-    y = checkNewPage(doc, y, 20);
-    y = drawSectionHeader(doc, "ЗАМЕТКИ", y);
-    setFont(doc, "normal", 8);
-    const noteLines = doc.splitTextToSize(character.notes, CONTENT_W - 4);
-    for (const line of noteLines) {
-      y = checkNewPage(doc, y, 5);
-      doc.text(line, MARGIN + 2, y + 3);
-      y += 4;
-    }
-    y += 2;
+  return { textFields, radioFields };
+}
+
+function applyViewModelToForm(form: PDFForm, viewModel: PdfExportViewModel): void {
+  for (const [fieldName, binding] of Object.entries(viewModel.textFields)) {
+    applyTextFieldBinding(form, fieldName, binding);
   }
 
-  if (character.appearance) {
-    y = checkNewPage(doc, y, 15);
-    y = drawSectionHeader(doc, "ВНЕШНОСТЬ", y);
-    setFont(doc, "normal", 8);
-    const appLines = doc.splitTextToSize(character.appearance, CONTENT_W - 4);
-    for (const line of appLines) {
-      y = checkNewPage(doc, y, 5);
-      doc.text(line, MARGIN + 2, y + 3);
-      y += 4;
-    }
+  for (const [fieldName, binding] of Object.entries(viewModel.radioFields)) {
+    applyRadioFieldBinding(form, fieldName, binding);
+  }
+}
+
+async function loadTemplateBytes(): Promise<Uint8Array> {
+  const response = await fetch(PDF_TEMPLATE_URL);
+  if (!response.ok) {
+    throw new Error(`Failed to load PDF template: ${response.status}`);
   }
 
-  const fileName = `${character.name.replace(/[^a-zA-Zа-яА-ЯёЁ0-9\s]/g, "_")}.pdf`;
-  doc.save(fileName);
+  return new Uint8Array(await response.arrayBuffer());
+}
+
+async function loadFontBytes(): Promise<Uint8Array> {
+  const response = await fetch(PDF_FONT_URL);
+  if (!response.ok) {
+    throw new Error(`Failed to load PDF font: ${response.status}`);
+  }
+
+  return new Uint8Array(await response.arrayBuffer());
+}
+
+function savePdfBytes(bytes: Uint8Array, filename: string): void {
+  const blob = new Blob([bytes], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export async function buildCharacterPdfBytes(
+  character: Character,
+  templateBytes: ArrayBuffer | Uint8Array,
+  fontBytes?: ArrayBuffer | Uint8Array,
+): Promise<Uint8Array> {
+  const pdfDocument = await PDFDocument.load(toUint8Array(templateBytes));
+  pdfDocument.registerFontkit(fontkit);
+
+  const form = pdfDocument.getForm();
+  const templateFieldIndex = buildTemplateFieldIndex(form);
+  const unicodeFont = await pdfDocument.embedFont(
+    fontBytes ? toUint8Array(fontBytes) : await loadFontBytes(),
+    { subset: false },
+  );
+
+  const viewModel = buildPdfExportViewModel(character, templateFieldIndex);
+  applyViewModelToForm(form, viewModel);
+  applyAdaptiveTextSizing(form, viewModel, unicodeFont);
+  form.updateFieldAppearances(unicodeFont);
+
+  return pdfDocument.save({ useObjectStreams: false });
+}
+
+export async function exportCharacterToPDF(character: Character): Promise<void> {
+  const templateBytes = await loadTemplateBytes();
+  const fontBytes = await loadFontBytes();
+  const pdfBytes = await buildCharacterPdfBytes(character, templateBytes, fontBytes);
+  const fileName = `${sanitizeFilename(character.name || "Персонаж")}.pdf`;
+  savePdfBytes(pdfBytes, fileName);
 }
