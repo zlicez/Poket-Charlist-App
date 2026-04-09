@@ -65,6 +65,7 @@ function buildSession() {
     cookie: {
       httpOnly: true,
       secure: process.env.COOKIE_SECURE === "true",
+      sameSite: "lax" as const,
       maxAge: sessionTtl,
     },
   });
@@ -72,16 +73,6 @@ function buildSession() {
 
 passport.serializeUser((user: Express.User, done) => done(null, user));
 passport.deserializeUser((user: Express.User, done) => done(null, user));
-
-async function ensureUserAuthColumns() {
-  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id varchar`);
-  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash varchar`);
-  await db.execute(sql`
-    CREATE UNIQUE INDEX IF NOT EXISTS users_google_id_unique
-    ON users (google_id)
-    WHERE google_id IS NOT NULL
-  `);
-}
 
 async function backfillLegacyGoogleUsers() {
   await db.execute(sql`
@@ -228,7 +219,6 @@ async function syncGoogleUser(profile: Profile): Promise<DbUser> {
 }
 
 export async function setupAuth(app: Express): Promise<void> {
-  await ensureUserAuthColumns();
   await backfillLegacyGoogleUsers();
 
   app.set("trust proxy", 1);
@@ -273,21 +263,20 @@ export function registerAuthRoutes(app: Express): void {
     successRedirect: "/",
   }));
 
-  app.get("/api/logout", (req: Request, res) => {
+  app.post("/api/logout", (req: Request, res) => {
     req.logout((error) => {
       if (error) {
         console.error("Logout error:", error);
-        return res.status(500).json({ message: "Не удалось выйти из аккаунта" });
+        return res.status(500).json({ error: "Не удалось выйти из аккаунта" });
       }
 
       if (!req.session) {
-        res.redirect("/");
-        return;
+        return res.json({ ok: true });
       }
 
       req.session.destroy(() => {
         res.clearCookie("connect.sid");
-        res.redirect("/");
+        res.json({ ok: true });
       });
     });
   });

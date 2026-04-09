@@ -1,4 +1,4 @@
-import spellsData from "../../spells_library.json";
+import spellsData from "./spells_library.json";
 
 interface RawSpellEntry {
   id: string;

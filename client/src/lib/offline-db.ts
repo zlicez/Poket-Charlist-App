@@ -31,6 +31,7 @@ function openDB(): Promise<IDBDatabase> {
 function txPromise<T>(tx: IDBTransaction, request: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
     tx.onerror = () => reject(tx.error);
     tx.onabort = () => reject(tx.error);
   });
@@ -76,6 +77,17 @@ export async function getCachedCharacter(id: string): Promise<unknown | undefine
   const result = await txPromise(tx, store.get(id));
   db.close();
   return result;
+}
+
+export async function clearAllCachedCharacters(): Promise<void> {
+  const db = await openDB();
+  const tx = db.transaction(CHARACTERS_STORE, "readwrite");
+  const store = tx.objectStore(CHARACTERS_STORE);
+  store.clear();
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = () => { db.close(); resolve(); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  });
 }
 
 export async function removeCachedCharacter(id: string): Promise<void> {

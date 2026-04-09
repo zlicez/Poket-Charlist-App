@@ -560,7 +560,7 @@ function SortableEquipmentItem({
       setSnapping(true);
       setSwipeX(0);
     }
-  }, [isSwipeOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isSwipeOpen, swipeX]);
 
   // The threshold at which a full swipe commits delete (65% of row width)
   const triggerAt = Math.min(containerWidth * 0.65, containerWidth - 16);

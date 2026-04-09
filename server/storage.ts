@@ -1,4 +1,4 @@
-import { type Character, type InsertCharacter, DEFAULT_SKILLS_PROFICIENCY, characters } from "@shared/schema";
+import { type Character, type InsertCharacter, DEFAULT_SKILLS_PROFICIENCY, characterSchema, characters } from "@shared/schema";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
@@ -63,7 +63,12 @@ export class DatabaseStorage implements IStorage {
     if (!existing) return undefined;
 
     const { id: _, userId: __, ...updateData } = updates;
-    const updated = deepMerge(existing, updateData);
+    const merged = deepMerge(existing, updateData);
+    const validated = characterSchema.safeParse(merged);
+    if (!validated.success) {
+      console.warn("Merged character failed schema validation:", validated.error.flatten());
+    }
+    const updated = validated.success ? validated.data : merged;
 
     const [row] = await db.update(characters)
       .set({ 

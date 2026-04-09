@@ -161,7 +161,7 @@ function createPdfTestCharacter(): Character {
 }
 
 async function buildFormForCharacter(character: Character) {
-  const templateBytes = readFileSync(resolve("charlist_blank.pdf"));
+  const templateBytes = readFileSync(resolve("assets/charlist_blank.pdf"));
   const fontBytes = readFileSync(
     resolve("client/public/fonts/NotoSans-Regular.ttf"),
   );

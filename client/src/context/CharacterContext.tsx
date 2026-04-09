@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
+import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -60,6 +61,7 @@ export function CharacterProvider({
 }) {
   const { toast } = useToast();
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const [, setLocation] = useLocation();
 
   const [isEditing, setIsEditing] = useState(false);
   const [localChanges, setLocalChanges] = useState<Partial<Character>>({});
@@ -77,9 +79,9 @@ export function CharacterProvider({
         description: "Перенаправление на страницу входа...",
         variant: "destructive",
       });
-      setTimeout(() => { window.location.href = "/"; }, 500);
+      setLocation("/");
     }
-  }, [isAuthenticated, isAuthLoading, toast]);
+  }, [isAuthenticated, isAuthLoading, toast, setLocation]);
 
   const { data: character, isLoading, error } = useQuery<Character>({
     queryKey: ["/api/characters", id],
@@ -97,6 +99,14 @@ export function CharacterProvider({
       }
       return { previous };
     },
+    onSuccess: async (res: Response) => {
+      try {
+        const updated: Character = await res.json();
+        if (updated?.id) {
+          queryClient.setQueryData(["/api/characters", id], updated);
+        }
+      } catch {}
+    },
     onError: (_err, _updates, context) => {
       if (context?.previous) {
         queryClient.setQueryData(["/api/characters", id], context.previous);
@@ -107,7 +117,10 @@ export function CharacterProvider({
         variant: "destructive",
       });
     },
-    onSettled: () => { isSavingRef.current = false; },
+    onSettled: () => {
+      isSavingRef.current = false;
+      queryClient.invalidateQueries({ queryKey: ["/api/characters"] });
+    },
   });
 
   const shareQuery = useQuery<ShareData>({
@@ -123,6 +136,7 @@ export function CharacterProvider({
         shareToken: data.shareToken,
         isShared: true,
       });
+      queryClient.invalidateQueries({ queryKey: ["/api/characters"] });
     },
     onError: () => {
       toast({ title: "Ошибка", description: "Не удалось включить общий доступ", variant: "destructive" });
@@ -136,6 +150,7 @@ export function CharacterProvider({
         shareToken: null,
         isShared: false,
       });
+      queryClient.invalidateQueries({ queryKey: ["/api/characters"] });
     },
     onError: () => {
       toast({ title: "Ошибка", description: "Не удалось отключить общий доступ", variant: "destructive" });
@@ -215,17 +230,6 @@ export function CharacterProvider({
     }
     setIsEditing(false);
   }, [localChanges, updateMutation]);
-
-  // Flush local changes when exiting edit mode without explicit save
-  useEffect(() => {
-    if (!isEditing && Object.keys(localChanges).length > 0) {
-      const timer = setTimeout(() => {
-        updateMutation.mutate(localChanges);
-        setLocalChanges({});
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [localChanges, isEditing]);
 
   return (
     <CharacterContext.Provider

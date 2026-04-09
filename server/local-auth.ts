@@ -39,13 +39,12 @@ export async function setupAuth(app: Express): Promise<void> {
     res.redirect("/");
   });
 
-  app.get("/api/logout", (req: any, res) => {
+  app.post("/api/logout", (req: any, res) => {
     if (!req.session) {
-      res.redirect("/");
-      return;
+      return res.json({ ok: true });
     }
 
-    req.session.destroy(() => res.redirect("/"));
+    req.session.destroy(() => res.json({ ok: true }));
   });
 
   app.get("/api/callback", (_req, res) => res.redirect("/"));

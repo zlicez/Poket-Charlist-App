@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { User } from "@shared/models/auth";
+import { clearAllCachedCharacters, clearPendingChanges } from "@/lib/offline-db";
 
 type LoginInput = {
   email: string;
@@ -83,9 +84,12 @@ export function useAuth() {
     },
   });
 
-  const logout = () => {
-    queryClient.setQueryData(["/api/auth/user"], null);
-    window.location.href = "/api/logout";
+  const logout = async () => {
+    await fetch("/api/logout", { method: "POST", credentials: "include" }).catch(() => {});
+    queryClient.clear();
+    await clearAllCachedCharacters().catch(() => {});
+    await clearPendingChanges().catch(() => {});
+    window.location.href = "/";
   };
 
   return {

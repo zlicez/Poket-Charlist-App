@@ -44,7 +44,7 @@ export function ConnectionStatus() {
     if (isOnline && pendingCount > 0) {
       handleSync();
     }
-  }, [isOnline]);
+  }, [isOnline, handleSync]);
 
   if (isOnline && pendingCount === 0) return null;
 

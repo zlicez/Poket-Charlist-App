@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { rateLimit } from "express-rate-limit";
 import { storage } from "./storage";
-import { insertCharacterSchema, publicCharacterSchema } from "@shared/schema";
+import { insertCharacterSchema, publicCharacterSchema, characterSchema } from "@shared/schema";
 import { z } from "zod";
 
 // Authenticated routes: key by userId so each account gets 120 req/min
@@ -84,12 +84,16 @@ export async function registerRoutes(
   app.patch("/api/characters/:id", apiLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const character = await storage.updateCharacter(req.params.id, userId, req.body);
+      const validated = characterSchema.partial().parse(req.body);
+      const character = await storage.updateCharacter(req.params.id, userId, validated);
       if (!character) {
         return res.status(404).json({ error: "Character not found" });
       }
       res.json(character);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid character data", details: error.errors });
+      }
       console.error("Error updating character:", error);
       res.status(500).json({ error: "Failed to update character" });
     }

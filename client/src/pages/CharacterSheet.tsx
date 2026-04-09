@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -130,6 +130,7 @@ function CharacterSheetContent() {
     msg: string;
     progress: number;
   } | null>(null);
+  const pdfIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const handleExportPdf = async () => {
     if (!character) return;
@@ -154,7 +155,7 @@ function CharacterSheetContent() {
 
     setPdfToast({ title: "Создаём PDF...", msg: FUNNY_MESSAGES[msgIndex], progress });
 
-    const interval = setInterval(() => {
+    pdfIntervalRef.current = setInterval(() => {
       progress = Math.min(progress + Math.random() * 18 + 7, 85);
       msgIndex = (msgIndex + 1) % FUNNY_MESSAGES.length;
       setPdfToast({ title: "Создаём PDF...", msg: FUNNY_MESSAGES[msgIndex], progress });
@@ -163,11 +164,11 @@ function CharacterSheetContent() {
     try {
       const { exportCharacterToPDF } = await import("@/lib/pdf-export");
       await exportCharacterToPDF(character);
-      clearInterval(interval);
+      if (pdfIntervalRef.current) clearInterval(pdfIntervalRef.current);
       setPdfToast({ title: "PDF готов!", msg: "Файл сохранён на устройство", progress: 100 });
       setTimeout(() => setPdfToast(null), 2500);
     } catch {
-      clearInterval(interval);
+      if (pdfIntervalRef.current) clearInterval(pdfIntervalRef.current);
       setPdfToast({ title: "Ошибка", msg: "Не удалось создать PDF", progress: 100 });
       setTimeout(() => setPdfToast(null), 3000);
     }
