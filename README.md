@@ -17,7 +17,7 @@ Pocket Charlist — full-stack веб-приложение для ведения
 - Экспортировать PDF по точному 3-страничному шаблону `charlist_blank.pdf`: приложение заполняет именованные AcroForm-поля готового шаблона через `pdf-lib`, использует Unicode-шрифт для кириллицы и оставляет template-only поля пустыми, если их нет в текущей модели данных.
 - Давать публичную read-only ссылку на персонажа через `/shared/:token`.
 - Поддерживать смешанную авторизацию: `email/password` и Google OAuth в рамках одного аккаунта на один email.
-- Частично поддерживать оффлайн: service worker, кэш GET-запросов, IndexedDB-кэш персонажей и очередь отложенных изменений.
+- Частично поддерживать оффлайн: service worker (кэширует статику и безопасные API GET-ответы, но **не кэширует** `/api/auth/*` и `/api/characters*` — эти данные user-specific и хранятся в IndexedDB), IndexedDB-кэш персонажей и очередь отложенных изменений.
 
 ## Актуальный auth flow
 - Неавторизованный пользователь попадает на стартовый экран `/`.
@@ -27,7 +27,7 @@ Pocket Charlist — full-stack веб-приложение для ведения
   - вход через Google
 - Один email соответствует одной учётной записи.
 - Если аккаунт сначала создан через Google, пароль можно добавить позже из dialog аккаунта после входа.
-- `GET /api/logout` возвращает пользователя на `/`, а не запускает новый Google-flow.
+- `POST /api/logout` завершает сессию; клиент очищает кэш и редиректит на `/`.
 
 ## Быстрый старт
 ### 1. Установка
@@ -88,23 +88,26 @@ npm run db:push
 - `POST /api/auth/password`
 - `GET /api/login`
 - `GET /api/callback`
-- `GET /api/logout`
+- `POST /api/logout`
 
 `GET /api/auth/user` возвращает безопасную форму пользователя с флагами:
 - `hasPassword`
 - `hasGoogle`
 
 Подробные примеры запросов и ответов, правила merge и конфликтов, раздел `Known Risk Areas` и backend-поведение описаны в [PROJECT_DOCUMENTATION.md](./PROJECT_DOCUMENTATION.md).
-Для UI/UX-погружения есть отдельный простой документ: [DESIGNER_PROJECT_GUIDE.md](./DESIGNER_PROJECT_GUIDE.md).
 
 ## Переменные окружения
+Все переменные задокументированы с примерами в `.env.example`.
+
 | Переменная | Назначение |
 |---|---|
 | `DATABASE_URL` | Подключение к PostgreSQL. Если отсутствует, storage работает в памяти. |
 | `SESSION_SECRET` | Секрет для cookie-based сессий в production auth. |
 | `GOOGLE_CLIENT_ID` | Google OAuth client id. |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret. |
-| `LOCAL_DEV` | Включает локальный auth bypass вместо production auth. |
+| `COOKIE_SECURE` | Установить `true` в production (HTTPS), чтобы куки получили флаг `Secure`. |
+| `ALLOWED_ORIGIN` | Ограничивает CORS (например, `https://app.yourdomain.com`). Пусто — same-origin only. |
+| `LOCAL_DEV` | Включает локальный auth bypass вместо production auth. Никогда не использовать в production. |
 | `PORT` | HTTP-порт приложения, по умолчанию `5000`. |
 
 ## Краткая структура проекта
@@ -139,9 +142,14 @@ shared/
   models/auth.ts
   data/
     spells-library.ts
+    spells_library.json  ← сырой источник библиотеки заклинаний (1.7 MB)
     spell-slots.ts       ← таблицы ячеек заклинаний по классу/уровню
   types/
     character-types.ts
+
+scripts/
+  build.ts
+  ecosystem.config.example.cjs
 
 tests/
   deep-merge.test.ts
@@ -154,7 +162,6 @@ tests/
 
 ## Где смотреть дальше
 - Полная техническая и operational-документация: [PROJECT_DOCUMENTATION.md](./PROJECT_DOCUMENTATION.md)
-- Дизайнерский onboarding и guide для редизайна: [DESIGNER_PROJECT_GUIDE.md](./DESIGNER_PROJECT_GUIDE.md)
 - Общая доменная логика и расчёты: `shared/types/character-types.ts`
 - Auth: `server/google-auth.ts`, `server/local-auth.ts`, `server/password.ts`
-- Библиотека заклинаний: `shared/data/spells-library.ts` и `spells_library.json`
+- Библиотека заклинаний: `shared/data/spells-library.ts` и `shared/data/spells_library.json`

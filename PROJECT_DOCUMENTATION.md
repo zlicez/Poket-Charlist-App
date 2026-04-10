@@ -47,10 +47,10 @@ flowchart LR
 - Один аккаунт на один email.
 - Account dialog для добавления или смены пароля.
 - Публичный read-only шаринг персонажа.
-- Библиотека заклинаний из `spells_library.json` с фильтрами по уровню, школе и классу.
+- Библиотека заклинаний из `shared/data/spells_library.json` с фильтрами по уровню, школе и классу.
 - `ConnectionStatus` смонтирован в `App.tsx`: отображает статус сети, счётчик pending changes и кнопку ручной синхронизации.
 - Мобильное бургер-меню в шапке листа персонажа: экспорт PDF/JSON, шаринг, профиль и переключатель темы скрыты в `<Menu>` на маленьких экранах, на десктопе остаются открытыми кнопками.
-- Частичная оффлайн-поддержка через service worker, IndexedDB-кэш и очередь отложенных изменений.
+- Частичная оффлайн-поддержка: service worker кэширует статику и «безопасные» GET-ответы, но **исключает** `/api/auth/*` и `/api/characters*` (user-specific данные — они живут в IndexedDB). При logout IndexedDB и pending-очередь очищаются.
 - **Авторасчёт максимума ОЗ на 1-м уровне**: `calculateMaxHp(class, 1, conMod)` из `shared/types/character-types.ts`; поле `customMaxHpBonus` позволяет добавить ручной бонус. Со 2-го уровня — ручной ввод (игрок вносит результат броска кубика).
 - **Авторасчёт КД по типу доспеха**: `calculateAC(dexMod, armor, shield, bonus)` с корректной обработкой тяжёлого доспеха (DEX игнорируется полностью, включая штраф).
 - **Автосинхронизация ячеек заклинаний**: таблицы в `shared/data/spell-slots.ts`; `getSpellcastingProgression` собирает обычные spell slots, мультикласс и отдельный warlock pact magic по правилам D&D 5e. При изменении состава классов или уровней `SpellsSection` сразу применяет расчётные значения, а кнопка `По классу` остаётся ручным ресинком.
@@ -91,7 +91,7 @@ flowchart LR
 - PostgreSQL для production storage и sessions
 - JSONB для хранения данных персонажа
 - IndexedDB для локального кэша и очереди pending changes
-- Service worker для кэширования части статических и GET-ресурсов
+- Service worker для кэширования статики и безопасных GET-ресурсов; `/api/auth/*` и `/api/characters*` намеренно исключены — они user-specific и кэшируются в IndexedDB
 
 ## 5. Архитектура и ключевые модули
 
@@ -123,7 +123,7 @@ flowchart LR
 - `shared/schema.ts` — таблица `characters` и реэкспорт shared types.
 - `shared/models/auth.ts` — таблица `users`, auth user types.
 - `shared/types/character-types.ts` — основная доменная модель персонажа, Zod-схемы, default character и расчётные функции.
-- `shared/data/spells-library.ts` — нормализованная библиотека заклинаний из `spells_library.json`.
+- `shared/data/spells-library.ts` — нормализованная библиотека заклинаний из `shared/data/spells_library.json` (файл переехал из корня в `shared/data/`).
 
 ## 6. Mental Model Character
 
@@ -258,10 +258,18 @@ flowchart LR
 - `createdAt`
 - `updatedAt`
 
+Индексы:
+- `characters_user_id_idx` на `userId` — покрывает все запросы персонажей пользователя
+- `characters_share_token_idx` на `shareToken` — покрывает публичный shared lookup
+
 Практический смысл:
 - relational envelope лежит в колонках таблицы
 - полная игровая модель лежит в `data`
 - `updatedAt` обновляется в БД, но не используется как concurrency token и не участвует в optimistic locking
+
+Индексы (определены в `shared/schema.ts`):
+- `characters_user_id_idx` на `userId` — ускоряет `getCharacters(userId)` и `getCharacter(id, userId)`
+- `characters_share_token_idx` на `shareToken` — ускоряет `getCharacterByShareToken(token)`
 
 ### Публичная модель персонажа
 `publicCharacterSchema` определена в `shared/types/character-types.ts`.
@@ -318,8 +326,12 @@ Storage при этом выбирается отдельно:
 
 ### Безопасность
 - Auth endpoints имеют отдельный IP-based rate limit: 10 попыток за 15 минут.
-- Пароли хранятся как salted hash через встроенный `crypto.scrypt`.
+- Пароли хранятся как salted hash через встроенный `crypto.scrypt` (16-byte random salt, `timingSafeEqual` при verify).
 - Email нормализуется как `trim().toLowerCase()`.
+- Session cookie использует `sameSite: "lax"` (не `strict`) — это критично для Google OAuth: после callback Google возвращает браузер cross-site-редиректом, и с `strict` cookie не прилетает в обратный запрос, сессия не открывается.
+- Logout работает через `POST /api/logout` (ранее был GET) — предотвращает CSRF-выход через ссылку или redirect от третьей стороны.
+- CORS настраивается через `ALLOWED_ORIGIN` env var; без него — same-origin only (безопасно для single-server deploy).
+- `ensureUserAuthColumns()` удалена: runtime ALTER TABLE больше не выполняется при каждом старте сервера. Нужные колонки уже существуют в Drizzle-схеме. `backfillLegacyGoogleUsers()` оставлена — она идемпотентна и нужна для легаси Google-only пользователей.
 
 Критичные mixed auth edge cases описаны отдельно в разделе 14.
 
@@ -799,9 +811,11 @@ DELETE /api/characters/2fcd6a8e-0d24-45f0-90f9-f3c72f0f4fb1
 - Auth: нет
 - Поведение: завершает Google OAuth и редиректит на `/`
 
-#### `GET /api/logout`
+#### `POST /api/logout`
 - Auth: да
-- Поведение: завершает сессию и редиректит на `/`
+- Поведение: завершает сессию, возвращает `{ "ok": true }`
+- Клиент (в `use-auth.ts`) после успешного logout синхронно очищает TanStack Query cache, IndexedDB-кэш персонажей и pending queue, затем делает `window.location.href = "/"`
+- Основные статусы: `200`, `401`
 
 ### 9.4 Поведение неавторизованных запросов
 - Защищённые endpoints отвечают `401`.
@@ -822,10 +836,12 @@ DELETE /api/characters/2fcd6a8e-0d24-45f0-90f9-f3c72f0f4fb1
 ### 10.2 Как реально работает `PATCH`
 
 Server path:
-1. `storage.updateCharacter()` загружает текущего персонажа по `id + userId`.
-2. Из payload удаляются `id` и `userId`.
-3. Выполняется `deepMerge(existing, updateData)`.
-4. В БД записывается весь обновлённый JSONB, а не patch/diff.
+1. `routes.ts`: `characterSchema.partial().parse(req.body)` — неизвестные поля отсекаются, типы валидируются. При ошибке — `400 { error }`.
+2. `storage.updateCharacter()` загружает текущего персонажа по `id + userId`.
+3. Из payload удаляются `id` и `userId`.
+4. Выполняется `deepMerge(existing, validatedData)`.
+5. Результат merge прогоняется через `characterSchema.safeParse()`. При провале — предупреждение в лог; запись продолжается с исходным merged-результатом (безопасный fallback).
+6. В БД записывается весь обновлённый JSONB, а не patch/diff.
 
 ### 10.3 Правила merge
 - Plain objects merge-ятся рекурсивно.
@@ -872,10 +888,12 @@ Pending queue не делает reconcile/rebase:
 
 Если нужно расследовать “на экране было одно, после перезагрузки стало другое”, это одна из первых точек для проверки.
 
+**Смягчение:** `updateMutation.onSuccess` записывает полный серверный ответ в `queryClient.setQueryData([“/api/characters”, id], ...)`, а `onSettled` делает `invalidateQueries({ queryKey: [“/api/characters”] })`. Это означает, что расхождение optimistic→server компенсируется сразу после завершения запроса, не ждёт следующей manual refetch. Аналогично работают `enableShareMutation` и `disableShareMutation`.
+
 ## 11. Заклинания
 
 ### Источник библиотеки
-Библиотека заклинаний собрана в `spells_library.json` и подключена через `shared/data/spells-library.ts`.
+Библиотека заклинаний собрана в `shared/data/spells_library.json` и подключена через `shared/data/spells-library.ts`.
 
 Нормализованные поля записи библиотеки:
 - `id`
@@ -916,11 +934,11 @@ Pending queue не делает reconcile/rebase:
 
 ### Что реально есть
 - `client/public/sw.js` регистрируется в production через `client/src/main.tsx`.
-- Service worker кэширует:
-  - `/`
-  - `/index.html`
-  - статические ресурсы
-  - успешные GET API responses
+- Service worker кэширует (версия `pocket-charlist-v2`):
+  - `/` и `/index.html`
+  - статические ресурсы (JS, CSS, шрифты, картинки)
+  - успешные GET-ответы API — **кроме `/api/auth/*` и `/api/characters*`**: эти маршруты user-specific и в SW-кэш не попадают, чтобы не дать одному пользователю увидеть кэш другого при разделении браузера
+- User-specific данные персонажей живут исключительно в IndexedDB (`offline-db.ts`)
 - `client/src/lib/offline-db.ts` использует IndexedDB для:
   - кэша персонажей
   - очереди pending changes
@@ -955,7 +973,7 @@ Pending queue не делает reconcile/rebase:
 - JSON export — `client/src/lib/json-export.ts`
 - PDF export — `client/src/lib/pdf-export.ts`
 - PDF export теперь template-driven и работает только через AcroForm: exporter загружает `client/public/charlist_blank.pdf`, встраивает Unicode-шрифт из `client/public/fonts/NotoSans-Regular.ttf`, находит именованные поля формы и заполняет их через `pdf-lib`.
-- Корневой `charlist_blank.pdf` хранится как source-of-truth шаблон для ручной разметки/обновления, а `client/public/charlist_blank.pdf` используется рантаймом в браузере.
+- `assets/charlist_blank.pdf` — source-of-truth шаблон для ручной разметки и обновления полей. `client/public/charlist_blank.pdf` используется рантаймом в браузере (доставляется через Vite public).
 - PDF-экспорт не расширяет `Character`-схему: поля шаблона без источника в текущей модели (`имя игрока`, `черты характера`, `идеалы`, `привязанности`, `слабости`, `возраст`, `рост`, `вес`, `глаза`, `кожа`, `волосы`, `символ`, `сокровища`) остаются пустыми.
 - `appearance`, `notes`, `allies` и `factions` перед экспортом нормализуются в plain text: Markdown/HTML убираются до читаемого текста, а `factions` сворачиваются в тот же блок, что и `союзники и организации`, потому что в шаблоне нет отдельной секции под фракции.
 - Экспорт дополнительно объединяет ручные и автоматические владения расы/класса, выводит заклинательную характеристику русскими сокращениями и адаптивно уменьшает шрифт в длинных AcroForm-полях до нижней границы `6pt`.
@@ -1058,7 +1076,7 @@ Pending queue не делает reconcile/rebase:
   - `shared/models/auth.ts`
 - Что нельзя сломать:
   - один email = один аккаунт
-  - `GET /api/logout` должен редиректить на `/`
+  - `POST /api/logout` возвращает `{ ok: true }` (не redirect); клиент сам выполняет редирект после очистки кэша
   - `LOCAL_DEV` — это bypass auth, а не эмуляция всего production поведения
 
 ## 15. Тесты и качество
@@ -1100,7 +1118,7 @@ npm run build
 - `shared/models/auth.ts` — таблица пользователей и auth user types
 
 ### Где искать spell library
-- `spells_library.json` — сырой источник библиотеки
+- `shared/data/spells_library.json` — сырой источник библиотеки (переехал из корня в 2026-04-10)
 - `shared/data/spells-library.ts` — нормализованный экспорт для клиента
 - `client/src/components/SpellsSection.tsx` — UI и поиск
 
@@ -1115,8 +1133,21 @@ npm run build
 - `client/src/lib/queryClient.ts`
 - `client/src/lib/offline-sync.ts`
 
+### Где искать безопасность и конфигурацию
+- `server/index.ts` — CORS middleware (управляется `ALLOWED_ORIGIN`), глобальные middlewares
+- `server/google-auth.ts` — session cookie config (`sameSite`, `secure`), production auth, logout
+- `server/routes.ts` — PATCH validation через `characterSchema.partial()`, rate limits
+- `server/storage.ts` — post-merge validation через `characterSchema.safeParse()`
+- `.env.example` — полный список переменных окружения с описаниями и примерами
+- `client/public/sw.js` — service worker; при изменении поведения кэширования обязательно bumping `CACHE_NAME`
+
 ### Где искать тесты
 - `tests/`
+
+### Где искать PDF-шаблон
+- `assets/charlist_blank.pdf` — source-of-truth (обновляется вручную при редизайне)
+- `client/public/charlist_blank.pdf` — runtime-копия для браузера
+- `client/public/fonts/NotoSans-Regular.ttf` — Unicode-шрифт для кириллицы в PDF
 
 ## 17. Команды и окружение
 
@@ -1132,19 +1163,25 @@ npm run db:push
 ```
 
 ### Переменные окружения
+Все переменные задокументированы с примерами в `.env.example`.
+
 | Переменная | Назначение |
 |---|---|
-| `DATABASE_URL` | Подключение к PostgreSQL. |
+| `DATABASE_URL` | Подключение к PostgreSQL. Если отсутствует — MemStorage. |
 | `SESSION_SECRET` | Секрет session cookies. |
 | `GOOGLE_CLIENT_ID` | Google OAuth client id. |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret. |
-| `LOCAL_DEV` | Переключает auth на local bypass. |
+| `COOKIE_SECURE` | `true` в production (HTTPS) — добавляет флаг `Secure` к cookies. |
+| `ALLOWED_ORIGIN` | CORS origin (например, `https://app.yourdomain.com`). Пусто — same-origin only. |
+| `LOCAL_DEV` | Переключает auth на local bypass. Никогда не использовать в production. |
 | `PORT` | Порт сервера, по умолчанию `5000`. |
 
 ### Практическая настройка
 - Для production auth нужны `SESSION_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`.
+- В production (HTTPS) добавьте `COOKIE_SECURE=true`, иначе cookies будут без флага `Secure`.
+- Если фронт и бэк на разных доменах, задайте `ALLOWED_ORIGIN=https://your-frontend.com`.
 - Для PostgreSQL storage нужен `DATABASE_URL`.
-- Для локальной разработки без реального auth можно использовать `LOCAL_DEV=true`.
+- Для локальной разработки без реального auth используйте `LOCAL_DEV=true`.
 
 ## 18. Итог
 
