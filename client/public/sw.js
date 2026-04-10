@@ -1,4 +1,4 @@
-const CACHE_NAME = "pocket-charlist-v1";
+const CACHE_NAME = "pocket-charlist-v2";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
@@ -30,10 +30,16 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
   if (url.pathname.startsWith("/api/")) {
+    // Never cache auth endpoints or user-specific character data in SW cache.
+    // These are already handled by IndexedDB (offline-db.ts) with proper user partitioning.
+    // Caching them here would leak data across users sharing the same browser.
+    const isCacheable =
+      !url.pathname.startsWith("/api/auth/") &&
+      !url.pathname.startsWith("/api/characters");
     event.respondWith(
       fetch(event.request)
         .then((response) => {
-          if (response.ok) {
+          if (response.ok && isCacheable) {
             const clone = response.clone();
             caches.open(CACHE_NAME).then((cache) => {
               cache.put(event.request, clone);
@@ -41,14 +47,20 @@ self.addEventListener("fetch", (event) => {
           }
           return response;
         })
-        .catch(() =>
-          caches.match(event.request).then((cached) =>
-            cached || new Response(JSON.stringify({ error: "Offline" }), {
-              status: 503,
-              headers: { "Content-Type": "application/json" },
-            })
-          )
-        )
+        .catch(() => {
+          if (isCacheable) {
+            return caches.match(event.request).then((cached) =>
+              cached || new Response(JSON.stringify({ error: "Offline" }), {
+                status: 503,
+                headers: { "Content-Type": "application/json" },
+              })
+            );
+          }
+          return new Response(JSON.stringify({ error: "Offline" }), {
+            status: 503,
+            headers: { "Content-Type": "application/json" },
+          });
+        })
     );
     return;
   }
