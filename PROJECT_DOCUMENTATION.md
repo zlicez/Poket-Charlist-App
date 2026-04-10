@@ -1187,14 +1187,17 @@ npm run db:push
 
 Pocket Charlist сейчас — рабочее full-stack приложение с:
 - устойчивой моделью персонажа
-- mixed auth
+- mixed auth (email/password + Google OAuth), session cookie с `sameSite: "lax"` и configurable `COOKIE_SECURE`
 - публичным шарингом
 - библиотекой заклинаний с фильтрами по уровню, школе и классу
 - мобильным бургер-меню с доступом к экспорту, шарингу и профилю
-- частичной оффлайн-поддержкой
+- частичной оффлайн-поддержкой (SW v2 — user-specific данные не кэшируются в SW)
+- PATCH-валидацией через Zod на входе и post-merge
+- индексами на таблице `characters` для быстрых выборок по userId и shareToken
+- консистентным TanStack Query cache: ответ PATCH сразу записывается в cache, список инвалидируется
 
 Ключевой operational вывод:
-- документацию нужно читать вместе с реальным conflict model
-- массивы в PATCH заменяются целиком
+- документацию нужно читать вместе с реальным conflict model (раздел 10)
+- массивы в PATCH заменяются целиком — это не баг, это архитектурное решение
 - versioning и server-side conflict detection пока отсутствуют
 - оффлайн-очередь и mixed auth требуют аккуратных изменений и внимательного сопровождения

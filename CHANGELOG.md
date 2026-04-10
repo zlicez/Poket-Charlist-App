@@ -80,7 +80,7 @@ All notable changes to Pocket Charlist are documented here.
 - `ecosystem.config.example.cjs` перемещён в `scripts/`.
 - `package.json`: `"name"` исправлен с `"rest-express"` на `"pocket-charlist"`.
 - `.env.example` создан: документирует все переменные окружения (`DATABASE_URL`, `SESSION_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `COOKIE_SECURE`, `ALLOWED_ORIGIN`, `LOCAL_DEV`, `PORT`).
-- `DESIGNER_PROJECT_GUIDE.md` восстановлен из git HEAD (был случайно удалён из рабочей директории).
+- `DESIGNER_PROJECT_GUIDE.md` удалён — содержимое устарело, onboarding для дизайнеров не поддерживался.
 
 ---
 
