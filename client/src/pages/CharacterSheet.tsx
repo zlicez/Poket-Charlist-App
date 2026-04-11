@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ import { AccountDialog } from "@/components/AccountDialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { CharacterProvider, useCharacter } from "@/context/CharacterContext";
+import { cn } from "@/lib/utils";
 import {
   ABILITY_NAMES,
   ABILITY_LABELS,
@@ -124,6 +125,7 @@ function CharacterSheetContent() {
   const [newCharHintVisible, setNewCharHintVisible] = useState(true);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("section-combat");
 
   const [pdfToast, setPdfToast] = useState<{
     title: string;
@@ -131,6 +133,19 @@ function CharacterSheetContent() {
     progress: number;
   } | null>(null);
   const pdfIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Compute early (with null-guard) so useEffect can depend on it
+  const showSpellsSection =
+    !isLoading &&
+    !!character &&
+    (isEditing || !!character.spellcasting || hasAnyCasterClass(getCharacterClasses(character)));
+
+  // If character loses spellcasting while on the spells tab — fall back to combat
+  useEffect(() => {
+    if (!showSpellsSection && activeTab === "section-spells") {
+      setActiveTab("section-combat");
+    }
+  }, [showSpellsSection, activeTab]);
 
   const handleExportPdf = async () => {
     if (!character) return;
@@ -334,20 +349,18 @@ function CharacterSheetContent() {
   const effectiveMaxHp = isLevel1ForHp
     ? calculatedMaxHp + (character.customMaxHpBonus || 0)
     : character.maxHp;
-  const showSpellsSection =
-    isEditing ||
-    !!character.spellcasting ||
-    hasAnyCasterClass(getCharacterClasses(character));
+
   const sectionNavItems = [
-    { id: "section-combat", label: "Общее", icon: User },
-    { id: "section-abilities", label: "Характеристики", icon: FaDiceD20 },
-    { id: "section-equipment", label: "Оружие", icon: Crosshair },
-    { id: "section-inventory", label: "Инвентарь", icon: Backpack },
+    { id: "section-combat",    label: "Общее",          mobileLabel: "Общее",    icon: User },
+    { id: "section-abilities", label: "Характеристики", mobileLabel: "Атрибуты", icon: FaDiceD20 },
+    { id: "section-equipment", label: "Оружие",         mobileLabel: "Оружие",   icon: Crosshair },
+    { id: "section-inventory", label: "Инвентарь",      mobileLabel: "Вещи",     icon: Backpack },
     ...(showSpellsSection
-      ? [{ id: "section-spells", label: "Заклинания", icon: BookOpen }]
+      ? [{ id: "section-spells", label: "Заклинания", mobileLabel: "Магия", icon: BookOpen }]
       : []),
-    { id: "section-notes", label: "Заметки", icon: StickyNote },
+    { id: "section-notes", label: "Заметки", mobileLabel: "Заметки", icon: StickyNote },
   ];
+
   const referenceSections = [
     {
       key: "notes" as const,
@@ -392,210 +405,38 @@ function CharacterSheetContent() {
     minHeightClass: "min-h-[220px]",
   }));
 
-  return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between gap-1 sm:gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setLocation("/")}
-            data-testid="button-back"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-
-          <div className="flex items-center gap-1 sm:gap-2">
-            {isEditing ? (
-              <Button
-                variant="default"
-                size="sm"
-                onClick={saveChanges}
-                disabled={isSaving}
-                className="gap-1.5"
-                data-testid="button-toggle-mode"
-              >
-                <Save className="w-4 h-4" />
-                Сохранить
-              </Button>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsEditing(true)}
-                className="gap-1.5"
-                data-testid="button-toggle-mode"
-              >
-                <Edit2 className="w-4 h-4" />
-                Редактировать
-              </Button>
-            )}
-
-            <DiceRollerTrigger
-              onClick={() => setIsDiceRollerOpen(true)}
-              rollCount={rollHistory.length}
-            />
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="sm:hidden"
-                  data-testid="button-mobile-menu"
-                  aria-label="Открыть меню"
-                >
-                  <Menu className="w-5 h-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem
-                  onClick={handleExportPdf}
-                  data-testid="button-mobile-export-pdf"
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  Экспорт в PDF
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={handleExportJson}
-                  data-testid="button-mobile-export-json"
-                >
-                  <FileJson className="w-4 h-4 mr-2" />
-                  Экспорт в JSON
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setIsShareDialogOpen(true)}
-                  data-testid="button-mobile-share"
-                >
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Поделиться
-                </DropdownMenuItem>
-                {user ? (
-                  <DropdownMenuItem
-                    onClick={() => setIsAccountDialogOpen(true)}
-                    data-testid="button-mobile-account"
-                  >
-                    <User className="w-4 h-4 mr-2" />
-                    Профиль
-                  </DropdownMenuItem>
-                ) : null}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={toggleTheme}
-                  data-testid="button-mobile-theme-toggle"
-                >
-                  {theme === "dark" ? (
-                    <Sun className="w-4 h-4 mr-2" />
-                  ) : (
-                    <Moon className="w-4 h-4 mr-2" />
-                  )}
-                  {theme === "dark" ? "Светлая тема" : "Тёмная тема"}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="hidden sm:inline-flex"
-                  data-testid="button-export-menu"
-                >
-                  <Download className="w-5 h-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={handleExportPdf}
-                  data-testid="button-export-pdf"
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  Экспорт в PDF
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={handleExportJson}
-                  data-testid="button-export-json"
-                >
-                  <FileJson className="w-4 h-4 mr-2" />
-                  Экспорт в JSON
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsShareDialogOpen(true)}
-              className="hidden sm:inline-flex"
-              data-testid="button-share"
-            >
-              <Share2 className="w-5 h-5" />
-            </Button>
-            {user ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsAccountDialogOpen(true)}
-                className="hidden sm:inline-flex"
-                data-testid="button-account"
-              >
-                <User className="w-5 h-5" />
-              </Button>
-            ) : null}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleTheme}
-              className="hidden sm:inline-flex"
-              data-testid="button-theme-toggle"
-            >
-              {theme === "dark" ? (
-                <Sun className="w-5 h-5" />
-              ) : (
-                <Moon className="w-5 h-5" />
-              )}
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto p-2 sm:p-4">
-        <div className="space-y-4 sm:space-y-5">
-          <nav
-            className="sticky top-[49px] sm:top-[53px] z-40 border-b bg-background/95 backdrop-blur"
-            data-testid="section-nav"
-          >
-            <div className="-mx-2 sm:mx-0 nav-scroll-container">
-              <div className="overflow-x-auto scrollbar-hide px-2 sm:px-0 lg:overflow-visible">
-                <div className="flex gap-2 py-2 lg:flex-wrap lg:justify-start">
-                  {sectionNavItems.map(
-                    ({ id: sectionId, label, icon: Icon }) => (
-                      <button
-                        key={sectionId}
-                        onClick={() =>
-                          document
-                            .getElementById(sectionId)
-                            ?.scrollIntoView({
-                              behavior: "smooth",
-                              block: "start",
-                            })
-                        }
-                        className="section-nav-chip"
-                        data-testid={`nav-${sectionId}`}
-                      >
-                        <Icon className="w-4 h-4 shrink-0" />
-                        {label}
-                      </button>
-                    ),
-                  )}
-                </div>
-              </div>
-            </div>
-          </nav>
-
+  // ─── Section content renderer (shared between mobile tab view and desktop scroll) ───
+  const renderSection = (sectionId: string) => {
+    switch (sectionId) {
+      case "section-combat":
+        return (
           <section id="section-combat" className="space-y-3 sm:space-y-4">
             <div className="section-label">Общее</div>
+            {/* New-character hint — shown inside the combat section on all layouts */}
+            {!isEditing &&
+              newCharHintVisible &&
+              character.equipment.length === 0 &&
+              character.weapons.length === 0 &&
+              character.features.length === 0 && (
+                <div
+                  className="flex items-center gap-2 rounded-md border border-info/20 bg-info/5 px-3 py-2"
+                  data-testid="new-character-hint"
+                >
+                  <Sparkles className="w-4 h-4 text-info shrink-0" />
+                  <span className="flex-1 text-xs text-muted-foreground">
+                    Новый персонаж — нажмите{" "}
+                    <strong className="text-foreground">«Редактировать»</strong>,
+                    чтобы задать характеристики и снаряжение.
+                  </span>
+                  <button
+                    onClick={() => setNewCharHintVisible(false)}
+                    className="rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground shrink-0"
+                    aria-label="Закрыть подсказку"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.95fr)] gap-3 sm:gap-4">
               <div className="min-w-0">
                 <CharacterHeader
@@ -630,36 +471,12 @@ function CharacterSheetContent() {
               </div>
             </div>
           </section>
+        );
 
-          {!isEditing &&
-            newCharHintVisible &&
-            character.equipment.length === 0 &&
-            character.weapons.length === 0 &&
-            character.features.length === 0 && (
-              <div
-                className="flex items-center gap-2 rounded-md border border-info/20 bg-info/5 px-3 py-2"
-                data-testid="new-character-hint"
-              >
-                <Sparkles className="w-4 h-4 text-info shrink-0" />
-                <span className="flex-1 text-xs text-muted-foreground">
-                  Новый персонаж - нажмите{" "}
-                  <strong className="text-foreground">«Редактировать»</strong>,
-                  чтобы задать характеристики и снаряжение.
-                </span>
-                <button
-                  onClick={() => setNewCharHintVisible(false)}
-                  className="rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground shrink-0"
-                  aria-label="Закрыть подсказку"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
-
+      case "section-abilities":
+        return (
           <section id="section-abilities" className="space-y-3">
-            <div className="section-label">
-              Характеристики, спасброски и навыки
-            </div>
+            <div className="section-label">Характеристики, спасброски и навыки</div>
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
               {ABILITY_NAMES.map((ability) => (
                 <AbilityWithSkills
@@ -717,7 +534,10 @@ function CharacterSheetContent() {
               ))}
             </div>
           </section>
+        );
 
+      case "section-equipment":
+        return (
           <section id="section-equipment" className="space-y-3">
             <div className="section-label">Оружие и ключевые действия</div>
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] gap-3 sm:gap-4">
@@ -771,7 +591,10 @@ function CharacterSheetContent() {
               />
             </div>
           </section>
+        );
 
+      case "section-inventory":
+        return (
           <section id="section-inventory" className="space-y-3">
             <div className="section-label">Инвентарь и владения</div>
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)] gap-3 sm:gap-4 items-start">
@@ -804,31 +627,28 @@ function CharacterSheetContent() {
               />
             </div>
           </section>
+        );
 
-          {showSpellsSection && (
-            <section id="section-spells" className="space-y-3">
-              <div className="section-label">Заклинания</div>
-              <SpellsSection
-                character={character}
-                onChange={handleChange}
-                isEditing={isEditing}
-              />
-            </section>
-          )}
+      case "section-spells":
+        if (!showSpellsSection) return null;
+        return (
+          <section id="section-spells" className="space-y-3">
+            <div className="section-label">Заклинания</div>
+            <SpellsSection
+              character={character}
+              onChange={handleChange}
+              isEditing={isEditing}
+            />
+          </section>
+        );
 
+      case "section-notes":
+        return (
           <section id="section-notes" className="space-y-3">
             <div className="section-label">Заметки и сведения</div>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4">
               {normalizedReferenceSections.map(
-                ({
-                  key,
-                  label,
-                  icon: Icon,
-                  rows,
-                  minHeightClass,
-                  placeholder,
-                  testId,
-                }) => (
+                ({ key, label, icon: Icon, rows, minHeightClass, placeholder, testId }) => (
                   <Card
                     key={key}
                     className="stat-card-tertiary p-3 h-full flex flex-col"
@@ -862,8 +682,302 @@ function CharacterSheetContent() {
               )}
             </div>
           </section>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  // ─── Shared header JSX ───────────────────────────────────────────────────────
+  const headerInner = (
+    <div className="max-w-7xl mx-auto px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between gap-1 sm:gap-2">
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setLocation("/")}
+        data-testid="button-back"
+      >
+        <ArrowLeft className="w-5 h-5" />
+      </Button>
+
+      <div className="flex items-center gap-1 sm:gap-2">
+        {isEditing ? (
+          <Button
+            variant="default"
+            size="sm"
+            onClick={saveChanges}
+            disabled={isSaving}
+            className="gap-1.5"
+            data-testid="button-toggle-mode"
+          >
+            <Save className="w-4 h-4" />
+            Сохранить
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsEditing(true)}
+            className="gap-1.5"
+            data-testid="button-toggle-mode"
+          >
+            <Edit2 className="w-4 h-4" />
+            Редактировать
+          </Button>
+        )}
+
+        <DiceRollerTrigger
+          onClick={() => setIsDiceRollerOpen(true)}
+          rollCount={rollHistory.length}
+        />
+
+        {/* Mobile menu (hamburger) */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="sm:hidden"
+              data-testid="button-mobile-menu"
+              aria-label="Открыть меню"
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem
+              onClick={handleExportPdf}
+              data-testid="button-mobile-export-pdf"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Экспорт в PDF
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={handleExportJson}
+              data-testid="button-mobile-export-json"
+            >
+              <FileJson className="w-4 h-4 mr-2" />
+              Экспорт в JSON
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => setIsShareDialogOpen(true)}
+              data-testid="button-mobile-share"
+            >
+              <Share2 className="w-4 h-4 mr-2" />
+              Поделиться
+            </DropdownMenuItem>
+            {user ? (
+              <DropdownMenuItem
+                onClick={() => setIsAccountDialogOpen(true)}
+                data-testid="button-mobile-account"
+              >
+                <User className="w-4 h-4 mr-2" />
+                Профиль
+              </DropdownMenuItem>
+            ) : null}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={toggleTheme}
+              data-testid="button-mobile-theme-toggle"
+            >
+              {theme === "dark" ? (
+                <Sun className="w-4 h-4 mr-2" />
+              ) : (
+                <Moon className="w-4 h-4 mr-2" />
+              )}
+              {theme === "dark" ? "Светлая тема" : "Тёмная тема"}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Desktop controls */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hidden sm:inline-flex"
+              data-testid="button-export-menu"
+            >
+              <Download className="w-5 h-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={handleExportPdf}
+              data-testid="button-export-pdf"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Экспорт в PDF
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={handleExportJson}
+              data-testid="button-export-json"
+            >
+              <FileJson className="w-4 h-4 mr-2" />
+              Экспорт в JSON
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setIsShareDialogOpen(true)}
+          className="hidden sm:inline-flex"
+          data-testid="button-share"
+        >
+          <Share2 className="w-5 h-5" />
+        </Button>
+        {user ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsAccountDialogOpen(true)}
+            className="hidden sm:inline-flex"
+            data-testid="button-account"
+          >
+            <User className="w-5 h-5" />
+          </Button>
+        ) : null}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleTheme}
+          className="hidden sm:inline-flex"
+          data-testid="button-theme-toggle"
+        >
+          {theme === "dark" ? (
+            <Sun className="w-5 h-5" />
+          ) : (
+            <Moon className="w-5 h-5" />
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="bg-background">
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          MOBILE LAYOUT (< lg): fixed full-screen flex column
+          Header → scrollable tab panel → bottom tab bar
+          ═══════════════════════════════════════════════════════════════════════ */}
+      <div className="lg:hidden fixed inset-0 flex flex-col">
+
+        {/* Header */}
+        <header className="shrink-0 bg-background/95 backdrop-blur border-b">
+          {headerInner}
+        </header>
+
+        {/* Active tab content — key={activeTab} triggers re-mount + CSS animate-in */}
+        <div
+          key={activeTab}
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-2 tab-panel-mobile
+                     animate-in fade-in-0 slide-in-from-bottom-2 duration-150"
+        >
+          {renderSection(activeTab)}
         </div>
-      </main>
+
+        {/* Bottom tab bar */}
+        <nav
+          aria-label="Навигация по персонажу"
+          className="shrink-0 border-t bg-background/95 backdrop-blur bottom-tab-bar"
+        >
+          <div className="flex items-stretch h-[60px] px-1">
+            {sectionNavItems.map(({ id: sectionId, mobileLabel, icon: Icon }) => {
+              const isActive = activeTab === sectionId;
+              return (
+                <button
+                  key={sectionId}
+                  onClick={() => setActiveTab(sectionId)}
+                  data-testid={`tab-${sectionId}`}
+                  aria-selected={isActive}
+                  className={cn(
+                    "relative flex flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5",
+                    "rounded-lg transition-colors duration-200 select-none",
+                    "-webkit-tap-highlight-color-transparent",
+                    isActive
+                      ? "text-primary"
+                      : "text-muted-foreground active:text-foreground/70",
+                  )}
+                >
+                  {/* Active indicator pill at top */}
+                  <span
+                    className={cn(
+                      "absolute top-0 left-1/2 -translate-x-1/2 h-0.5 rounded-full",
+                      "transition-all duration-300 ease-out",
+                      isActive ? "w-6 bg-primary" : "w-0 bg-transparent",
+                    )}
+                  />
+                  <Icon
+                    className={cn(
+                      "h-[18px] w-[18px] transition-transform duration-200",
+                      isActive && "scale-110",
+                    )}
+                  />
+                  <span className="text-[9px] font-medium leading-none truncate max-w-full">
+                    {mobileLabel}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          DESKTOP LAYOUT (lg+): original sticky scroll layout, unchanged
+          ═══════════════════════════════════════════════════════════════════════ */}
+      <div className="hidden lg:block min-h-screen">
+
+        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
+          {headerInner}
+        </header>
+
+        <main className="max-w-7xl mx-auto p-2 sm:p-4">
+          <div className="space-y-4 sm:space-y-5">
+
+            {/* Desktop sticky section nav */}
+            <nav
+              className="sticky top-[49px] sm:top-[53px] z-40 border-b bg-background/95 backdrop-blur"
+              data-testid="section-nav"
+            >
+              <div className="-mx-2 sm:mx-0 nav-scroll-container">
+                <div className="overflow-x-auto scrollbar-hide px-2 sm:px-0 lg:overflow-visible">
+                  <div className="flex gap-2 py-2 lg:flex-wrap lg:justify-start">
+                    {sectionNavItems.map(({ id: sectionId, label, icon: Icon }) => (
+                      <button
+                        key={sectionId}
+                        onClick={() =>
+                          document
+                            .getElementById(sectionId)
+                            ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                        }
+                        className="section-nav-chip"
+                        data-testid={`nav-${sectionId}`}
+                      >
+                        <Icon className="w-4 h-4 shrink-0" />
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </nav>
+
+            {/* All sections stacked for desktop scroll */}
+            {sectionNavItems.map(({ id: sectionId }) => renderSection(sectionId))}
+
+          </div>
+        </main>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          SHARED OVERLAYS (both layouts)
+          ═══════════════════════════════════════════════════════════════════════ */}
 
       <DiceRoller
         isOpen={isDiceRollerOpen}
@@ -876,6 +990,7 @@ function CharacterSheetContent() {
         open={isAccountDialogOpen}
         onOpenChange={setIsAccountDialogOpen}
       />
+
       <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -931,8 +1046,9 @@ function CharacterSheetContent() {
         </DialogContent>
       </Dialog>
 
+      {/* PDF export progress toast — positioned above bottom tab bar on mobile */}
       {pdfToast && (
-        <div className="fixed bottom-4 right-4 z-[100] w-[340px] rounded-lg border bg-background shadow-lg overflow-hidden">
+        <div className="fixed bottom-[76px] lg:bottom-4 right-4 z-[100] w-[300px] sm:w-[340px] rounded-lg border bg-background shadow-lg overflow-hidden">
           <div className="px-4 pt-4 pb-3">
             <p className="text-sm font-semibold">{pdfToast.title}</p>
             <p className="text-xs text-muted-foreground mt-1">{pdfToast.msg}</p>
