@@ -84,13 +84,17 @@ export function rollDice(
   };
 }
 
-function DiceResult({ roll }: { roll: DiceRoll }) {
+function DiceResult({ roll, isLatest }: { roll: DiceRoll; isLatest?: boolean }) {
   const { sides } = parseDice(roll.dice);
   const isCritSuccess = sides === 20 && roll.results.some(r => r === 20);
   const isCritFail = sides === 20 && roll.results.some(r => r === 1);
 
   return (
-    <Card className={`p-3 ${isCritSuccess ? 'border-positive bg-positive-muted' : isCritFail ? 'border-negative bg-negative-muted' : ''}`}>
+    <Card className={`p-3 ${
+      isCritSuccess ? 'border-positive bg-positive-muted' :
+      isCritFail   ? 'border-negative bg-negative-muted' :
+      isLatest     ? 'border-primary/40 bg-primary/5' : ''
+    }`}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="font-medium text-sm truncate">{roll.label}</div>
@@ -195,8 +199,8 @@ export function DiceRoller({ isOpen, onClose, rollHistory, onClearHistory }: Dic
               <p className="text-sm mt-1">Нажмите на характеристику или навык для броска</p>
             </div>
           ) : (
-            rollHistory.map((roll) => (
-              <DiceResult key={roll.id} roll={roll} />
+            rollHistory.map((roll, i) => (
+              <DiceResult key={roll.id} roll={roll} isLatest={i === 0} />
             ))
           )}
         </div>

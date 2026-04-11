@@ -300,7 +300,7 @@ export function WeaponsList({
                     <Button
                       variant="outline"
                       className="h-14 flex-col gap-1 border-accent/40"
-                      onClick={() => { onRollAttack(weapon as Weapon, totalAttack, isProficient); setExpandedId(null); }}
+                      onClick={() => onRollAttack(weapon as Weapon, totalAttack, isProficient)}
                       data-testid={`button-attack-inv-${weapon.id}-mobile`}
                     >
                       <span className="text-[10px] font-bold tracking-widest text-muted-foreground">АТАКА</span>
@@ -309,7 +309,7 @@ export function WeaponsList({
                     <Button
                       variant="outline"
                       className="h-14 flex-col gap-1"
-                      onClick={() => { onRollDamage(weapon as Weapon, abilityModValue); setExpandedId(null); }}
+                      onClick={() => onRollDamage(weapon as Weapon, abilityModValue)}
                       data-testid={`button-damage-inv-${weapon.id}-mobile`}
                     >
                       <span className="text-[10px] font-bold tracking-widest text-muted-foreground">УРОН</span>
@@ -442,7 +442,7 @@ export function WeaponsList({
                     <Button
                       variant="outline"
                       className="h-14 flex-col gap-1"
-                      onClick={() => { onRollAttack(weapon, totalAttack, isProficient); setExpandedId(null); }}
+                      onClick={() => onRollAttack(weapon, totalAttack, isProficient)}
                       data-testid={`button-attack-${weapon.id}-mobile`}
                     >
                       <span className="text-[10px] font-bold tracking-widest text-muted-foreground">АТАКА</span>
@@ -451,7 +451,7 @@ export function WeaponsList({
                     <Button
                       variant="outline"
                       className="h-14 flex-col gap-1"
-                      onClick={() => { onRollDamage(weapon, abilityModValue); setExpandedId(null); }}
+                      onClick={() => onRollDamage(weapon, abilityModValue)}
                       data-testid={`button-damage-${weapon.id}-mobile`}
                     >
                       <span className="text-[10px] font-bold tracking-widest text-muted-foreground">УРОН</span>

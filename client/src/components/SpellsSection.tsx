@@ -617,6 +617,14 @@ function AddSpellDialog({
   );
 }
 
+// Count set bits in a number (for bitmask-based spell slot tracking)
+function popcount(n: number): number {
+  let count = 0;
+  let v = n >>> 0;
+  while (v > 0) { count += v & 1; v >>>= 1; }
+  return count;
+}
+
 function SpellSlotTracker({
   testIdPrefix = "spell-slots",
   rowLabel,
@@ -627,6 +635,8 @@ function SpellSlotTracker({
   onChange,
   isEditing,
   isLocked,
+  sequential = false,
+  noCap = false,
 }: {
   testIdPrefix?: string;
   rowLabel?: string;
@@ -637,12 +647,32 @@ function SpellSlotTracker({
   onChange: (max: number, used: number) => void;
   isEditing: boolean;
   isLocked?: boolean;
+  sequential?: boolean; // legacy mode: used = count (for pact magic)
+  noCap?: boolean;      // skip D&D 5e cap (for pact magic)
 }) {
   if (max === 0 && !isEditing) return null;
 
-  // Cap display count to D&D 5e maximum per level (only applies to regular slots, not pact magic)
-  const cap = MAX_SLOTS_PER_LEVEL[level - 1];
+  const cap = !noCap ? MAX_SLOTS_PER_LEVEL[level - 1] : undefined;
   const displayMax = cap !== undefined ? Math.min(max, cap) : max;
+
+  // Bitmask helpers (regular slots only)
+  const bitmask = (used >>> 0) & ((1 << displayMax) - 1);
+  const spentCount = sequential ? Math.min(used, displayMax) : popcount(bitmask);
+  const available = displayMax - spentCount;
+
+  const isCellSpent = (i: number) =>
+    sequential ? i < used : ((used >>> i) & 1) === 1;
+
+  const toggleCell = (i: number) => {
+    if (isLocked) return;
+    if (sequential) {
+      // old behaviour: click spent cell → restore to i, click free cell → spend to i+1
+      const isSpent = i < used;
+      onChange(max, isSpent ? i : i + 1);
+    } else {
+      onChange(max, used ^ (1 << i));
+    }
+  };
 
   return (
     <div
@@ -679,19 +709,19 @@ function SpellSlotTracker({
       ) : (
         <div className="flex gap-1.5 flex-wrap">
           {Array.from({ length: displayMax }, (_, i) => {
-            const isUsed = i < used;
+            const isSpent = isCellSpent(i);
             return (
               <button
                 key={i}
-                onClick={() => !isLocked && onChange(max, isUsed ? i : i + 1)}
+                onClick={() => toggleCell(i)}
                 className={`w-10 h-10 sm:w-8 sm:h-8 rounded border-2 transition-all flex items-center justify-center ${
-                  isUsed
+                  isSpent
                     ? "bg-muted border-muted-foreground/30 opacity-40"
                     : "border-accent/50 hover:border-accent bg-accent/10"
                 } ${isLocked ? "pointer-events-none cursor-default" : "active:scale-95"}`}
                 data-testid={`button-${testIdPrefix}-${level}-${i}`}
               >
-                {!isUsed && <Sparkles className="w-4 h-4 text-accent" />}
+                {!isSpent && <Sparkles className="w-4 h-4 text-accent" />}
               </button>
             );
           })}
@@ -702,7 +732,7 @@ function SpellSlotTracker({
       )}
       {!isEditing && (
         <span className="text-xs text-muted-foreground text-right tabular-nums">
-          {used}/{displayMax}
+          {available}/{displayMax}
         </span>
       )}
     </div>
@@ -1353,34 +1383,36 @@ export function SpellsSection({
               side="right"
               iconSize="xs"
             />
-            {!isEditing && onToggleLock && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={onToggleLock}
-                    className={`h-6 w-6 ml-1 ${isLocked ? "text-muted-foreground" : "text-accent"}`}
-                    data-testid="button-toggle-spell-slots-lock"
-                  >
-                    {isLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {isLocked ? "Разблокировать ячейки" : "Заблокировать ячейки"}
-                </TooltipContent>
-              </Tooltip>
-            )}
-            {showAutoFillButton && (
-              <button
-                onClick={handleAutoFillSlots}
-                className="ml-auto flex items-center gap-1 text-xs text-accent hover:underline"
-                data-testid="button-auto-fill-slots"
-              >
-                <RefreshCw className="w-3 h-3" />
-                По классу
-              </button>
-            )}
+            <div className="ml-auto flex items-center gap-1">
+              {!isEditing && onToggleLock && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={onToggleLock}
+                      className={`h-6 w-6 ${isLocked ? "text-muted-foreground" : "text-accent"}`}
+                      data-testid="button-toggle-spell-slots-lock"
+                    >
+                      {isLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {isLocked ? "Разблокировать ячейки" : "Заблокировать ячейки"}
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {showAutoFillButton && (
+                <button
+                  onClick={handleAutoFillSlots}
+                  className="flex items-center gap-1 text-xs text-accent hover:underline"
+                  data-testid="button-auto-fill-slots"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  По классу
+                </button>
+              )}
+            </div>
           </div>
           {Array.from({ length: 9 }, (_, i) => (
             <SpellSlotTracker
@@ -1429,6 +1461,8 @@ export function SpellsSection({
             used={spellcasting.pactMagic.used}
             onChange={handlePactMagicChange}
             isEditing={isEditing}
+            sequential
+            noCap
           />
           <div className="pl-12 text-[11px] text-muted-foreground">
             Все ячейки колдуна одного уровня: {spellcasting.pactMagic.slotLevel}
