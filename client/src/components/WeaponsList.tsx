@@ -18,7 +18,7 @@ import {
   ResponsiveDialogTitle,
   ResponsiveDialogFooter,
 } from "@/components/ui/responsive-dialog";
-import { Swords, Plus, Trash2, Dices, Lock, Unlock, Backpack } from "lucide-react";
+import { Swords, Plus, Trash2, Dices, Lock, Unlock, Backpack, ChevronDown } from "lucide-react";
 import type { Weapon, Equipment, WeaponAbilityMod, Proficiencies } from "@shared/schema";
 import { formatModifier, isWeaponProficient } from "@shared/schema";
 import { WeaponFormFields } from "@/components/WeaponFormFields";
@@ -111,6 +111,13 @@ export function WeaponsList({
   proficiencies = { languages: [], weapons: [], armor: [], tools: [] }
 }: WeaponsListProps) {
   const canModify = isEditing || !isLocked;
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const toggleExpanded = (id: string) => {
+    if (!isEditing && !isLocked) {
+      setExpandedId((prev) => (prev === id ? null : id));
+    }
+  };
 
   const getAbilityMod = (abilityMod: WeaponAbilityMod | undefined) => {
     return abilityMod === "dex" ? dexMod : strMod;
@@ -183,7 +190,7 @@ export function WeaponsList({
           {isEditing ? "Нажмите \"Добавить\" или экипируйте оружие в снаряжении" : "Нет оружия"}
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {equippedWeapons.map((weapon) => {
             const abilityModValue = getAbilityMod(weapon.abilityMod);
             const isProficient = isWeaponProficient(weapon.name, proficiencies);
@@ -192,83 +199,122 @@ export function WeaponsList({
             const damageModStr = abilityModValue !== 0 ? formatModifier(abilityModValue) : "";
             const abilityLabel = weapon.abilityMod === "dex" ? "ЛОВ" : "СИЛ";
             
+            const isExpanded = expandedId === `inv-${weapon.id}`;
             return (
-              <div 
+              <div
                 key={`inv-${weapon.id}`}
-                className="flex items-center gap-2 p-2 rounded-md bg-accent/10"
+                className="rounded-md bg-accent/10 overflow-hidden"
                 data-testid={`weapon-inv-${weapon.id}`}
               >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <Backpack className="w-3 h-3 text-accent shrink-0" />
-                    <span className="font-medium text-sm truncate text-accent">{weapon.name}</span>
-                    <span className="flex items-center gap-0.5 text-xs text-muted-foreground flex-wrap">
-                      <span>{abilityLabel}</span>
-                      {weapon.isFinesse && (
-                        <>
-                          <span>• фехт.</span>
-                          <span onClick={(e) => e.stopPropagation()}>
-                            <HelpTooltip
-                              content={<TooltipBody title={FINESSE_TOOLTIP.title} lines={FINESSE_TOOLTIP.lines} />}
-                              iconSize="xs"
-                              side="top"
-                            />
-                          </span>
-                        </>
-                      )}
-                      {isProficient && (
-                        <>
-                          <span>• влад.</span>
-                          <span onClick={(e) => e.stopPropagation()}>
-                            <HelpTooltip
-                              content={<TooltipBody title={WEAPON_PROFICIENCY_TOOLTIP(proficiencyBonus).title} lines={WEAPON_PROFICIENCY_TOOLTIP(proficiencyBonus).lines} />}
-                              iconSize="xs"
-                              side="top"
-                            />
-                          </span>
-                        </>
-                      )}
-                    </span>
+                {/* Header row */}
+                <div
+                  className="flex items-center gap-2 p-2 cursor-pointer select-none"
+                  onClick={() => toggleExpanded(`inv-${weapon.id}`)}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <Backpack className="w-3 h-3 text-accent shrink-0" />
+                      <span className="font-medium text-sm truncate text-accent">{weapon.name}</span>
+                      <span className="flex items-center gap-0.5 text-xs text-muted-foreground flex-wrap">
+                        <span>{abilityLabel}</span>
+                        {weapon.isFinesse && (
+                          <>
+                            <span>• фехт.</span>
+                            <span onClick={(e) => e.stopPropagation()}>
+                              <HelpTooltip
+                                content={<TooltipBody title={FINESSE_TOOLTIP.title} lines={FINESSE_TOOLTIP.lines} />}
+                                iconSize="xs"
+                                side="top"
+                              />
+                            </span>
+                          </>
+                        )}
+                        {isProficient && (
+                          <>
+                            <span>• влад.</span>
+                            <span onClick={(e) => e.stopPropagation()}>
+                              <HelpTooltip
+                                content={<TooltipBody title={WEAPON_PROFICIENCY_TOOLTIP(proficiencyBonus).title} lines={WEAPON_PROFICIENCY_TOOLTIP(proficiencyBonus).lines} />}
+                                iconSize="xs"
+                                side="top"
+                              />
+                            </span>
+                          </>
+                        )}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {weapon.damage}{damageModStr} {weapon.damageType}
+                      {weapon.properties && ` • ${weapon.properties}`}
+                    </div>
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {weapon.damage}{damageModStr} {weapon.damageType}
-                    {weapon.properties && ` • ${weapon.properties}`}
-                  </div>
+
+                  {/* Desktop inline buttons */}
+                  {!isEditing && (
+                    <div className="hidden sm:flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                      <HelpTooltip
+                        content={`Атака: 1d20${formatModifier(totalAttack)}${!isProficient ? " (без владения)" : ""}`}
+                        side="top"
+                        asChild
+                      >
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 gap-1"
+                          onClick={() => onRollAttack(weapon as Weapon, totalAttack, isProficient)}
+                          data-testid={`button-attack-inv-${weapon.id}`}
+                        >
+                          <Dices className="w-3 h-3" />
+                          <span className="text-xs">{formatModifier(totalAttack)}</span>
+                        </Button>
+                      </HelpTooltip>
+                      <HelpTooltip
+                        content={`Урон: ${weapon.damage}${damageModStr}`}
+                        side="top"
+                        asChild
+                      >
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2"
+                          onClick={() => onRollDamage(weapon as Weapon, abilityModValue)}
+                          data-testid={`button-damage-inv-${weapon.id}`}
+                        >
+                          <span className="text-xs">{weapon.damage}{damageModStr}</span>
+                        </Button>
+                      </HelpTooltip>
+                    </div>
+                  )}
+
+                  {/* Mobile chevron */}
+                  {!isEditing && (
+                    <ChevronDown
+                      className={`sm:hidden w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-150 ${isExpanded ? "rotate-180" : ""}`}
+                    />
+                  )}
                 </div>
 
-                {!isEditing && (
-                  <div className="flex items-center gap-1">
-                    <HelpTooltip
-                      content={`Атака: 1d20${formatModifier(totalAttack)}${!isProficient ? " (без владения)" : ""}`}
-                      side="top"
-                      asChild
+                {/* Mobile accordion panel */}
+                {!isEditing && isExpanded && (
+                  <div className="sm:hidden px-2 pb-2 grid grid-cols-2 gap-2 animate-in slide-in-from-top-1 fade-in-0 duration-150">
+                    <Button
+                      variant="outline"
+                      className="h-14 flex-col gap-1 border-accent/40"
+                      onClick={() => { onRollAttack(weapon as Weapon, totalAttack, isProficient); setExpandedId(null); }}
+                      data-testid={`button-attack-inv-${weapon.id}-mobile`}
                     >
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-9 sm:h-7 px-2 gap-1"
-                        onClick={() => onRollAttack(weapon as Weapon, totalAttack, isProficient)}
-                        data-testid={`button-attack-inv-${weapon.id}`}
-                      >
-                        <Dices className="w-3 h-3" />
-                        <span className="text-xs">{formatModifier(totalAttack)}</span>
-                      </Button>
-                    </HelpTooltip>
-                    <HelpTooltip
-                      content={`Урон: ${weapon.damage}${damageModStr}`}
-                      side="top"
-                      asChild
+                      <span className="text-[10px] font-bold tracking-widest text-muted-foreground">АТАКА</span>
+                      <span className="text-base font-bold font-mono">1d20{formatModifier(totalAttack)}</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-14 flex-col gap-1"
+                      onClick={() => { onRollDamage(weapon as Weapon, abilityModValue); setExpandedId(null); }}
+                      data-testid={`button-damage-inv-${weapon.id}-mobile`}
                     >
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-9 sm:h-7 px-2"
-                        onClick={() => onRollDamage(weapon as Weapon, abilityModValue)}
-                        data-testid={`button-damage-inv-${weapon.id}`}
-                      >
-                        <span className="text-xs">{weapon.damage}{damageModStr}</span>
-                      </Button>
-                    </HelpTooltip>
+                      <span className="text-[10px] font-bold tracking-widest text-muted-foreground">УРОН</span>
+                      <span className="text-base font-bold font-mono">{weapon.damage}{damageModStr}</span>
+                    </Button>
                   </div>
                 )}
               </div>
@@ -283,95 +329,135 @@ export function WeaponsList({
             const damageModStr = abilityModValue !== 0 ? formatModifier(abilityModValue) : "";
             const abilityLabel = weapon.abilityMod === "dex" ? "ЛОВ" : "СИЛ";
             
+            const isExpanded = expandedId === weapon.id;
             return (
-              <div 
+              <div
                 key={weapon.id}
-                className="flex items-center gap-2 p-2 rounded-md bg-muted/30"
+                className="rounded-md bg-muted/30 overflow-hidden"
                 data-testid={`weapon-${weapon.id}`}
               >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="font-medium text-sm truncate">{weapon.name}</span>
-                    <span className="flex items-center gap-0.5 text-xs text-muted-foreground flex-wrap">
-                      <span>{abilityLabel}</span>
-                      {weapon.isFinesse && (
-                        <>
-                          <span>• фехт.</span>
-                          <span onClick={(e) => e.stopPropagation()}>
-                            <HelpTooltip
-                              content={<TooltipBody title={FINESSE_TOOLTIP.title} lines={FINESSE_TOOLTIP.lines} />}
-                              iconSize="xs"
-                              side="top"
-                            />
-                          </span>
-                        </>
-                      )}
-                      {isProficient && (
-                        <>
-                          <span>• влад.</span>
-                          <span onClick={(e) => e.stopPropagation()}>
-                            <HelpTooltip
-                              content={<TooltipBody title={WEAPON_PROFICIENCY_TOOLTIP(proficiencyBonus).title} lines={WEAPON_PROFICIENCY_TOOLTIP(proficiencyBonus).lines} />}
-                              iconSize="xs"
-                              side="top"
-                            />
-                          </span>
-                        </>
-                      )}
-                    </span>
+                {/* Header row */}
+                <div
+                  className="flex items-center gap-2 p-2 cursor-pointer select-none"
+                  onClick={() => toggleExpanded(weapon.id)}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-medium text-sm truncate">{weapon.name}</span>
+                      <span className="flex items-center gap-0.5 text-xs text-muted-foreground flex-wrap">
+                        <span>{abilityLabel}</span>
+                        {weapon.isFinesse && (
+                          <>
+                            <span>• фехт.</span>
+                            <span onClick={(e) => e.stopPropagation()}>
+                              <HelpTooltip
+                                content={<TooltipBody title={FINESSE_TOOLTIP.title} lines={FINESSE_TOOLTIP.lines} />}
+                                iconSize="xs"
+                                side="top"
+                              />
+                            </span>
+                          </>
+                        )}
+                        {isProficient && (
+                          <>
+                            <span>• влад.</span>
+                            <span onClick={(e) => e.stopPropagation()}>
+                              <HelpTooltip
+                                content={<TooltipBody title={WEAPON_PROFICIENCY_TOOLTIP(proficiencyBonus).title} lines={WEAPON_PROFICIENCY_TOOLTIP(proficiencyBonus).lines} />}
+                                iconSize="xs"
+                                side="top"
+                              />
+                            </span>
+                          </>
+                        )}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {weapon.damage}{damageModStr} {weapon.damageType}
+                      {weapon.properties && ` • ${weapon.properties}`}
+                    </div>
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {weapon.damage}{damageModStr} {weapon.damageType}
-                    {weapon.properties && ` • ${weapon.properties}`}
-                  </div>
+
+                  {/* Desktop inline buttons */}
+                  {!isEditing && (
+                    <div className="hidden sm:flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                      <HelpTooltip
+                        content={`Атака: 1d20${formatModifier(totalAttack)}${!isProficient ? " (без владения)" : ""}`}
+                        side="top"
+                        asChild
+                      >
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 gap-1"
+                          onClick={() => onRollAttack(weapon, totalAttack, isProficient)}
+                          data-testid={`button-attack-${weapon.id}`}
+                        >
+                          <Dices className="w-3 h-3" />
+                          <span className="text-xs">{formatModifier(totalAttack)}</span>
+                        </Button>
+                      </HelpTooltip>
+                      <HelpTooltip
+                        content={`Урон: ${weapon.damage}${damageModStr}`}
+                        side="top"
+                        asChild
+                      >
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2"
+                          onClick={() => onRollDamage(weapon, abilityModValue)}
+                          data-testid={`button-damage-${weapon.id}`}
+                        >
+                          <span className="text-xs">{weapon.damage}{damageModStr}</span>
+                        </Button>
+                      </HelpTooltip>
+                    </div>
+                  )}
+
+                  {/* Delete button (edit mode) */}
+                  {canModify && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive h-9 w-9 sm:h-8 sm:w-8 shrink-0"
+                      onClick={(e) => { e.stopPropagation(); removeWeapon(weapon.id); }}
+                      data-testid={`button-remove-weapon-${weapon.id}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+
+                  {/* Mobile chevron */}
+                  {!isEditing && (
+                    <ChevronDown
+                      className={`sm:hidden w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-150 ${isExpanded ? "rotate-180" : ""}`}
+                    />
+                  )}
                 </div>
 
-                {!isEditing && (
-                  <div className="flex items-center gap-1">
-                    <HelpTooltip
-                      content={`Атака: 1d20${formatModifier(totalAttack)}${!isProficient ? " (без владения)" : ""}`}
-                      side="top"
-                      asChild
+                {/* Mobile accordion panel */}
+                {!isEditing && isExpanded && (
+                  <div className="sm:hidden px-2 pb-2 grid grid-cols-2 gap-2 animate-in slide-in-from-top-1 fade-in-0 duration-150">
+                    <Button
+                      variant="outline"
+                      className="h-14 flex-col gap-1"
+                      onClick={() => { onRollAttack(weapon, totalAttack, isProficient); setExpandedId(null); }}
+                      data-testid={`button-attack-${weapon.id}-mobile`}
                     >
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-9 sm:h-7 px-2 gap-1"
-                        onClick={() => onRollAttack(weapon, totalAttack, isProficient)}
-                        data-testid={`button-attack-${weapon.id}`}
-                      >
-                        <Dices className="w-3 h-3" />
-                        <span className="text-xs">{formatModifier(totalAttack)}</span>
-                      </Button>
-                    </HelpTooltip>
-                    <HelpTooltip
-                      content={`Урон: ${weapon.damage}${damageModStr}`}
-                      side="top"
-                      asChild
+                      <span className="text-[10px] font-bold tracking-widest text-muted-foreground">АТАКА</span>
+                      <span className="text-base font-bold font-mono">1d20{formatModifier(totalAttack)}</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-14 flex-col gap-1"
+                      onClick={() => { onRollDamage(weapon, abilityModValue); setExpandedId(null); }}
+                      data-testid={`button-damage-${weapon.id}-mobile`}
                     >
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-9 sm:h-7 px-2"
-                        onClick={() => onRollDamage(weapon, abilityModValue)}
-                        data-testid={`button-damage-${weapon.id}`}
-                      >
-                        <span className="text-xs">{weapon.damage}{damageModStr}</span>
-                      </Button>
-                    </HelpTooltip>
+                      <span className="text-[10px] font-bold tracking-widest text-muted-foreground">УРОН</span>
+                      <span className="text-base font-bold font-mono">{weapon.damage}{damageModStr}</span>
+                    </Button>
                   </div>
-                )}
-
-                {canModify && (
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="text-destructive h-9 w-9 sm:h-8 sm:w-8"
-                    onClick={() => removeWeapon(weapon.id)}
-                    data-testid={`button-remove-weapon-${weapon.id}`}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
                 )}
               </div>
             );

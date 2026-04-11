@@ -328,6 +328,7 @@ function parseLSSData(data: any): InsertCharacter {
     equipmentLocked: false,
     weaponsLocked: false,
     featuresLocked: false,
+    spellSlotsLocked: false,
   };
 }
 

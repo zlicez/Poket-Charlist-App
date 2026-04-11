@@ -53,6 +53,8 @@ import {
   Library,
   Search,
   RefreshCw,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import {
   ABILITY_LABELS,
@@ -412,7 +414,11 @@ interface SpellsSectionProps {
   character: Character;
   onChange: (updates: Partial<Character>) => void;
   isEditing: boolean;
+  isLocked?: boolean;
+  onToggleLock?: () => void;
 }
+
+const MAX_SLOTS_PER_LEVEL = [4, 3, 3, 3, 3, 2, 2, 1, 1]; // index 0 = level 1 (D&D 5e max)
 
 function AddSpellDialog({
   onAdd,
@@ -620,6 +626,7 @@ function SpellSlotTracker({
   calculatedMax,
   onChange,
   isEditing,
+  isLocked,
 }: {
   testIdPrefix?: string;
   rowLabel?: string;
@@ -629,15 +636,21 @@ function SpellSlotTracker({
   calculatedMax?: number;
   onChange: (max: number, used: number) => void;
   isEditing: boolean;
+  isLocked?: boolean;
 }) {
   if (max === 0 && !isEditing) return null;
 
+  // Cap display count to D&D 5e maximum per level (only applies to regular slots, not pact magic)
+  const cap = MAX_SLOTS_PER_LEVEL[level - 1];
+  const displayMax = cap !== undefined ? Math.min(max, cap) : max;
+
   return (
     <div
-      className="flex items-center gap-2"
+      className="grid items-center gap-x-3"
+      style={{ gridTemplateColumns: "1.5rem auto 2.5rem" }}
       data-testid={`${testIdPrefix}-level-${level}`}
     >
-      <span className="text-xs font-medium min-w-0 w-10 text-right text-muted-foreground">
+      <span className="text-xs font-medium text-right text-muted-foreground">
         {rowLabel ?? level}
       </span>
       {isEditing ? (
@@ -664,28 +677,33 @@ function SpellSlotTracker({
           )}
         </div>
       ) : (
-        <div className="flex gap-1 flex-wrap">
-          {Array.from({ length: max }, (_, i) => {
+        <div className="flex gap-1.5 flex-wrap">
+          {Array.from({ length: displayMax }, (_, i) => {
             const isUsed = i < used;
             return (
               <button
                 key={i}
-                onClick={() => onChange(max, isUsed ? i : i + 1)}
-                className={`w-7 h-7 sm:w-6 sm:h-6 rounded border-2 transition-all flex items-center justify-center ${
+                onClick={() => !isLocked && onChange(max, isUsed ? i : i + 1)}
+                className={`w-10 h-10 sm:w-8 sm:h-8 rounded border-2 transition-all flex items-center justify-center ${
                   isUsed
                     ? "bg-muted border-muted-foreground/30 opacity-40"
                     : "border-accent/50 hover:border-accent bg-accent/10"
-                } active:scale-95`}
+                } ${isLocked ? "pointer-events-none cursor-default" : "active:scale-95"}`}
                 data-testid={`button-${testIdPrefix}-${level}-${i}`}
               >
-                {!isUsed && <Sparkles className="w-3 h-3 text-accent" />}
+                {!isUsed && <Sparkles className="w-4 h-4 text-accent" />}
               </button>
             );
           })}
-          {max === 0 && (
+          {displayMax === 0 && (
             <span className="text-xs text-muted-foreground">—</span>
           )}
         </div>
+      )}
+      {!isEditing && (
+        <span className="text-xs text-muted-foreground text-right tabular-nums">
+          {used}/{displayMax}
+        </span>
       )}
     </div>
   );
@@ -1014,6 +1032,8 @@ export function SpellsSection({
   character,
   onChange,
   isEditing,
+  isLocked = false,
+  onToggleLock,
 }: SpellsSectionProps) {
   const charClasses = getCharacterClasses(character);
   const casterClass = charClasses.find(
@@ -1333,6 +1353,24 @@ export function SpellsSection({
               side="right"
               iconSize="xs"
             />
+            {!isEditing && onToggleLock && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onToggleLock}
+                    className={`h-6 w-6 ml-1 ${isLocked ? "text-muted-foreground" : "text-accent"}`}
+                    data-testid="button-toggle-spell-slots-lock"
+                  >
+                    {isLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isLocked ? "Разблокировать ячейки" : "Заблокировать ячейки"}
+                </TooltipContent>
+              </Tooltip>
+            )}
             {showAutoFillButton && (
               <button
                 onClick={handleAutoFillSlots}
@@ -1353,6 +1391,7 @@ export function SpellsSection({
               calculatedMax={calculatedSlots?.[i]}
               onChange={(max, used) => handleSlotChange(i, max, used)}
               isEditing={isEditing}
+              isLocked={isLocked}
             />
           ))}
         </div>

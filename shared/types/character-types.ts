@@ -240,6 +240,7 @@ export const characterSchema = z.object({
   equipmentLocked: z.boolean().default(false),
   weaponsLocked: z.boolean().default(false),
   featuresLocked: z.boolean().default(false),
+  spellSlotsLocked: z.boolean().default(false),
 });
 
 export type Character = z.infer<typeof characterSchema>;
@@ -617,5 +618,6 @@ export function createDefaultCharacter(): InsertCharacter {
     equipmentLocked: false,
     weaponsLocked: false,
     featuresLocked: false,
+    spellSlotsLocked: false,
   };
 }

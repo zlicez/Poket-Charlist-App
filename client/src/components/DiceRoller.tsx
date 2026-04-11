@@ -163,8 +163,7 @@ export function DiceRollerTrigger({ onClick, rollCount }: { onClick: () => void;
       aria-label="История бросков"
     >
       <Dices className="w-4 h-4" />
-      <span className="sm:hidden">Броски</span>
-      <span className="hidden sm:inline">История</span>
+      <span>История</span>
       {rollCount > 0 && (
         <Badge variant="secondary" className="text-xs font-mono">
           {rollCount}

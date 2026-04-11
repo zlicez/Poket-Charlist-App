@@ -75,7 +75,7 @@ import {
   Flag,
   Backpack,
   Sparkles,
-  Crosshair,
+  Swords,
   BookOpen,
   Download,
   FileText,
@@ -352,8 +352,8 @@ function CharacterSheetContent() {
 
   const sectionNavItems = [
     { id: "section-combat",    label: "Общее",          mobileLabel: "Общее",    icon: User },
-    { id: "section-abilities", label: "Характеристики", mobileLabel: "Атрибуты", icon: FaDiceD20 },
-    { id: "section-equipment", label: "Оружие",         mobileLabel: "Оружие",   icon: Crosshair },
+    { id: "section-abilities", label: "Характеристики", mobileLabel: "Броски",  icon: FaDiceD20 },
+    { id: "section-equipment", label: "Оружие",         mobileLabel: "Оружие",   icon: Swords },
     { id: "section-inventory", label: "Инвентарь",      mobileLabel: "Вещи",     icon: Backpack },
     ...(showSpellsSection
       ? [{ id: "section-spells", label: "Заклинания", mobileLabel: "Магия", icon: BookOpen }]
@@ -406,7 +406,7 @@ function CharacterSheetContent() {
   }));
 
   // ─── Section content renderer (shared between mobile tab view and desktop scroll) ───
-  const renderSection = (sectionId: string) => {
+  const renderSection = (sectionId: string, isMobile = false) => {
     switch (sectionId) {
       case "section-combat":
         return (
@@ -470,6 +470,23 @@ function CharacterSheetContent() {
                 />
               </div>
             </div>
+            {isMobile && (
+              <ProficienciesSection
+                proficiencies={
+                  character.proficiencies ?? {
+                    languages: [],
+                    weapons: [],
+                    armor: [],
+                    tools: [],
+                  }
+                }
+                onChange={(proficiencies) => handleChange({ proficiencies })}
+                isEditing={isEditing}
+                race={character.race}
+                className={character.class}
+                subrace={character.subrace}
+              />
+            )}
           </section>
         );
 
@@ -610,21 +627,23 @@ function CharacterSheetContent() {
                 money={character.money ?? { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }}
                 onMoneyChange={(money) => handleChange({ money })}
               />
-              <ProficienciesSection
-                proficiencies={
-                  character.proficiencies ?? {
-                    languages: [],
-                    weapons: [],
-                    armor: [],
-                    tools: [],
+              {!isMobile && (
+                <ProficienciesSection
+                  proficiencies={
+                    character.proficiencies ?? {
+                      languages: [],
+                      weapons: [],
+                      armor: [],
+                      tools: [],
+                    }
                   }
-                }
-                onChange={(proficiencies) => handleChange({ proficiencies })}
-                isEditing={isEditing}
-                race={character.race}
-                className={character.class}
-                subrace={character.subrace}
-              />
+                  onChange={(proficiencies) => handleChange({ proficiencies })}
+                  isEditing={isEditing}
+                  race={character.race}
+                  className={character.class}
+                  subrace={character.subrace}
+                />
+              )}
             </div>
           </section>
         );
@@ -638,6 +657,10 @@ function CharacterSheetContent() {
               character={character}
               onChange={handleChange}
               isEditing={isEditing}
+              isLocked={character.spellSlotsLocked ?? false}
+              onToggleLock={() =>
+                handleChange({ spellSlotsLocked: !character.spellSlotsLocked })
+              }
             />
           </section>
         );
@@ -878,7 +901,7 @@ function CharacterSheetContent() {
           className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-2 tab-panel-mobile
                      animate-in fade-in-0 slide-in-from-bottom-2 duration-150"
         >
-          {renderSection(activeTab)}
+          {renderSection(activeTab, true)}
         </div>
 
         {/* Bottom tab bar */}
