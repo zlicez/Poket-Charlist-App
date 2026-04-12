@@ -707,33 +707,30 @@ function SpellSlotTracker({
           )}
         </div>
       )}
-      {!isEditing && (
-        <div className="flex items-center gap-0.5 justify-end">
-          {!isLocked && (
-            <button
-              onClick={() => onChange(max, Math.min(displayMax, used + 1))}
-              disabled={spent >= displayMax}
-              className="w-6 h-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:opacity-30 active:scale-95"
-              aria-label="Потратить ячейку"
-              data-testid={`button-${testIdPrefix}-minus-${level}`}
-            >
-              <Minus className="w-3.5 h-3.5" />
-            </button>
-          )}
-          <span className="text-xs text-muted-foreground tabular-nums min-w-[2rem] text-center">
-            {available}/{displayMax}
-          </span>
-          {!isLocked && (
-            <button
-              onClick={() => onChange(max, Math.max(0, used - 1))}
-              disabled={spent <= 0}
-              className="w-6 h-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:opacity-30 active:scale-95"
-              aria-label="Восстановить ячейку"
-              data-testid={`button-${testIdPrefix}-plus-${level}`}
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </button>
-          )}
+      {!isEditing && !isLocked && (
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 sm:h-8 sm:w-8"
+            onClick={() => onChange(max, Math.min(displayMax, used + 1))}
+            disabled={spent >= displayMax}
+            aria-label="Потратить ячейку"
+            data-testid={`button-${testIdPrefix}-minus-${level}`}
+          >
+            <Minus className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 sm:h-8 sm:w-8"
+            onClick={() => onChange(max, Math.max(0, used - 1))}
+            disabled={spent <= 0}
+            aria-label="Восстановить ячейку"
+            data-testid={`button-${testIdPrefix}-plus-${level}`}
+          >
+            <Plus className="w-4 h-4" />
+          </Button>
         </div>
       )}
     </div>
