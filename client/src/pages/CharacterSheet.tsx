@@ -1078,11 +1078,14 @@ function CharacterSheetContent() {
                     {sectionNavItems.map(({ id: sectionId, label, icon: Icon }) => (
                       <button
                         key={sectionId}
-                        onClick={() =>
-                          document
-                            .getElementById(sectionId)
-                            ?.scrollIntoView({ behavior: "smooth", block: "start" })
-                        }
+                        onClick={() => {
+                          const el = document.getElementById(sectionId);
+                          if (!el) return;
+                          // Offset accounts for sticky header (~53px) + sticky section-nav (~52px)
+                          const offset = 110;
+                          const y = el.getBoundingClientRect().top + window.scrollY - offset;
+                          window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+                        }}
                         className="section-nav-chip"
                         data-testid={`nav-${sectionId}`}
                       >
