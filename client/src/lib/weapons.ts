@@ -1,32 +1,62 @@
 import type { Equipment, Weapon, WeaponAbilityMod } from "@shared/schema";
 
+export type WeaponCategory = "simple" | "martial" | "exotic";
+
 export interface WeaponFormValues {
   attackBonus: number;
   damage: string;
   damageType: string;
-  properties: string;
+  properties: string[];
   abilityMod: WeaponAbilityMod;
-  isFinesse: boolean;
+  weaponCategory: WeaponCategory | undefined;
 }
 
 export const DEFAULT_WEAPON_FORM_VALUES: WeaponFormValues = {
   attackBonus: 0,
   damage: "1d8",
   damageType: "рубящий",
-  properties: "",
+  properties: [],
   abilityMod: "str",
-  isFinesse: false,
+  weaponCategory: undefined,
 };
 
+function propsToString(properties: string[]): string | undefined {
+  return properties.length > 0 ? properties.join(", ") : undefined;
+}
+
+function propsToArray(properties: string | undefined): string[] {
+  if (!properties) return [];
+  return properties.split(/,\s*/).filter(Boolean);
+}
+
+function isFinesseFromProps(properties: string[]): boolean {
+  return properties.some(
+    (p) => p.toLowerCase().includes("фехтовальное"),
+  );
+}
+
+export function weaponToFormValues(weapon: Weapon): WeaponFormValues {
+  return {
+    attackBonus: weapon.attackBonus,
+    damage: weapon.damage,
+    damageType: weapon.damageType,
+    properties: propsToArray(weapon.properties),
+    abilityMod: weapon.abilityMod,
+    weaponCategory: weapon.weaponCategory,
+  };
+}
+
 export function createWeaponFromForm(name: string, values: WeaponFormValues): Omit<Weapon, "id"> {
+  const isFinesse = isFinesseFromProps(values.properties);
   return {
     name: name.trim(),
     attackBonus: values.attackBonus,
     damage: values.damage.trim() || "1d8",
     damageType: values.damageType.trim() || "рубящий",
-    properties: values.properties.trim() || undefined,
-    abilityMod: values.abilityMod,
-    isFinesse: values.isFinesse,
+    properties: propsToString(values.properties),
+    abilityMod: isFinesse ? "dex" : values.abilityMod,
+    isFinesse,
+    weaponCategory: values.weaponCategory,
   };
 }
 
@@ -40,6 +70,7 @@ export function createEquipmentWeaponFromForm(
     equipped?: boolean;
   },
 ): Omit<Equipment, "id"> {
+  const isFinesse = isFinesseFromProps(values.properties);
   return {
     name: name.trim(),
     quantity: options?.quantity ?? 1,
@@ -49,10 +80,11 @@ export function createEquipmentWeaponFromForm(
     isWeapon: true,
     damage: values.damage.trim() || "1d8",
     damageType: values.damageType.trim() || "рубящий",
-    weaponProperties: values.properties.trim() || undefined,
+    weaponProperties: propsToString(values.properties),
+    weaponCategory: values.weaponCategory,
     attackBonus: values.attackBonus,
-    abilityMod: values.abilityMod,
-    isFinesse: values.isFinesse,
+    abilityMod: isFinesse ? "dex" : values.abilityMod,
+    isFinesse,
     equipped: options?.equipped ?? false,
   };
 }
@@ -67,6 +99,7 @@ export function equipmentWeaponToWeapon(item: Equipment): Weapon {
     properties: item.weaponProperties,
     abilityMod: (item.abilityMod || "str") as WeaponAbilityMod,
     isFinesse: item.isFinesse,
+    weaponCategory: item.weaponCategory,
   };
 }
 
@@ -79,3 +112,5 @@ export function getEquippedInventoryWeapons(equipment: Equipment[]): Weapon[] {
 export function getCombinedWeapons(weapons: Weapon[], equipment: Equipment[]): Weapon[] {
   return [...getEquippedInventoryWeapons(equipment), ...weapons];
 }
+
+export { propsToArray as weaponPropsToArray };

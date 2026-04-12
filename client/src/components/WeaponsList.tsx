@@ -114,13 +114,19 @@ export function WeaponsList({
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const toggleExpanded = (id: string) => {
-    if (!isEditing && !isLocked) {
+    if (!isEditing) {
       setExpandedId((prev) => (prev === id ? null : id));
     }
   };
 
   const getAbilityMod = (abilityMod: WeaponAbilityMod | undefined) => {
     return abilityMod === "dex" ? dexMod : strMod;
+  };
+
+  const CATEGORY_LABELS: Record<string, string> = {
+    simple: "прост.",
+    martial: "воин.",
+    exotic: "экзот.",
   };
 
   const equippedWeapons = useMemo(() => {
@@ -145,7 +151,7 @@ export function WeaponsList({
       ...weapons,
       {
         ...createWeaponFromForm(name, weapon),
-        id: crypto.randomUUID(),
+        id: generateId(),
       },
     ]);
   };
@@ -193,7 +199,7 @@ export function WeaponsList({
         <div className="space-y-3">
           {equippedWeapons.map((weapon) => {
             const abilityModValue = getAbilityMod(weapon.abilityMod);
-            const isProficient = isWeaponProficient(weapon.name, proficiencies);
+            const isProficient = isWeaponProficient(weapon.name, proficiencies, weapon.weaponCategory);
             const profBonus = isProficient ? proficiencyBonus : 0;
             const totalAttack = profBonus + abilityModValue + weapon.attackBonus;
             const damageModStr = abilityModValue !== 0 ? formatModifier(abilityModValue) : "";
@@ -217,6 +223,9 @@ export function WeaponsList({
                       <span className="font-medium text-sm truncate text-accent">{weapon.name}</span>
                       <span className="flex items-center gap-0.5 text-xs text-muted-foreground flex-wrap">
                         <span>{abilityLabel}</span>
+                        {weapon.weaponCategory && (
+                          <span>• {CATEGORY_LABELS[weapon.weaponCategory] ?? weapon.weaponCategory}</span>
+                        )}
                         {weapon.isFinesse && (
                           <>
                             <span>• фехт.</span>
@@ -323,7 +332,7 @@ export function WeaponsList({
           
           {weapons.map((weapon) => {
             const abilityModValue = getAbilityMod(weapon.abilityMod);
-            const isProficient = isWeaponProficient(weapon.name, proficiencies);
+            const isProficient = isWeaponProficient(weapon.name, proficiencies, weapon.weaponCategory);
             const profBonus = isProficient ? proficiencyBonus : 0;
             const totalAttack = profBonus + abilityModValue + weapon.attackBonus;
             const damageModStr = abilityModValue !== 0 ? formatModifier(abilityModValue) : "";
@@ -346,6 +355,9 @@ export function WeaponsList({
                       <span className="font-medium text-sm truncate">{weapon.name}</span>
                       <span className="flex items-center gap-0.5 text-xs text-muted-foreground flex-wrap">
                         <span>{abilityLabel}</span>
+                        {weapon.weaponCategory && (
+                          <span>• {CATEGORY_LABELS[weapon.weaponCategory] ?? weapon.weaponCategory}</span>
+                        )}
                         {weapon.isFinesse && (
                           <>
                             <span>• фехт.</span>

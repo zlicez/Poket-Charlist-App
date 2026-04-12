@@ -73,6 +73,7 @@ export const weaponSchema = z.object({
   properties: z.string().optional(),
   abilityMod: z.enum(["str", "dex"]).default("str"),
   isFinesse: z.boolean().optional(),
+  weaponCategory: z.enum(["simple", "martial", "exotic"]).optional(),
 });
 
 export type Weapon = z.infer<typeof weaponSchema>;
@@ -103,6 +104,7 @@ export const equipmentSchema = z.object({
   damage: z.string().optional(),
   damageType: z.string().optional(),
   weaponProperties: z.string().optional(),
+  weaponCategory: z.enum(["simple", "martial", "exotic"]).optional(),
   attackBonus: z.number().optional(),
   abilityMod: z.enum(["str", "dex"]).optional(),
   isFinesse: z.boolean().optional(),
@@ -361,21 +363,31 @@ export function calculateAC(
 export function isWeaponProficient(
   weaponName: string,
   proficiencies: Proficiencies,
+  weaponCategory?: "simple" | "martial" | "exotic",
 ): boolean {
   const weaponProfs = proficiencies.weapons || [];
 
   if (weaponProfs.includes(weaponName)) return true;
 
-  const isSimpleWeapon = (SIMPLE_WEAPONS as readonly string[]).includes(
-    weaponName,
-  );
-  const isMartialWeapon = (MARTIAL_WEAPONS as readonly string[]).includes(
-    weaponName,
-  );
+  // Resolve category: use explicit param if provided, else look up by name
+  const cat: "simple" | "martial" | "exotic" | undefined =
+    weaponCategory ??
+    ((SIMPLE_WEAPONS as readonly string[]).includes(weaponName)
+      ? "simple"
+      : (MARTIAL_WEAPONS as readonly string[]).includes(weaponName)
+        ? "martial"
+        : undefined);
 
-  if (weaponProfs.includes("Простое оружие") && isSimpleWeapon) return true;
-  if (weaponProfs.includes("Воинское оружие") && isMartialWeapon) return true;
-  if (weaponProfs.includes("Воинское оружие") && isSimpleWeapon) return true;
+  if (cat === "simple") {
+    if (
+      weaponProfs.includes("Простое оружие") ||
+      weaponProfs.includes("Воинское оружие")
+    )
+      return true;
+  }
+  if (cat === "martial") {
+    if (weaponProfs.includes("Воинское оружие")) return true;
+  }
 
   return false;
 }
@@ -510,6 +522,7 @@ export function createEquipmentFromBase(
     damage: baseItem.damage,
     damageType: baseItem.damageType,
     weaponProperties: baseItem.weaponProperties,
+    weaponCategory: baseItem.weaponCategory,
     attackBonus: 0,
     abilityMod: baseItem.abilityMod,
     isFinesse: baseItem.isFinesse,

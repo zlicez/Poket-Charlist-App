@@ -38,12 +38,14 @@ import {
   getProficiencyBonus,
   formatModifier,
   getRacialBonuses,
+  getRaceAndClassProficiencies,
   getCharacterClasses,
   getTotalLevel,
   calculateMaxHp,
   hasAnyCasterClass,
   type AbilityName,
   type Weapon,
+  type Proficiencies,
 } from "@shared/schema";
 import {
   DropdownMenu,
@@ -336,6 +338,16 @@ function CharacterSheetContent() {
   }
 
   const racialBonuses = getRacialBonuses(character.race, character.subrace);
+
+  // Merge manual proficiencies with auto-computed ones from race/class
+  const autoProfs = getRaceAndClassProficiencies(character.race, character.class, character.subrace);
+  const effectiveProficiencies: Proficiencies = {
+    languages: Array.from(new Set([...(character.proficiencies?.languages ?? []), ...autoProfs.languages])),
+    weapons: Array.from(new Set([...(character.proficiencies?.weapons ?? []), ...autoProfs.weapons])),
+    armor: Array.from(new Set([...(character.proficiencies?.armor ?? []), ...autoProfs.armor])),
+    tools: Array.from(new Set([...(character.proficiencies?.tools ?? []), ...autoProfs.tools])),
+  };
+
   const charClassesForHp = getCharacterClasses(character);
   const totalLevelForHp = getTotalLevel(charClassesForHp);
   const conModForHp = calculateModifier(
@@ -623,14 +635,7 @@ function CharacterSheetContent() {
                     (character.customAbilityBonuses?.DEX || 0),
                 )}
                 proficiencyBonus={getProficiencyBonus(character.level)}
-                proficiencies={
-                  character.proficiencies ?? {
-                    languages: [],
-                    weapons: [],
-                    armor: [],
-                    tools: [],
-                  }
-                }
+                proficiencies={effectiveProficiencies}
               />
               <FeaturesList
                 features={character.features}
@@ -734,6 +739,7 @@ function CharacterSheetContent() {
                       onChange={(value) => handleChange({ appearance: value })}
                       placeholder="Телосложение, шрамы, татуировки..."
                       rows={3}
+                      label="Описание / особые приметы"
                       textareaClassName="min-h-[70px]"
                       previewContainerClassName="min-h-[70px]"
                       textareaTestId="textarea-appearance"
@@ -790,6 +796,7 @@ function CharacterSheetContent() {
                         onChange={(value) => handleChange({ [key]: value })}
                         placeholder={placeholder}
                         rows={rows}
+                        label={label}
                         className="flex-1"
                         textareaClassName={`flex-1 ${minHeightClass}`}
                         previewContainerClassName={`flex-1 ${minHeightClass}`}

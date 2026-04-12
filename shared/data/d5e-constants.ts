@@ -125,6 +125,21 @@ export const WEAPON_PROFICIENCIES = [
   ...MARTIAL_WEAPONS,
 ] as const;
 
+export const WEAPON_PROPERTIES = [
+  "Двуручное",
+  "Лёгкое",
+  "Метательное",
+  "Тяжёлое",
+  "Универсальное",
+  "Фехтовальное",
+  "Боеприпасы",
+  "Перезарядка",
+  "Досягаемость",
+  "Специальное",
+] as const;
+
+export type WeaponProperty = typeof WEAPON_PROPERTIES[number];
+
 export const ARMOR_PROFICIENCIES = [
   "Лёгкие доспехи", "Средние доспехи", "Тяжёлые доспехи", "Щиты"
 ] as const;

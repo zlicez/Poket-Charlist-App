@@ -84,6 +84,53 @@ All notable changes to Pocket Charlist are documented here.
 
 ---
 
+## [Unreleased] — Weapons, Rest System, Avatar, Notes UX
+
+### Added
+
+#### Weapon category system
+- `shared/data/d5e-constants.ts`: добавлен массив `WEAPON_PROPERTIES` (10 свойств: Двуручное, Лёгкое, Метательное, Тяжёлое, Универсальное, Фехтовальное, Боеприпасы, Перезарядка, Досягаемость, Специальное) и тип `WeaponProperty`.
+- `shared/data/d5e-equipment.ts`: все 35 оружий `BASE_WEAPONS` получили `weaponCategory: "simple" | "martial"` по правилам D&D 5e (14 простых, 21 воинское).
+- `shared/types/character-types.ts`: `weaponCategory` добавлено в `weaponSchema` и `equipmentSchema`; `isWeaponProficient` принимает третий аргумент `weaponCategory?` для точной проверки по категории ("Простое оружие" / "Воинское оружие") с fallback на поиск по имени для legacy-оружий.
+- `client/src/lib/weapons.ts`: тип `WeaponCategory`, `WeaponFormValues.properties: string[]` (массив вместо строки); `weaponPropsToArray` / `propsToString` для конвертации; `isFinesseFromProps` выводит finesse из свойств.
+- `client/src/components/WeaponFormFields.tsx`: полный рерайт — выбор категории (Select), chip-кнопки для 10 свойств (toggle, accent-стиль при активации), авто-переключение `abilityMod` на DEX при выборе «Фехтовальное»; удалён free-text инпут свойств и чекбокс `isFinesse`.
+- `client/src/components/WeaponsList.tsx`: отображение категории рядом с названием оружия (`прост.` / `воин.` / `экзот.`); `isWeaponProficient` теперь принимает `weapon.weaponCategory`.
+
+#### Short Rest & Long Rest
+- `client/src/components/CharacterHeader.tsx`: два новых компонента `ShortRestDialog` и `LongRestDialog`, открываемые кнопками (Coffee / Moon) в строке вдохновения в play-режиме.
+  - **Короткий отдых**: выбор количества костей хитов (d{X} + CON mod, минимум 1), анимация броска (500ms с cycling-числами), пошаговый просмотр каждого броска, итоговый прирост HP. «Отмена» — без изменений, «Завершить отдых» — применяет `currentHp` и `hitDiceRemaining`.
+  - **Долгий отдых**: восстановление всех HP, восстановление половины максимума костей хитов (минимум 1; `totalDice = getTotalLevel(getCharacterClasses(...))` — авторитетный источник, не строка `hitDice`), обнуление использованных spell slots и pact magic. Preview-карточки с индикатором `CheckCircle2` если ресурс уже полный.
+
+#### Avatar
+- `react-easy-crop` добавлен в зависимости.
+- `client/src/components/AvatarPickerModal.tsx`: два новых компонента.
+  - `AvatarPickerModal` — модалка загрузки аватарки: drag-and-drop или file picker (JPG/PNG/WebP/GIF, до 10 МБ), круговой кроппер, ползунок зума, клиентское сжатие через Canvas (256×256 JPEG q0.82, ~10-20KB); кнопка «Удалить фото» если аватарка уже есть.
+  - `AvatarViewModal` — fullscreen-просмотр аватарки в play-режиме.
+- `client/src/components/CharacterHeader.tsx`: в edit-режиме — карандаш-оверлей поверх аватарки открывает `AvatarPickerModal`; в play-режиме — клик на аватарку открывает `AvatarViewModal`. Аватарка хранится как base64 data URL в `character.avatar` (поле уже было в схеме). Удаление сохраняет `avatar: ""`.
+
+#### Fullscreen-редактор заметок
+- `client/src/components/RichTextField.tsx`: кнопка `Maximize2` в правом нижнем углу поля (overlay поверх textarea, `position: absolute`, `z-index: 10`) открывает `ResponsiveDialog` с полноэкранным редактором — те же вкладки «Текст / Предпросмотр», textarea на всю высоту (`h-full`), заголовок берётся из нового prop `label`.
+- `client/src/pages/CharacterSheet.tsx`: все вызовы `RichTextField` получили `label` — «Заметки», «Черты характера», «Идеалы», «Привязанности», «Слабости», «Союзники», «Описание / особые приметы».
+
+#### «Экипировано» перемещено
+- `client/src/components/EquipmentSystem.tsx`: блок «Экипировано» перемещён из внутренней области `<Tabs>` под `</Tabs>`, над строкой с деньгами. Скрывается если нет экипированных предметов.
+
+### Fixed
+
+#### Weapon accordion и lock
+- `client/src/components/WeaponsList.tsx`: `toggleExpanded` ранее проверял `!isEditing && !isLocked` — аккордеоны открывались только при открытом замке. Исправлено: аккордеоны всегда доступны в play-режиме (`!isEditing`), замок управляет только кнопкой «Добавить».
+
+#### Weapon proficiency — auto-proficiencies из расы/класса
+- `client/src/pages/CharacterSheet.tsx`: `WeaponsList` получал только `character.proficiencies` (ручные), пропуская владения от расы и класса. Исправлено: `effectiveProficiencies` объединяет `character.proficiencies` с результатом `getRaceAndClassProficiencies(race, class, subrace)`.
+
+#### EquipmentSystem — инициализация weaponForm при редактировании
+- `client/src/components/EquipmentSystem.tsx`: при открытии диалога редактирования оружия не восстанавливались `properties` (string[]) и `weaponCategory`. Исправлено через `weaponPropsToArray(initialItem.weaponProperties)`.
+
+#### RichTextField — активный элемент вылезал за границы
+- `client/src/components/RichTextField.tsx`: `h-8` на `TabsList` оставлял 24px под триггеры, которым нужно ~28px → active indicator переполнял контейнер. Исправлено: убран явный `h-8`, добавлен `overflow-hidden`.
+
+---
+
 ## [Unreleased] — Equipment UX, Loading Screen
 
 ### Added

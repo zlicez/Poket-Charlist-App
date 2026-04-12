@@ -75,6 +75,7 @@ import { WeaponFormFields } from "@/components/WeaponFormFields";
 import {
   DEFAULT_WEAPON_FORM_VALUES,
   createEquipmentWeaponFromForm,
+  weaponPropsToArray,
   type WeaponFormValues,
 } from "@/lib/weapons";
 
@@ -266,7 +267,8 @@ function AddCustomItemDialog({
           ...DEFAULT_WEAPON_FORM_VALUES,
           damage: initialItem.damage ?? DEFAULT_WEAPON_FORM_VALUES.damage,
           damageType: initialItem.damageType ?? DEFAULT_WEAPON_FORM_VALUES.damageType,
-          properties: initialItem.weaponProperties ?? DEFAULT_WEAPON_FORM_VALUES.properties,
+          properties: weaponPropsToArray(initialItem.weaponProperties),
+          weaponCategory: initialItem.weaponCategory,
         }
       : DEFAULT_WEAPON_FORM_VALUES
   );
@@ -283,6 +285,17 @@ function AddCustomItemDialog({
     setIsWeapon(!!initialItem.isWeapon);
     setIsArmor(!!initialItem.isArmor);
     setArmorBaseAC(initialItem.armorBaseAC ?? 12);
+    if (initialItem.isWeapon) {
+      setWeaponForm({
+        ...DEFAULT_WEAPON_FORM_VALUES,
+        damage: initialItem.damage ?? DEFAULT_WEAPON_FORM_VALUES.damage,
+        damageType: initialItem.damageType ?? DEFAULT_WEAPON_FORM_VALUES.damageType,
+        properties: weaponPropsToArray(initialItem.weaponProperties),
+        weaponCategory: initialItem.weaponCategory,
+        abilityMod: (initialItem.abilityMod ?? DEFAULT_WEAPON_FORM_VALUES.abilityMod) as "str" | "dex",
+        attackBonus: initialItem.attackBonus ?? DEFAULT_WEAPON_FORM_VALUES.attackBonus,
+      });
+    }
     const cat = initialItem.isWeapon || initialItem.isArmor
       ? "misc"
       : ((initialItem.category ?? "misc") as EquipmentCategory);
@@ -1068,20 +1081,6 @@ export function EquipmentSystem({
           </div>
         </div>
 
-        {equippedItems.length > 0 && (
-          <div className="mb-2 p-2 bg-accent/10 rounded-md">
-            <div className="text-xs text-muted-foreground mb-1">Экипировано:</div>
-            <div className="flex flex-wrap gap-1">
-              {equippedItems.map((item) => (
-                <Badge key={item.id} variant="secondary" className="gap-1 text-xs">
-                  {item.isArmor ? <ShieldCheck className="w-3 h-3" /> : <Sword className="w-3 h-3" />}
-                  {item.name}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
-
         <TabsContent value="all" className="mt-0">
           {equipment.length === 0 ? (
             <div className="text-center py-4 text-muted-foreground text-sm">
@@ -1181,8 +1180,25 @@ export function EquipmentSystem({
         ))}
       </Tabs>
 
+      {equippedItems.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-border/50">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-accent" />
+            <span className="text-xs font-medium text-muted-foreground">Экипировано</span>
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {equippedItems.map((item) => (
+              <Badge key={item.id} variant="secondary" className="gap-1 text-xs">
+                {item.isArmor ? <ShieldCheck className="w-3 h-3" /> : <Sword className="w-3 h-3" />}
+                {item.name}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+
       {money !== undefined && onMoneyChange && (
-        <div className="mt-auto pt-3 border-t border-border">
+        <div className="mt-3 pt-3 border-t border-border">
           <MoneyBlock flat money={money} onChange={onMoneyChange} isEditing={isEditing} />
         </div>
       )}

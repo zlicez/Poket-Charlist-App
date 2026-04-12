@@ -12,7 +12,7 @@ Pocket Charlist — full-stack SPA для ведения листов персо
 - экспорт, импорт и публичный шаринг персонажей
 - единый аккаунт с входом через `email/password` и через Google
 
-Для UI/UX-дизайнера есть отдельный простой onboarding-документ: [DESIGNER_PROJECT_GUIDE.md](./DESIGNER_PROJECT_GUIDE.md).
+Для UI/UX-дизайнера ранее существовал `DESIGNER_PROJECT_GUIDE.md` — файл удалён как устаревший.
 
 ## 2. Быстрый вход
 
@@ -56,9 +56,12 @@ flowchart LR
 - **Автосинхронизация ячеек заклинаний**: таблицы в `shared/data/spell-slots.ts`; `getSpellcastingProgression` собирает обычные spell slots, мультикласс и отдельный warlock pact magic по правилам D&D 5e. При изменении состава классов или уровней `SpellsSection` сразу применяет расчётные значения, а кнопка `По классу` остаётся ручным ресинком.
 - **Кнопка повышения уровня по XP**: `getLevelFromXP` в `CharacterHeader`; кнопка появляется при накоплении XP, поддерживает прыжок сразу на несколько уровней.
 - **`NumericInput`** (`client/src/components/ui/numeric-input.tsx`): управляемый числовой инпут с локальным state, позволяет очистить поле до нуля без немедленного сброса.
-- **Rich text для длинных текстов**: `notes`, `appearance`, `allies`, `factions`, `feature.description` и `spell.description` хранятся как raw strings, но в UI рендерятся как Markdown + безопасный HTML; в edit-flow используется `Текст / Предпросмотр`.
-- **Система снаряжения — скролл и жесты**: список предметов скроллируется внутри карточки (`max-height: min(60vh, 42rem)`). На мобиле — свайп влево открывает кнопки «Редактировать» (акцент) и «Удалить» (красный); длинный свайп (>65% ширины) сразу инициирует удаление. На десктопе — кнопки появляются при наведении. Удаление всегда требует подтверждения через `AlertDialog`. Редактирование предмета открывает `AddCustomItemDialog` с предзаполненными данными.
+- **Rich text для длинных текстов**: `notes`, `appearance`, `allies`, `factions`, `feature.description` и `spell.description` хранятся как raw strings, но в UI рендерятся как Markdown + безопасный HTML; в edit-flow используется `Текст / Предпросмотр`. Каждое поле имеет кнопку разворота на полный экран (`Maximize2`) — открывает `ResponsiveDialog` с textarea на всю высоту и теми же табами.
+- **Система снаряжения — скролл и жесты**: список предметов скроллируется внутри карточки (`max-height: min(60vh, 42rem)`). На мобиле — свайп влево открывает кнопки «Редактировать» (акцент) и «Удалить» (красный); длинный свайп (>65% ширины) сразу инициирует удаление. На десктопе — кнопки появляются при наведении. Удаление всегда требует подтверждения через `AlertDialog`. Редактирование предмета открывает `AddCustomItemDialog` с предзаполненными данными. Блок «Экипировано» отображается под всеми вкладками инвентаря, над полем денег; скрывается если экипированных предметов нет.
 - **Экран загрузки**: двухуровневый loading screen — HTML pre-loader в `index.html` (рендерится до загрузки JS-бандла, включает определение темы из `localStorage`) и React-компонент `CharacterLoadingScreen` с теми же CSS-классами `.pkt-loader` для pixel-perfect перехода. `CharacterContext` учитывает `isAuthLoading` и не показывает «персонаж не найден» пока auth не завершился.
+- **Система оружия — категории и свойства**: каждое оружие имеет `weaponCategory: "simple" | "martial" | "exotic"`. Все 35 оружий стандартной библиотеки размечены по категориям D&D 5e. `isWeaponProficient` принимает категорию и сравнивает с владениями «Простое оружие» / «Воинское оружие». Форма создания/редактирования оружия содержит chip-кнопки для 10 канонических свойств (Двуручное, Фехтовальное и др.) и Select для категории; при выборе «Фехтовальное» `abilityMod` автоматически переключается на DEX.
+- **Отдых — короткий и долгий**: кнопки «Кор. отдых» и «Дол. отдых» в `CharacterHeader` (только в play-режиме). Короткий: трата костей хитов (d{X} + CON mod) с 500ms анимацией броска, пошаговый лог, восстановление HP. Долгий: полное восстановление HP, возврат половины максимума костей хитов (минимум 1), сброс всех spell slots и pact magic — с preview-карточками и `CheckCircle2` для уже заполненных ресурсов.
+- **Аватарка персонажа**: в edit-режиме — карандаш-оверлей на аватарку открывает `AvatarPickerModal` (drag-and-drop + файловый диалог, круговой кроппер через `react-easy-crop`, сжатие до 256×256 JPEG). В play-режиме — клик открывает fullscreen-просмотр (`AvatarViewModal`). Хранится как base64 data URL в `character.avatar`.
 
 ### Ограничения
 - Нет email verification.
@@ -110,6 +113,8 @@ flowchart LR
 - `client/src/components/AbilityWithSkills.tsx` — карточка характеристики: модификатор, спасбросок (включая toggle профиценции и бросок), связанные навыки.
 - `client/src/components/FeaturesList.tsx` — список способностей персонажа, раскрытие описаний и rich-text preview в диалоге создания.
 - `client/src/components/SpellsSection.tsx` — spellcasting UI, реактивная синхронизация spell slots, библиотека заклинаний и rich-text preview/edit для описаний заклинаний.
+- `client/src/components/AvatarPickerModal.tsx` — `AvatarPickerModal` (загрузка + кроппер) и `AvatarViewModal` (fullscreen-просмотр).
+- `client/src/lib/weapons.ts` — типы и утилиты форм оружия: `WeaponCategory`, `WeaponFormValues` (с `properties: string[]`), `weaponPropsToArray` / `propsToString`, `isFinesseFromProps`.
 
 ### Основные серверные точки
 - `server/routes.ts` — character/share endpoints и rate limits.
@@ -178,7 +183,7 @@ flowchart LR
 Массивы особенно важны, потому что в PATCH они не merge-ятся поэлементно, а заменяются целиком.
 
 #### 5. Private / freeform fields
-Это поля со свободным пользовательским текстом и UI-lock состоянием:
+Это поля со свободным пользовательским текстом, медиа и UI-lock состоянием:
 - `notes`
 - `appearance`
 - `allies`
@@ -186,8 +191,10 @@ flowchart LR
 - `equipmentLocked`
 - `weaponsLocked`
 - `featuresLocked`
+- `avatar` — base64 data URL аватарки (до ~30KB после сжатия 256×256 JPEG); пустая строка `""` означает «удалено»
 
-Текстовые поля этого блока хранятся как обычные строки, но readonly/shared UI рендерит их как Markdown + безопасный HTML в стилистике приложения.
+Текстовые поля хранятся как обычные строки, readonly/shared UI рендерит их как Markdown + безопасный HTML.
+`avatar` хранится прямо в JSONB-документе персонажа — отдельного файлового storage нет.
 Здесь меньше расчётной логики, но больше риска утечки в public-view и потери данных при неаккуратных изменениях allowlist-модели.
 
 ### 6.2 Что меняется чаще всего
