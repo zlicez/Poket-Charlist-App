@@ -794,6 +794,17 @@ function buildPdfExportViewModel(
   setText("features_secondary", featureSegments.secondary);
   setText("allies_text", buildAlliesAndFactionsText(character));
   setText("backstory_text", normalizeRichTextToPlainText(character.notes));
+  setRadio("inspiration", Boolean(character.inspiration));
+  setText("personality_traits", normalizeRichTextToPlainText(character.personalityTraits));
+  setText("ideals", normalizeRichTextToPlainText(character.ideals));
+  setText("bonds", normalizeRichTextToPlainText(character.bonds));
+  setText("flaws", normalizeRichTextToPlainText(character.flaws));
+  setText("age", character.age || "");
+  setText("height", character.height || "");
+  setText("weight", character.weight || "");
+  setText("eyes", character.eyes || "");
+  setText("skin", character.skin || "");
+  setText("hair", character.hair || "");
 
   for (const ability of ABILITY_NAMES) {
     const abilityField = ABILITY_TO_LOWERCASE_FIELD[ability];

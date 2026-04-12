@@ -84,6 +84,9 @@ import {
   Copy,
   Check,
   Menu,
+  Heart,
+  Flame,
+  Brain,
 } from "lucide-react";
 import { FaDiceD20 } from "react-icons/fa";
 
@@ -367,25 +370,52 @@ function CharacterSheetContent() {
       label: "Заметки",
       icon: StickyNote,
       rows: 8,
-      minHeightClass: "min-h-[220px]",
+      minHeightClass: "min-h-[200px]",
       placeholder: "Записи о персонаже, квестах...",
       testId: "textarea-notes",
     },
     {
-      key: "appearance" as const,
-      label: "Внешность",
-      icon: User,
-      rows: 5,
-      minHeightClass: "min-h-[160px]",
-      placeholder: "Рост, телосложение, особые приметы...",
-      testId: "textarea-appearance",
+      key: "personalityTraits" as const,
+      label: "Черты характера",
+      icon: Brain,
+      rows: 4,
+      minHeightClass: "min-h-[100px]",
+      placeholder: "Как ведёт себя, что любит...",
+      testId: "textarea-personality-traits",
+    },
+    {
+      key: "ideals" as const,
+      label: "Идеалы",
+      icon: Sparkles,
+      rows: 4,
+      minHeightClass: "min-h-[100px]",
+      placeholder: "Во что верит, к чему стремится...",
+      testId: "textarea-ideals",
+    },
+    {
+      key: "bonds" as const,
+      label: "Привязанности",
+      icon: Heart,
+      rows: 4,
+      minHeightClass: "min-h-[100px]",
+      placeholder: "Кто или что дорого персонажу...",
+      testId: "textarea-bonds",
+    },
+    {
+      key: "flaws" as const,
+      label: "Слабости",
+      icon: Flame,
+      rows: 4,
+      minHeightClass: "min-h-[100px]",
+      placeholder: "Слабости, пороки, страхи...",
+      testId: "textarea-flaws",
     },
     {
       key: "allies" as const,
       label: "Союзники",
       icon: Users,
       rows: 5,
-      minHeightClass: "min-h-[160px]",
+      minHeightClass: "min-h-[140px]",
       placeholder: "Друзья, союзники...",
       testId: "textarea-allies",
     },
@@ -394,16 +424,21 @@ function CharacterSheetContent() {
       label: "Фракции",
       icon: Flag,
       rows: 5,
-      minHeightClass: "min-h-[160px]",
+      minHeightClass: "min-h-[140px]",
       placeholder: "Гильдии, ордены...",
       testId: "textarea-factions",
     },
   ];
-  const normalizedReferenceSections = referenceSections.map((section) => ({
-    ...section,
-    rows: 8,
-    minHeightClass: "min-h-[220px]",
-  }));
+
+  // Appearance structured fields
+  const appearanceFields = [
+    { key: "age"    as const, label: "Возраст", placeholder: "25 лет",   testId: "input-age" },
+    { key: "height" as const, label: "Рост",    placeholder: "170 см",   testId: "input-height" },
+    { key: "weight" as const, label: "Вес",     placeholder: "70 кг",    testId: "input-weight" },
+    { key: "eyes"   as const, label: "Глаза",   placeholder: "карие",    testId: "input-eyes" },
+    { key: "skin"   as const, label: "Кожа",    placeholder: "смуглая",  testId: "input-skin" },
+    { key: "hair"   as const, label: "Волосы",  placeholder: "тёмные",   testId: "input-hair" },
+  ];
 
   // ─── Section content renderer (shared between mobile tab view and desktop scroll) ───
   const renderSection = (sectionId: string, isMobile = false) => {
@@ -669,8 +704,77 @@ function CharacterSheetContent() {
         return (
           <section id="section-notes" className="space-y-3">
             <div className="section-label">Заметки и сведения</div>
+
+            {/* ── Appearance structured card ───────────────────────────── */}
+            <Card className="stat-card-tertiary p-3" data-testid="section-appearance-card">
+              <div className="mb-2 flex items-center gap-2">
+                <User className="w-4 h-4 text-accent" />
+                <h3 className="tx-l3 font-semibold">Внешность</h3>
+              </div>
+              {isEditing ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-3 gap-2">
+                    {appearanceFields.map(({ key, label, placeholder, testId }) => (
+                      <div key={key}>
+                        <label className="text-xs text-muted-foreground mb-1 block">{label}</label>
+                        <Input
+                          value={character[key] || ""}
+                          onChange={(e) => handleChange({ [key]: e.target.value })}
+                          placeholder={placeholder}
+                          className="h-9 text-sm"
+                          data-testid={testId}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Описание / особые приметы</label>
+                    <RichTextField
+                      value={character.appearance || ""}
+                      onChange={(value) => handleChange({ appearance: value })}
+                      placeholder="Телосложение, шрамы, татуировки..."
+                      rows={3}
+                      textareaClassName="min-h-[70px]"
+                      previewContainerClassName="min-h-[70px]"
+                      textareaTestId="textarea-appearance"
+                      previewTestId="textarea-appearance-preview"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {appearanceFields.some(({ key }) => !!character[key]) && (
+                    <div className="grid grid-cols-3 gap-x-3 gap-y-1.5">
+                      {appearanceFields.map(({ key, label }) => {
+                        const val = character[key];
+                        if (!val) return null;
+                        return (
+                          <div key={key}>
+                            <div className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</div>
+                            <div className="text-sm font-medium">{val}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {character.appearance && (
+                    <RichTextContent
+                      content={character.appearance}
+                      className="min-h-0"
+                      emptyState=""
+                      testId="textarea-appearance-content"
+                    />
+                  )}
+                  {!appearanceFields.some(({ key }) => !!character[key]) && !character.appearance && (
+                    <p className="text-sm text-muted-foreground">Нет описания</p>
+                  )}
+                </div>
+              )}
+            </Card>
+
+            {/* ── All text sections in 2-col grid ─────────────────────── */}
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4">
-              {normalizedReferenceSections.map(
+              {referenceSections.map(
                 ({ key, label, icon: Icon, rows, minHeightClass, placeholder, testId }) => (
                   <Card
                     key={key}
@@ -696,7 +800,7 @@ function CharacterSheetContent() {
                       <RichTextContent
                         content={character[key]}
                         className={`flex-1 ${minHeightClass}`}
-                        emptyState={`Нет ${key === "notes" ? "заметок" : key === "appearance" ? "описания" : "записей"}`}
+                        emptyState="Нет записей"
                         testId={`${testId}-content`}
                       />
                     )}

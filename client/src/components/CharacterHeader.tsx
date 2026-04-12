@@ -36,6 +36,7 @@ import {
   Plus,
   Trash2,
   TrendingUp,
+  Zap,
 } from "lucide-react";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { NumericInput } from "@/components/ui/numeric-input";
@@ -714,7 +715,24 @@ export function CharacterHeader({
         </div>
       </div>
 
-      <div className="mt-4">
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <button
+          onClick={() => onChange({ inspiration: !character.inspiration })}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all text-xs font-medium select-none ${
+            character.inspiration
+              ? "bg-accent/20 border-accent/60 text-accent"
+              : "border-border/50 text-muted-foreground hover:border-accent/40 hover:text-foreground"
+          }`}
+          data-testid="button-toggle-inspiration"
+          aria-label={character.inspiration ? "Убрать вдохновение" : "Получить вдохновение"}
+          aria-pressed={character.inspiration}
+        >
+          <Zap className={`w-3.5 h-3.5 transition-all ${character.inspiration ? "fill-accent" : ""}`} />
+          Вдохновение
+        </button>
+      </div>
+
+      <div className="mt-3">
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="space-y-1" data-testid="stat-xp-progress">

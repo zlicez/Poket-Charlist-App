@@ -261,25 +261,17 @@ function parseLSSData(data: any): InsertCharacter {
     extractPlainText(data.text?.background),
   ].filter(Boolean).join("\n\n");
 
-  const appearance = [
-    data.subInfo?.height?.value ? `Рост: ${data.subInfo.height.value}` : "",
-    data.subInfo?.weight?.value ? `Вес: ${data.subInfo.weight.value}` : "",
-    data.subInfo?.eyes?.value ? `Глаза: ${data.subInfo.eyes.value}` : "",
-    data.subInfo?.skin?.value ? `Кожа: ${data.subInfo.skin.value}` : "",
-    data.subInfo?.hair?.value ? `Волосы: ${data.subInfo.hair.value}` : "",
-    data.subInfo?.age?.value ? `Возраст: ${data.subInfo.age.value}` : "",
-  ].filter(Boolean).join("\n");
+  const age    = String(data.subInfo?.age?.value    || "");
+  const height = String(data.subInfo?.height?.value || "");
+  const weight = String(data.subInfo?.weight?.value || "");
+  const eyes   = String(data.subInfo?.eyes?.value   || "");
+  const skin   = String(data.subInfo?.skin?.value   || "");
+  const hair   = String(data.subInfo?.hair?.value   || "");
 
-  const personality = extractPlainText(data.text?.personality);
+  const personalityTraits = extractPlainText(data.text?.personality);
   const ideals = extractPlainText(data.text?.ideals);
-  const bonds = extractPlainText(data.text?.bonds);
-  const flaws = extractPlainText(data.text?.flaws);
-  const personalityNotes = [
-    personality ? `Типаж: ${personality}` : "",
-    ideals ? `Идеалы: ${ideals}` : "",
-    bonds ? `Привязанности: ${bonds}` : "",
-    flaws ? `Слабости: ${flaws}` : "",
-  ].filter(Boolean).join("\n");
+  const bonds  = extractPlainText(data.text?.bonds);
+  const flaws  = extractPlainText(data.text?.flaws);
 
   const allies = extractPlainText(data.text?.attacks) || "";
 
@@ -322,8 +314,19 @@ function parseLSSData(data: any): InsertCharacter {
       tools: [],
     },
     proficiencyBonus: getProficiencyBonus(level),
-    notes: [notes, personalityNotes].filter(Boolean).join("\n\n"),
-    appearance,
+    inspiration: false,
+    notes,
+    personalityTraits,
+    ideals,
+    bonds,
+    flaws,
+    appearance: "",
+    age,
+    height,
+    weight,
+    eyes,
+    skin,
+    hair,
     allies,
     equipmentLocked: false,
     weaponsLocked: false,
