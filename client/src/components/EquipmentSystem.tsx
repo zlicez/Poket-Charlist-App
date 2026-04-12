@@ -510,6 +510,7 @@ function SortableEquipmentItem({
   onEdit,
   canModify,
   isEditing,
+  isLocked,
   canReorder,
   isSwipeOpen,
   onSwipeActivate,
@@ -522,6 +523,7 @@ function SortableEquipmentItem({
   onEdit: () => void;
   canModify: boolean;
   isEditing: boolean;
+  isLocked: boolean;
   canReorder: boolean;
   isSwipeOpen: boolean;
   onSwipeActivate: () => void;
@@ -598,7 +600,7 @@ function SortableEquipmentItem({
     e.stopPropagation();
     // Notify parent: this is the active item (closes all others)
     onSwipeActivate();
-    if (!canModify) return;
+    if (!isEditing) return;
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
     swipeXAtTouchStart.current = swipeX;
@@ -608,7 +610,7 @@ function SortableEquipmentItem({
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!canModify) return;
+    if (!isEditing) return;
     const dx = touchStartX.current - e.touches[0].clientX; // positive = leftward
     const dy = Math.abs(e.touches[0].clientY - touchStartY.current);
 
@@ -627,7 +629,7 @@ function SortableEquipmentItem({
   };
 
   const handleTouchEnd = () => {
-    if (!canModify) return;
+    if (!isEditing) return;
 
     // Tap on already-open item (no horizontal movement) → close
     if (!touchMoved.current && swipeX > 0) {
@@ -664,8 +666,8 @@ function SortableEquipmentItem({
       className={`relative rounded-md overflow-hidden ${isDragging ? 'z-50' : ''}`}
       data-testid={`equipment-item-${index}`}
     >
-      {/* ── iOS-style swipe action strip (mobile only) ─────────────────── */}
-      {canModify && (
+      {/* ── iOS-style swipe action strip (mobile only, edit mode only) ── */}
+      {isEditing && (
         <div
           className="absolute inset-y-[2px] right-0 sm:hidden flex items-stretch overflow-hidden rounded-md"
           onTouchStart={(e) => e.stopPropagation()}
@@ -812,7 +814,7 @@ function SortableEquipmentItem({
           </span>
         )}
 
-        {!isEditing && !isEquippable && (
+        {!isEditing && !isEquippable && !isLocked && (
           <div className="flex items-center shrink-0">
             <Button
               variant="ghost"
@@ -1112,6 +1114,7 @@ export function EquipmentSystem({
                         onEdit={() => setEditingItem(item)}
                         canModify={canModify}
                         isEditing={isEditing}
+                        isLocked={isLocked}
                         canReorder={canModify}
                         isSwipeOpen={openSwipeItemId === item.id}
                         onSwipeActivate={() => setOpenSwipeItemId(item.id)}
@@ -1163,6 +1166,7 @@ export function EquipmentSystem({
                           onEdit={() => setEditingItem(item)}
                           canModify={canModify}
                           isEditing={isEditing}
+                          isLocked={isLocked}
                           canReorder={canModify}
                           isSwipeOpen={openSwipeItemId === item.id}
                           onSwipeActivate={() => setOpenSwipeItemId(item.id)}

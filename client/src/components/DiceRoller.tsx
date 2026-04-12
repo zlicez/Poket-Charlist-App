@@ -93,7 +93,7 @@ function DiceResult({ roll, isLatest }: { roll: DiceRoll; isLatest?: boolean }) 
     <Card className={`p-3 ${
       isCritSuccess ? 'border-positive bg-positive-muted' :
       isCritFail   ? 'border-negative bg-negative-muted' :
-      isLatest     ? 'border-primary/40 bg-primary/5' : ''
+      isLatest     ? 'border-primary/70 bg-primary/10 shadow-sm' : ''
     }`}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">

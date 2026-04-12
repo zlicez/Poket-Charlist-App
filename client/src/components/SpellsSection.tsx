@@ -40,6 +40,7 @@ import {
 import {
   BookOpen,
   Plus,
+  Minus,
   Trash2,
   ChevronDown,
   ChevronRight,
@@ -617,14 +618,6 @@ function AddSpellDialog({
   );
 }
 
-// Count set bits in a number (for bitmask-based spell slot tracking)
-function popcount(n: number): number {
-  let count = 0;
-  let v = n >>> 0;
-  while (v > 0) { count += v & 1; v >>>= 1; }
-  return count;
-}
-
 function SpellSlotTracker({
   testIdPrefix = "spell-slots",
   rowLabel,
@@ -635,7 +628,6 @@ function SpellSlotTracker({
   onChange,
   isEditing,
   isLocked,
-  sequential = false,
   noCap = false,
 }: {
   testIdPrefix?: string;
@@ -647,37 +639,23 @@ function SpellSlotTracker({
   onChange: (max: number, used: number) => void;
   isEditing: boolean;
   isLocked?: boolean;
-  sequential?: boolean; // legacy mode: used = count (for pact magic)
-  noCap?: boolean;      // skip D&D 5e cap (for pact magic)
+  noCap?: boolean; // skip D&D 5e cap (for pact magic)
 }) {
   if (max === 0 && !isEditing) return null;
 
   const cap = !noCap ? MAX_SLOTS_PER_LEVEL[level - 1] : undefined;
   const displayMax = cap !== undefined ? Math.min(max, cap) : max;
 
-  // Bitmask helpers (regular slots only)
-  const bitmask = (used >>> 0) & ((1 << displayMax) - 1);
-  const spentCount = sequential ? Math.min(used, displayMax) : popcount(bitmask);
-  const available = displayMax - spentCount;
-
-  const isCellSpent = (i: number) =>
-    sequential ? i < used : ((used >>> i) & 1) === 1;
-
-  const toggleCell = (i: number) => {
-    if (isLocked) return;
-    if (sequential) {
-      // old behaviour: click spent cell → restore to i, click free cell → spend to i+1
-      const isSpent = i < used;
-      onChange(max, isSpent ? i : i + 1);
-    } else {
-      onChange(max, used ^ (1 << i));
-    }
-  };
+  // Count-based: spent slots fill from the right
+  const spent = Math.min(used, displayMax);
+  const available = displayMax - spent;
+  // Cell i is spent if it is in the right-side (spent) zone
+  const isCellSpent = (i: number) => i >= available;
 
   return (
     <div
       className="grid items-center gap-x-3"
-      style={{ gridTemplateColumns: "1.5rem auto 2.5rem" }}
+      style={{ gridTemplateColumns: "1.5rem 1fr auto" }}
       data-testid={`${testIdPrefix}-level-${level}`}
     >
       <span className="text-xs font-medium text-right text-muted-foreground">
@@ -711,18 +689,17 @@ function SpellSlotTracker({
           {Array.from({ length: displayMax }, (_, i) => {
             const isSpent = isCellSpent(i);
             return (
-              <button
+              <div
                 key={i}
-                onClick={() => toggleCell(i)}
-                className={`w-10 h-10 sm:w-8 sm:h-8 rounded border-2 transition-all flex items-center justify-center ${
+                className={`w-10 h-10 sm:w-8 sm:h-8 rounded border-2 flex items-center justify-center ${
                   isSpent
                     ? "bg-muted border-muted-foreground/30 opacity-40"
-                    : "border-accent/50 hover:border-accent bg-accent/10"
-                } ${isLocked ? "pointer-events-none cursor-default" : "active:scale-95"}`}
-                data-testid={`button-${testIdPrefix}-${level}-${i}`}
+                    : "border-accent/50 bg-accent/10"
+                }`}
+                data-testid={`${testIdPrefix}-cell-${level}-${i}`}
               >
                 {!isSpent && <Sparkles className="w-4 h-4 text-accent" />}
-              </button>
+              </div>
             );
           })}
           {displayMax === 0 && (
@@ -731,9 +708,33 @@ function SpellSlotTracker({
         </div>
       )}
       {!isEditing && (
-        <span className="text-xs text-muted-foreground text-right tabular-nums">
-          {available}/{displayMax}
-        </span>
+        <div className="flex items-center gap-0.5 justify-end">
+          {!isLocked && (
+            <button
+              onClick={() => onChange(max, Math.min(displayMax, used + 1))}
+              disabled={spent >= displayMax}
+              className="w-6 h-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:opacity-30 active:scale-95"
+              aria-label="Потратить ячейку"
+              data-testid={`button-${testIdPrefix}-minus-${level}`}
+            >
+              <Minus className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <span className="text-xs text-muted-foreground tabular-nums min-w-[2rem] text-center">
+            {available}/{displayMax}
+          </span>
+          {!isLocked && (
+            <button
+              onClick={() => onChange(max, Math.max(0, used - 1))}
+              disabled={spent <= 0}
+              className="w-6 h-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:opacity-30 active:scale-95"
+              aria-label="Восстановить ячейку"
+              data-testid={`button-${testIdPrefix}-plus-${level}`}
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
@@ -1126,8 +1127,12 @@ export function SpellsSection({
   const spellSaveDC = calculateSpellSaveDC(abilityMod, profBonus);
   const spellAttackBonus = calculateSpellAttackBonus(abilityMod, profBonus);
 
-  const [openLevels, setOpenLevels] = useState<Record<number, boolean>>({
-    0: true,
+  const [openLevels, setOpenLevels] = useState<Record<number, boolean>>(() => {
+    const initial: Record<number, boolean> = {};
+    for (const spell of spellcasting.spells) {
+      initial[spell.level] = true;
+    }
+    return initial;
   });
   const lastAutoSyncSignature = useRef<string | null>(null);
 
@@ -1204,6 +1209,7 @@ export function SpellsSection({
       id: generateId(),
     };
     updateSpellcasting({ spells: [...spellcasting.spells, newSpell] });
+    setOpenLevels((prev) => ({ ...prev, [newSpell.level]: true }));
   };
 
   const handleRemoveSpell = (spellId: string) => {
@@ -1461,7 +1467,6 @@ export function SpellsSection({
             used={spellcasting.pactMagic.used}
             onChange={handlePactMagicChange}
             isEditing={isEditing}
-            sequential
             noCap
           />
           <div className="pl-12 text-[11px] text-muted-foreground">
