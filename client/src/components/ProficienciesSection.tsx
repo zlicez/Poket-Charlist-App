@@ -11,14 +11,19 @@ import { Languages, Swords, Shield, Wrench, Plus, X, ChevronDown, ChevronRight, 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { HelpTooltip, TooltipBody } from "@/components/ui/help-tooltip";
 import { PROFICIENCIES_SECTION_TOOLTIP } from "@/lib/tooltip-content";
-import type { Proficiencies, ProficiencyCategory, DamageType } from "@shared/schema";
+import type {
+  Character,
+  Proficiencies,
+  ProficiencyCategory,
+  DamageType,
+} from "@shared/schema";
 import {
   PROFICIENCY_CATEGORY_LABELS,
   LANGUAGES,
   WEAPON_PROFICIENCIES,
   ARMOR_PROFICIENCIES,
   TOOL_PROFICIENCIES,
-  getRaceAndClassProficiencies
+  getCharacterAutoProficiencies,
 } from "@shared/schema";
 
 const DAMAGE_TYPE_LABELS: Record<DamageType, string> = {
@@ -41,9 +46,17 @@ interface ProficienciesSectionProps {
   proficiencies: Proficiencies;
   onChange: (proficiencies: Proficiencies) => void;
   isEditing: boolean;
-  race: string;
-  className: string;
-  subrace?: string;
+  character: Pick<
+    Character,
+    | "race"
+    | "class"
+    | "level"
+    | "subclass"
+    | "subrace"
+    | "classes"
+    | "classSelections"
+    | "raceSelections"
+  >;
   raceSelections?: Record<string, unknown>;
 }
 
@@ -238,11 +251,19 @@ function ProficiencyCategory({
   );
 }
 
-export function ProficienciesSection({ proficiencies, onChange, isEditing, race, className, subrace, raceSelections }: ProficienciesSectionProps) {
-  const autoProfs = getRaceAndClassProficiencies(race, className, subrace);
+export function ProficienciesSection({
+  proficiencies,
+  onChange,
+  isEditing,
+  character,
+  raceSelections,
+}: ProficienciesSectionProps) {
+  const autoProfs = getCharacterAutoProficiencies(character);
+  const effectiveRaceSelections = raceSelections ?? character.raceSelections;
 
   // Resolve "Один на выбор" placeholders with actual chosen languages
-  const languageChoices = (raceSelections?.["language-choices"] as string[] | undefined) ?? [];
+  const languageChoices =
+    (effectiveRaceSelections?.["language-choices"] as string[] | undefined) ?? [];
   let choiceIdx = 0;
   const resolvedAutoLanguages = autoProfs.languages.map((lang) => {
     if (lang === "Один на выбор") {
@@ -272,7 +293,7 @@ export function ProficienciesSection({ proficiencies, onChange, isEditing, race,
   };
 
   const hasRaceBadges =
-    autoProfs.darkvision || autoProfs.skills.length > 0 || autoProfs.resistances.length > 0;
+    autoProfs.darkvision || autoProfs.skills.length > 0 || autoProfs.resistances.length > 0 || autoProfs.immunities.length > 0;
 
   return (
     <Card className="stat-card p-2 sm:p-3" data-testid="proficiencies-section">
@@ -312,6 +333,21 @@ export function ProficienciesSection({ proficiencies, onChange, isEditing, race,
                   <Badge variant="secondary" className="gap-1 cursor-help text-xs">
                     <ShieldCheck className="w-3 h-3 text-emerald-500" />
                     {DAMAGE_TYPE_LABELS[resist] ?? resist}
+                  </Badge>
+                </span>
+              </HelpTooltip>
+            ))}
+            {autoProfs.immunities.map((immune) => (
+              <HelpTooltip
+                key={immune}
+                content={<p className="text-xs">Иммунитет к урону: {DAMAGE_TYPE_LABELS[immune] ?? immune}</p>}
+                side="bottom"
+                asChild
+              >
+                <span>
+                  <Badge variant="secondary" className="gap-1 cursor-help text-xs">
+                    <ShieldCheck className="w-3 h-3 text-blue-500" />
+                    {DAMAGE_TYPE_LABELS[immune] ?? immune}
                   </Badge>
                 </span>
               </HelpTooltip>

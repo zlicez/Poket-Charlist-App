@@ -16,12 +16,17 @@ const DATA_DIR = join(__dirname, "../data");
 const SNAPSHOTS_DIR = join(DATA_DIR, "raw-snapshots");
 
 export interface RawRaceEntry {
-  name: { ru?: string; eng?: string };
-  source?: { shortName?: string; name?: string };
-  type?: string;
+  /** ttg.club list API: { rus, eng } */
+  name: { rus?: string; eng?: string; ru?: string };
+  url?: string;
+  /** ttg.club list API: массив бонусов с полными ключами (DEXTERITY, CONSTITUTION…) */
+  abilities?: Array<{ key: string; name?: string; shortName?: string; value: number }>;
+  /** Устаревший формат (короткие ключи DEX, CON…) */
+  ability?: Array<{ ability: string; value: number }>;
+  source?: { shortName?: string; name?: string; homebrew?: boolean };
+  type?: { name?: string; order?: number } | string;
   size?: string;
   speed?: { walk?: number; swim?: number; climb?: number; fly?: number };
-  ability?: Array<{ ability: string; value: number }>;
   vision?: { dark?: number };
   languages?: string[];
   proficiencies?: Array<{ type: string; name: string }>;
@@ -30,7 +35,6 @@ export interface RawRaceEntry {
   immunities?: string[];
   traits?: Array<{ name: string; description: string }>;
   subraces?: RawRaceEntry[];
-  url?: string;
 }
 
 export interface FetchResult {
@@ -63,10 +67,26 @@ export async function fetchRaces(options?: {
   let sourceUrl = TTG_API;
 
   try {
-    const res = await fetch(TTG_API, {
+    // Пробуем GET сначала, затем POST если 405
+    let res = await fetch(TTG_API, {
+      method: "GET",
       signal: controller.signal,
       headers: { "Accept": "application/json", "User-Agent": "pocket-charlist-importer/1.0" },
     });
+
+    if (res.status === 405) {
+      // API требует POST
+      res = await fetch(TTG_API, {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+          "User-Agent": "pocket-charlist-importer/1.0",
+        },
+        body: JSON.stringify({}),
+      });
+    }
 
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}: ${res.statusText} — ${TTG_API}`);

@@ -43,7 +43,10 @@ function createPdfTestCharacter(): Character {
         name: "Посох",
         attackBonus: 0,
         damage: "1d6",
+        versatileDamage: "1d8",
         damageType: "дробящий",
+        properties: "Универсальное",
+        gripMode: "twoHand",
         abilityMod: "str",
       },
       {
@@ -188,6 +191,7 @@ describe("pdf export", () => {
       expect(form.getTextField("spell_lvl_1_row_02_name").getText()).toBe("Щит");
       expect(form.getTextField("spell_lvl_1_slots_total").getText()).toBe("4");
       expect(form.getTextField("spell_lvl_1_slots_used").getText()).toBe("1");
+      expect(form.getTextField("attack_1_damage").getText()).toBe("1d8-1 дробящий");
       expect(form.getTextField("allies_text").getText()).toContain("Старый наставник");
       expect(form.getTextField("allies_text").getText()).toContain("Фракции:");
       expect(form.getTextField("backstory_text").getText()).toContain("История персонажа");

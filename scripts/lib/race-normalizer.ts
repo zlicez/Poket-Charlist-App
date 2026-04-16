@@ -15,22 +15,56 @@ import type { RawRaceEntry } from "./race-fetcher.js";
 // ─── Target filter ────────────────────────────────────────────────────────────
 
 export const TARGET_SOURCES: Set<string> = new Set([
-  "PHB", "VGM", "MTF", "TCE", "MPMM", "OGA", "FTD", "VRGtR",
-  // Альтернативные написания на ttg.club
+  // Базовые
+  "PHB", "VGM", "OGA", "MTF", "TCE", "FTD", "MPMM",
+  // Приключения
+  "EV", "TOA", "AI", "LR", "WBtW", "DSotDQ",
+  // Сеттинги
+  "SCAG", "PSA", "ttP", "GGR", "ERLW", "MOT", "SCC", "VRGtR", "AAG",
+  // Unearthed Arcana
+  "UA22WotM",
+  // Третьи лица
+  "MHH", "ODL", "EGtW",
+  // Homebrew
+  "CoN", "DMGi", "MPRGM", "PG", "LPZAE",
+  // Альтернативные написания с ttg.club
   "Player's Handbook", "Volo's Guide to Monsters",
   "Mordenkainen's Tome of Foes", "Tasha's Cauldron of Everything",
   "Mordenkainen Presents: Monsters of the Multiverse",
   "One Grung Above", "Fizban's Treasury of Dragons",
   "Van Richten's Guide to Ravenloft",
+  "Tomb of Annihilation", "Acquisitions Incorporated",
+  "Locathah Rising", "The Wild Beyond the Witchlight",
+  "Dragonlance: Shadow of the Dragon Queen",
+  "Sword Coast Adventurer's Guide",
+  "Guildmasters' Guide to Ravnica",
+  "Eberron: Rising from the Last War",
+  "Mythic Odysseys of Theros",
+  "Strixhaven: A Curriculum of Chaos",
+  "Astral Adventurer's Guide",
+  "Explorer's Guide to Wildemount",
 ]);
 
 export const TARGET_RACES_RU: Set<string> = new Set([
   "Аасимар", "Багбир", "Гит", "Гитьянки", "Гитцерай", "Гном",
-  "Гоблин", "Голиаф", "Грунг", "Дварф", "Драконорождённый",
+  "Гоблин", "Голиаф", "Грибнит", "Грунг", "Дварф", "Драконорождённый",
   "Кенку", "Кобольд", "Людоящер", "Орк", "Полуорк", "Полурослик",
   "Полуэльф", "Табакси", "Тифлинг", "Тритон", "Фирболг",
   "Хобгоблин", "Человек", "Эльф", "Юань-ти", "Дампир",
 ]);
+
+/** Маппинг полных ключей ttg.club → стандартные аббревиатуры AbilityName */
+const ABILITY_KEY_MAP: Record<string, string> = {
+  STRENGTH: "STR", СИЛА: "STR",
+  DEXTERITY: "DEX", ЛОВКОСТЬ: "DEX",
+  CONSTITUTION: "CON", ТЕЛОСЛОЖЕНИЕ: "CON",
+  INTELLIGENCE: "INT", ИНТЕЛЛЕКТ: "INT",
+  WISDOM: "WIS", МУДРОСТЬ: "WIS",
+  CHARISMA: "CHA", ХАРИЗМА: "CHA",
+  // короткие формы (на случай смешанного формата)
+  STR: "STR", DEX: "DEX", CON: "CON",
+  INT: "INT", WIS: "WIS", CHA: "CHA",
+};
 
 // ─── Diagnostic log ───────────────────────────────────────────────────────────
 
@@ -60,14 +94,44 @@ export class DiagnosticLog {
 // ─── Source normalization ─────────────────────────────────────────────────────
 
 const SOURCE_MAP: Record<string, RaceSourceCode> = {
+  // Базовые
   "phb": "PHB", "player's handbook": "PHB",
   "vgm": "VGM", "volo's guide to monsters": "VGM", "volo": "VGM",
+  "oga": "OGA", "one grung above": "OGA",
   "mtf": "MTF", "mordenkainen's tome of foes": "MTF", "mtof": "MTF",
   "tce": "TCE", "tasha's cauldron of everything": "TCE", "tashas": "TCE",
-  "mpmm": "MPMM", "mordenkainen presents: monsters of the multiverse": "MPMM",
-  "oga": "OGA", "one grung above": "OGA",
   "ftd": "FTD", "fizban's treasury of dragons": "FTD",
+  "mpmm": "MPMM", "mordenkainen presents: monsters of the multiverse": "MPMM",
+  // Приключения
+  "ev": "EV", "vecna": "EV",
+  "toa": "TOA", "tomb of annihilation": "TOA",
+  "ai": "AI", "acquisitions incorporated": "AI",
+  "lr": "LR", "locathah rising": "LR",
+  "wbtw": "WBtW", "the wild beyond the witchlight": "WBtW", "wild beyond the witchlight": "WBtW",
+  "dsotdq": "DSotDQ", "dragonlance: shadow of the dragon queen": "DSotDQ",
+  // Сеттинги
+  "scag": "SCAG", "sword coast adventurer's guide": "SCAG",
+  "psa": "PSA", "plane shift: amonkhet": "PSA",
+  "ttp": "ttP", "tortle package": "ttP",
+  "ggr": "GGR", "guildmasters' guide to ravnica": "GGR",
+  "erlw": "ERLW", "eberron: rising from the last war": "ERLW", "eberron": "ERLW",
+  "mot": "MOT", "mythic odysseys of theros": "MOT",
+  "scc": "SCC", "strixhaven: a curriculum of chaos": "SCC", "strixhaven": "SCC",
   "vrgtr": "VRGtR", "van richten's guide to ravenloft": "VRGtR", "vrgr": "VRGtR",
+  "aag": "AAG", "astral adventurer's guide": "AAG", "spelljammer": "AAG",
+  // Unearthed Arcana
+  "ua22wotm": "UA22WotM", "unearthed arcana 2022": "UA22WotM",
+  // Третьи лица
+  "mhh": "MHH", "midgard heroes handbook": "MHH",
+  "odl": "ODL", "one d&d": "ODL",
+  "egtw": "EGtW", "explorer's guide to wildemount": "EGtW", "wildemount": "EGtW",
+  // Homebrew
+  "con": "CoN",
+  "dmgi": "DMGi",
+  "mprgm": "MPRGM",
+  "pg": "PG",
+  "lpzae": "LPZAE",
+  "custom": "CUSTOM",
 };
 
 function normalizeSource(raw?: string): RaceSourceCode | null {
@@ -120,7 +184,7 @@ function toSlug(ruName: string, source?: RaceSourceCode): string {
     "Полурослик": "halfling", "Полуэльф": "half-elf", "Табакси": "tabaxi",
     "Тифлинг": "tiefling", "Тритон": "triton", "Фирболг": "firbolg",
     "Хобгоблин": "hobgoblin", "Человек": "human", "Эльф": "elf",
-    "Юань-ти": "yuan-ti", "Дампир": "dhampir",
+    "Юань-ти": "yuan-ti", "Дампир": "dhampir", "Грибнит": "mushroom",
   };
   const base = translitMap[ruName] ?? ruName.toLowerCase().replace(/\s+/g, "-");
   if (source && source !== "PHB") return `${base}-${source.toLowerCase()}`;
@@ -143,7 +207,8 @@ export function normalizeRace(
   raw: RawRaceEntry,
   log: DiagnosticLog,
 ): RaceDefinition | null {
-  const ruName = raw.name?.ru?.trim() ?? raw.name?.eng?.trim() ?? "";
+  // ttg.club возвращает name.rus (новый формат) или name.ru (старый) или name.eng
+  const ruName = (raw.name?.rus ?? raw.name?.ru ?? raw.name?.eng ?? "").trim();
   if (!ruName) {
     log.warn("(unnamed)", "Пропущена раса без имени");
     return null;
@@ -156,20 +221,28 @@ export function normalizeRace(
   }
 
   // Filter: source
-  const rawSource = raw.source?.shortName ?? raw.source?.name ?? "";
-  const source = normalizeSource(rawSource) ?? "PHB";
+  const rawSource = raw.source?.shortName ?? (typeof raw.source?.name === "string" ? raw.source.name : "") ?? "";
+  const source = normalizeSource(rawSource) ?? (raw.source?.homebrew ? "CUSTOM" : "PHB");
   if (rawSource && !TARGET_SOURCES.has(rawSource) && normalizeSource(rawSource) === null) {
-    log.warn(ruName, `Неизвестный источник "${rawSource}", помечен как PHB`);
+    log.warn(ruName, `Неизвестный источник "${rawSource}", помечен как ${source}`);
   }
 
   const id = toSlug(ruName, source);
   const size = normalizeSize(raw.size);
 
-  // Ability bonuses
+  // Ability bonuses — поддерживаем оба формата:
+  // новый: abilities[].key = "DEXTERITY" / "DEX"
+  // старый: ability[].ability = "DEX"
   const abilityBonuses: Partial<Record<string, number>> = {};
-  if (raw.ability) {
+  if (raw.abilities) {
+    for (const ab of raw.abilities) {
+      const key = ABILITY_KEY_MAP[ab.key.toUpperCase()];
+      if (key) abilityBonuses[key] = ab.value;
+      else log.warn(ruName, `Неизвестный ключ характеристики: "${ab.key}"`);
+    }
+  } else if (raw.ability) {
     for (const ab of raw.ability) {
-      const key = ab.ability.toUpperCase();
+      const key = ABILITY_KEY_MAP[ab.ability.toUpperCase()] ?? ab.ability.toUpperCase();
       abilityBonuses[key] = ab.value;
     }
   }
@@ -228,7 +301,7 @@ export function normalizeRace(
     speed,
     ...(Object.keys(altSpeeds).length > 0 && { altSpeeds: altSpeeds as any }),
     ...(darkvision && { darkvision }),
-    description: raw.type ?? `Раса ${ruName} из ${source}`,
+    description: (typeof raw.type === "string" ? raw.type : raw.type?.name) ?? `Раса ${ruName} из ${source}`,
     traits: traits.length > 0 ? traits : [`Особенности ${ruName}`],
     languages,
     ...(resistances.length > 0 && { resistances }),

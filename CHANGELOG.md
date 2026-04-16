@@ -4,6 +4,62 @@ All notable changes to Pocket Charlist are documented here.
 
 ---
 
+## [Unreleased] — Class engine, versatile weapons, race/HP fixes
+
+### Added
+
+#### Class engine — canonical class definitions
+- `shared/data/class-types.ts` — новые канонические типы классовой системы: `ClassDefinition`, `SubclassDefinition`, `ClassFeatureDefinition`, `ClassResourceDefinition`, `ClassProficiencyBlock`, `ClassChoiceDefinition`, `ClassEffect`. Типы источников: `ClassSourceCode`, `ClassEntityType`, `ClassSpellcastingProgressionKind`, `ClassSpellcastingMode`.
+- `shared/data/class-progressions.ts` — полная таблица прогрессии ячеек заклинаний по уровням для всех типов каст-прогрессий (`full`, `half`, `third`, `artificer`, `pact`); функции `getSpellSlotsForProgression`, `getMulticlassCasterLevel`, `getPactMagicForLevel`, `resolveSpellcastingProgression`.
+- `shared/data/d5e-classes.ts` — полный рерайт: все 12 классов PHB переведены в `ClassDefinition` shape с полями `id`, `source`, `contentVersion`, `hitDice`, `savingThrows`, `proficiencies` (включая `choices`), `spellcasting`, `features` (по уровням), `subclasses` (с фичами). Экспортированы `CLASS_DEFINITIONS`, `CLASS_DEFINITIONS_BY_NAME`, `getClassDefinitionById`, `getClassDefinitionByName`, `getFallbackClassDefinition`. Обратная совместимость: `CLASS_DATA` и `CLASSES` по-прежнему доступны.
+- `shared/lib/class-engine.ts` — движок классов: `resolveClassState(character)` вычисляет полное состояние класса персонажа — владения, заклинательные ячейки, ресурсы, предупреждения о незавершённых выборах. Возвращает `ResolvedClassState` с полями `proficiencies`, `spellcasting`, `resources`, `choiceDiagnostics`.
+- `shared/lib/class-compat.ts` — backward-compat слой: `buildClassSelectionsFromLegacy` конвертирует старые `{ class, level, subclass, classes[] }` в новые `ClassSelection[]`; `projectLegacyClassState` делает обратное преобразование для рендера.
+- `shared/schema.ts` — реэкспортирует `class-types`, `class-progressions`, `class-compat`, `class-engine`.
+
+#### Новые поля персонажа — class selections
+- `shared/types/character-types.ts`:
+  - `classSelectionSchema` / `ClassSelection` — структурированная запись о выборе класса: `classId`, `className`, `source`, `level`, `subclassId`, `subclassName`, `choices`, `optionalFeatureIds`, `resourceState`.
+  - `classHitDicePoolSchema` / `ClassHitDicePool` — пул костей хитов по отдельному классу.
+  - `classSelections?: ClassSelection[]` и `classHitDicePools?: ClassHitDicePool[]` добавлены в `characterSchema` (опциональные, backward compat).
+  - `classSelectionSchemaVersion?: number` — версия схемы выборов.
+  - `getOrBuildClassSelections(character)` — ленивый builder: возвращает `classSelections` если есть, иначе строит из legacy `class`/`level`/`subclass`/`classes`.
+
+#### Versatile weapons — хват оружия
+- `shared/types/character-types.ts`: `WeaponGripMode = "oneHand" | "twoHand"` (константа `WEAPON_GRIP_MODES`); поле `gripMode` добавлено в `weaponSchema` и `equipmentSchema`.
+- `shared/data/d5e-equipment.ts`: поле `gripMode?` добавлено в `BaseEquipmentItem`.
+- `client/src/lib/weapons.ts`: `WeaponFormValues` содержит `versatileDamage: string` и `gripMode: WeaponGripMode`; `WEAPON_GRIP_LABELS`; функции `hasVersatileDamage`, `normalizeWeaponGripMode`, `getActiveWeaponDamage`, `getWeaponPropertiesDisplay`, `parseWeaponProperties`, `weaponToFormValues`, `equipmentWeaponToWeapon`.
+- `client/src/components/WeaponGripToggle.tsx` — новый компонент: pill-переключатель «1 рука / 2 руки» (стиль segmented control). Поддерживает `size: "sm" | "xs"`.
+- `client/src/components/WeaponFormFields.tsx`: поле `versatileDamage` (показывается только если выбрано свойство «Универсальное»); переключатель `WeaponGripToggle` в форме добавления/редактирования.
+- `client/src/components/WeaponsList.tsx`: отображение урона с учётом `gripMode` через `getActiveWeaponDamage`; `WeaponGripToggle` в строке оружия (десктоп) и в развёрнутом аккордеоне (мобайл); props `onWeaponGripChange`, `onInventoryWeaponGripChange`, `allowGripToggle`.
+- `client/src/pages/CharacterSheet.tsx`: обработчики `handleWeaponGripChange` и `handleInventoryWeaponGripChange` применяют изменение `gripMode` к соответствующему weapon/equipment по `id`; `getActiveWeaponDamage` используется при броске урона.
+
+#### Иммунитеты во Владениях
+- `shared/types/character-types.ts`: поле `immunities: DamageType[]` добавлено в `CombinedProficiencies`; `getRaceAndClassProficiencies` собирает иммунитеты из расы и подрасы.
+- `client/src/components/ProficienciesSection.tsx`: блок иммунитетов к урону (синяя иконка щита) отображается рядом с сопротивлениями; компонент рефакторирован — принимает `character` целиком вместо отдельных `race`, `className`, `subrace`, `raceSelections`.
+
+#### Импорт рас — исправления pipeline
+- `scripts/lib/race-fetcher.ts`: fallback GET→POST (API требует POST, отвечает 405 на GET); поддержка обоих форматов имени — `name.rus` и `name.ru`.
+- `scripts/lib/race-normalizer.ts`: `ABILITY_KEY_MAP` для полных ключей (`DEXTERITY` → `DEX`); поддержка нового формата `abilities[]` наряду со старым `ability[]`; `typeof raw.type === "string"` guard; 35 кодов источников в `TARGET_SOURCES` и `SOURCE_MAP`; транслитерация «Грибнит».
+- `shared/data/d5e-races-supplements.ts`: добавлена раса **Грибнит** (`id: "mushroom-pg"`, источник PG, DEX+2/CON+1, скорость 30, тёмное зрение 60, тип «Растение», 4 трейта, иммунитет яд).
+- `shared/data/race-types.ts`: `RaceSourceCode` расширен до 35 кодов (все категории: базовые, приключения, сеттинги, UA, сторонние, homebrew).
+
+### Fixed
+
+#### Подраса не сбрасывалась при смене расы
+- `client/src/components/CharacterHeader.tsx`: `handleRaceChange` теперь отправляет `subrace: ""` вместо `subrace: undefined` — `JSON.stringify` не включает `undefined` в тело запроса, из-за чего сервер не получал сигнал для сброса поля. Аналогичное исправление в обоих `<Select>` для выбора подрасы.
+
+#### HP — быстрые клики теряли обновления
+- `client/src/components/CombatStats.tsx` (`HpTracker`): добавлен локальный `displayHp` state и `displayHpRef`. Ранее при быстром нажатии +/− функция `adjustHp` читала устаревший `current` из props-замыкания, и несколько кликов до следующего рендера давали один и тот же результат. Теперь ref обновляется синхронно при каждом клике — интерфейс реагирует мгновенно.
+
+#### TypeScript
+- `shared/data/d5e-equipment.ts`: `gripMode?: "oneHand" | "twoHand"` добавлено в `BaseEquipmentItem` — устранена ошибка `Property 'gripMode' does not exist` в `EquipmentSystem.tsx`.
+
+### Added (tests)
+- `tests/weapons.test.ts` — unit-тесты для `@/lib/weapons`: `parseWeaponProperties`, `getActiveWeaponDamage` (универсальное, хват, legacy формат), `normalizeWeaponGripMode`, `weaponToFormValues`, `createWeaponFromForm`.
+- `tests/class-engine.test.ts` — unit-тесты движка классов: `resolveClassState` для одиночного и мультикласса, прогрессия ячеек заклинаний, ресурсы, диагностика незавершённых выборов.
+
+---
+
 ## [Unreleased] — Race system, navigation refactor
 
 ### Added

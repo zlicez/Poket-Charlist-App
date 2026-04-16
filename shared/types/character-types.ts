@@ -8,12 +8,17 @@ import {
 } from "../data/d5e-constants";
 import { RACE_DATA } from "../data/d5e-races";
 import type { DamageType, RaceSpellGrant } from "../data/race-types";
-import { CLASS_DATA } from "../data/d5e-classes";
+import { CLASS_DATA, getClassDefinitionByName } from "../data/d5e-classes";
 import type {
   ArmorData,
   ArmorType,
   BaseEquipmentItem,
 } from "../data/d5e-equipment";
+import {
+  buildClassSelectionsFromLegacy,
+  projectLegacyClassState,
+} from "../lib/class-compat";
+import { resolveClassState } from "../lib/class-engine";
 
 export const skillProficiencySchema = z.object({
   proficient: z.boolean().default(false),
@@ -75,14 +80,18 @@ export type DeathSaves = z.infer<typeof deathSavesSchema>;
 
 export const WEAPON_ABILITY_MODS = ["str", "dex"] as const;
 export type WeaponAbilityMod = (typeof WEAPON_ABILITY_MODS)[number];
+export const WEAPON_GRIP_MODES = ["oneHand", "twoHand"] as const;
+export type WeaponGripMode = (typeof WEAPON_GRIP_MODES)[number];
 
 export const weaponSchema = z.object({
   id: z.string(),
   name: z.string(),
   attackBonus: z.number(),
   damage: z.string(),
+  versatileDamage: z.string().optional(),
   damageType: z.string(),
   properties: z.string().optional(),
+  gripMode: z.enum(WEAPON_GRIP_MODES).optional(),
   abilityMod: z.enum(["str", "dex"]).default("str"),
   isFinesse: z.boolean().optional(),
   weaponCategory: z.enum(["simple", "martial", "exotic"]).optional(),
@@ -114,8 +123,10 @@ export const equipmentSchema = z.object({
   armorMaxDexBonus: z.number().nullable().optional(),
   isWeapon: z.boolean().optional(),
   damage: z.string().optional(),
+  versatileDamage: z.string().optional(),
   damageType: z.string().optional(),
   weaponProperties: z.string().optional(),
+  gripMode: z.enum(WEAPON_GRIP_MODES).optional(),
   weaponCategory: z.enum(["simple", "martial", "exotic"]).optional(),
   attackBonus: z.number().optional(),
   abilityMod: z.enum(["str", "dex"]).optional(),
@@ -205,6 +216,44 @@ export const classEntrySchema = z.object({
 
 export type ClassEntry = z.infer<typeof classEntrySchema>;
 
+export const classSelectionSchema = z.object({
+  id: z.string(),
+  classId: z.string(),
+  className: z.string(),
+  source: z.string().default("PHB"),
+  contentVersion: z.string().optional(),
+  level: z.number().min(1).max(20),
+  subclassId: z.string().optional(),
+  subclassName: z.string().optional(),
+  choices: z.record(z.string(), z.unknown()).default({}),
+  optionalFeatureIds: z.array(z.string()).default([]),
+  resourceState: z.record(z.string(), z.unknown()).optional(),
+  notes: z.string().optional(),
+});
+
+export type ClassSelection = z.infer<typeof classSelectionSchema>;
+
+export const classHitDicePoolSchema = z.object({
+  selectionId: z.string(),
+  classId: z.string(),
+  className: z.string(),
+  dice: z.string(),
+  total: z.number().min(0),
+  remaining: z.number().min(0),
+});
+
+export type ClassHitDicePool = z.infer<typeof classHitDicePoolSchema>;
+
+export const classResourceStateSchema = z.object({
+  selectionId: z.string(),
+  resourceId: z.string(),
+  current: z.number().min(0).default(0),
+  max: z.number().min(0).default(0),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+
+export type ClassResourceState = z.infer<typeof classResourceStateSchema>;
+
 export const characterSchema = z.object({
   id: z.string(),
   userId: z.string().optional(),
@@ -216,6 +265,10 @@ export const characterSchema = z.object({
   subrace: z.string().optional(),
   level: z.number().min(1).max(20).default(1),
   classes: z.array(classEntrySchema).optional(),
+  classSelections: z.array(classSelectionSchema).optional(),
+  classSelectionSchemaVersion: z.number().int().min(1).optional(),
+  hitDicePools: z.array(classHitDicePoolSchema).optional(),
+  classResourceStates: z.array(classResourceStateSchema).optional(),
   background: z.string().optional(),
   alignment: z.string().optional(),
   experience: z.number().min(0).default(0),
@@ -482,6 +535,8 @@ export interface CombinedProficiencies {
   darkvision: number | null;
   /** Сопротивления урону от расы/подрасы */
   resistances: DamageType[];
+  /** Иммунитеты к урону от расы/подрасы */
+  immunities: DamageType[];
 }
 
 export function getRaceAndClassProficiencies(
@@ -500,6 +555,7 @@ export function getRaceAndClassProficiencies(
     skills: [],
     darkvision: null,
     resistances: [],
+    immunities: [],
   };
 
   if (raceData) {
@@ -510,6 +566,7 @@ export function getRaceAndClassProficiencies(
     result.skills = [...(raceData.skillProficiencies || [])];
     result.darkvision = raceData.darkvision || null;
     result.resistances = [...(raceData.resistances || [])] as DamageType[];
+    result.immunities = [...(raceData.immunities || [])] as DamageType[];
 
     if (subrace && raceData.subraces && raceData.subraces[subrace]) {
       const subraceData = raceData.subraces[subrace];
@@ -531,6 +588,9 @@ export function getRaceAndClassProficiencies(
       if (subraceData.resistances) {
         result.resistances.push(...(subraceData.resistances as DamageType[]));
       }
+      if (subraceData.immunities) {
+        result.immunities.push(...(subraceData.immunities as DamageType[]));
+      }
     }
   }
 
@@ -546,8 +606,56 @@ export function getRaceAndClassProficiencies(
   result.tools = Array.from(new Set(result.tools));
   result.skills = Array.from(new Set(result.skills));
   result.resistances = Array.from(new Set(result.resistances)) as DamageType[];
+  result.immunities = Array.from(new Set(result.immunities)) as DamageType[];
 
   return result;
+}
+
+export function getCharacterAutoProficiencies(character: {
+  race: string;
+  class: string;
+  level: number;
+  subclass?: string;
+  subrace?: string;
+  classes?: ClassEntry[];
+  classSelections?: ClassSelection[];
+}): CombinedProficiencies {
+  const raceOnly = getRaceAndClassProficiencies(
+    character.race,
+    "",
+    character.subrace,
+  );
+  const classState = resolveClassState(character);
+
+  return {
+    languages: Array.from(
+      new Set([
+        ...raceOnly.languages,
+        ...classState.grantedProficiencies.languages,
+      ]),
+    ),
+    weapons: Array.from(
+      new Set([
+        ...raceOnly.weapons,
+        ...classState.grantedProficiencies.weapons,
+      ]),
+    ),
+    armor: Array.from(
+      new Set([
+        ...raceOnly.armor,
+        ...classState.grantedProficiencies.armor,
+      ]),
+    ),
+    tools: Array.from(
+      new Set([...raceOnly.tools, ...classState.grantedProficiencies.tools]),
+    ),
+    skills: Array.from(
+      new Set([...raceOnly.skills, ...classState.grantedProficiencies.skills]),
+    ),
+    darkvision: raceOnly.darkvision,
+    resistances: raceOnly.resistances,
+    immunities: raceOnly.immunities,
+  };
 }
 
 export function calculateSpellSaveDC(
@@ -676,8 +784,10 @@ export function createEquipmentFromBase(
     armorMaxDexBonus: baseItem.armorMaxDexBonus,
     isWeapon: baseItem.isWeapon,
     damage: baseItem.damage,
+    versatileDamage: baseItem.versatileDamage,
     damageType: baseItem.damageType,
     weaponProperties: baseItem.weaponProperties,
+    gripMode: baseItem.isWeapon ? "oneHand" : undefined,
     weaponCategory: baseItem.weaponCategory,
     attackBonus: 0,
     abilityMod: baseItem.abilityMod,
@@ -691,7 +801,39 @@ export function getCharacterClasses(character: {
   level: number;
   subclass?: string;
   classes?: ClassEntry[];
+  classSelections?: ClassSelection[];
 }): ClassEntry[] {
+  if (character.classSelections && character.classSelections.length > 0) {
+    const projected = projectLegacyClassState(character.classSelections);
+    const legacyClasses =
+      character.classes && character.classes.length > 0
+        ? character.classes
+        : [
+            {
+              name: character.class,
+              level: character.level,
+              subclass: character.subclass,
+            },
+          ];
+    const hasMismatch =
+      projected.classes.length !== legacyClasses.length ||
+      projected.classes.some((entry, index) => {
+        const legacyEntry = legacyClasses[index];
+        return (
+          entry.name !== legacyEntry?.name ||
+          entry.level !== legacyEntry?.level ||
+          entry.subclass !== legacyEntry?.subclass
+        );
+      });
+
+    if (!hasMismatch) {
+      return character.classSelections.map((selection) => ({
+        name: selection.className,
+        level: selection.level,
+        subclass: selection.subclassName,
+      }));
+    }
+  }
   if (character.classes && character.classes.length > 0) {
     return character.classes;
   }
@@ -702,6 +844,54 @@ export function getCharacterClasses(character: {
       subclass: character.subclass,
     },
   ];
+}
+
+export function getCharacterClassSelections(character: {
+  class: string;
+  level: number;
+  subclass?: string;
+  classes?: ClassEntry[];
+  classSelections?: ClassSelection[];
+}): ClassSelection[] {
+  if (character.classSelections && character.classSelections.length > 0) {
+    const projected = projectLegacyClassState(character.classSelections);
+    const legacyClasses =
+      character.classes && character.classes.length > 0
+        ? character.classes
+        : [
+            {
+              name: character.class,
+              level: character.level,
+              subclass: character.subclass,
+            },
+          ];
+    const hasMismatch =
+      projected.classes.length !== legacyClasses.length ||
+      projected.classes.some((entry, index) => {
+        const legacyEntry = legacyClasses[index];
+        return (
+          entry.name !== legacyEntry?.name ||
+          entry.level !== legacyEntry?.level ||
+          entry.subclass !== legacyEntry?.subclass
+        );
+      });
+
+    if (!hasMismatch) {
+      return buildClassSelectionsFromLegacy(
+        character,
+        getClassDefinitionByName,
+      ) as ClassSelection[];
+    }
+  }
+  return buildClassSelectionsFromLegacy(
+    {
+      class: character.class,
+      level: character.level,
+      subclass: character.subclass,
+      classes: character.classes,
+    },
+    getClassDefinitionByName,
+  ) as ClassSelection[];
 }
 
 export function getTotalLevel(classes: ClassEntry[]): number {
@@ -750,6 +940,7 @@ export const DEFAULT_SKILLS_PROFICIENCY: Record<string, SkillProficiency> =
 export function createDefaultCharacter(): InsertCharacter {
   const defaultClass = "Воин";
   const classData = CLASS_DATA[defaultClass];
+  const classDefinition = getClassDefinitionByName(defaultClass);
   const defaultConMod = 0;
   const defaultMaxHp = calculateMaxHp(defaultClass, 1, defaultConMod);
 
@@ -759,6 +950,19 @@ export function createDefaultCharacter(): InsertCharacter {
     race: "Человек",
     level: 1,
     classes: [{ name: defaultClass, level: 1 }],
+    classSelections: [
+      {
+        id: "class-selection-1-fighter",
+        classId: classDefinition?.id ?? "fighter",
+        className: defaultClass,
+        source: classDefinition?.source ?? "PHB",
+        contentVersion: classDefinition?.contentVersion ?? "2014",
+        level: 1,
+        choices: {},
+        optionalFeatureIds: [],
+      },
+    ],
+    classSelectionSchemaVersion: 1,
     background: "",
     alignment: "Истинно нейтральный",
     experience: 0,

@@ -2,16 +2,45 @@ import type { AbilityName } from "./d5e-constants";
 
 // ─── Source & taxonomy ────────────────────────────────────────────────────────
 
-/** Официальные источники D&D 5e, поддерживаемые проектом */
+/** Источники D&D 5e, поддерживаемые проектом */
 export type RaceSourceCode =
-  | "PHB"    // Player's Handbook
-  | "VGM"    // Volo's Guide to Monsters
-  | "MTF"    // Mordenkainen's Tome of Foes
-  | "TCE"    // Tasha's Cauldron of Everything
-  | "MPMM"   // Mordenkainen Presents: Monsters of the Multiverse
-  | "OGA"    // One Grung Above
-  | "FTD"    // Fizban's Treasury of Dragons
-  | "VRGtR"  // Van Richten's Guide to Ravenloft
+  // ── Базовые ────────────────────────────────────────────
+  | "PHB"       // Player's Handbook
+  | "VGM"       // Volo's Guide to Monsters
+  | "OGA"       // One Grung Above
+  | "MTF"       // Mordenkainen's Tome of Foes
+  | "TCE"       // Tasha's Cauldron of Everything
+  | "FTD"       // Fizban's Treasury of Dragons
+  | "MPMM"      // Mordenkainen Presents: Monsters of the Multiverse
+  // ── Приключения ────────────────────────────────────────
+  | "EV"        // Essentials Kit / Vecna: Eve of Ruin (разные EV)
+  | "TOA"       // Tomb of Annihilation
+  | "AI"        // Acquisitions Incorporated
+  | "LR"        // Locathah Rising
+  | "WBtW"      // The Wild Beyond the Witchlight
+  | "DSotDQ"    // Dragonlance: Shadow of the Dragon Queen
+  // ── Сеттинги ──────────────────────────────────────────
+  | "SCAG"      // Sword Coast Adventurer's Guide
+  | "PSA"       // Plane Shift: Amonkhet
+  | "ttP"       // Tortle Package
+  | "GGR"       // Guildmasters' Guide to Ravnica
+  | "ERLW"      // Eberron: Rising from the Last War
+  | "MOT"       // Mythic Odysseys of Theros
+  | "SCC"       // Strixhaven: A Curriculum of Chaos
+  | "VRGtR"     // Van Richten's Guide to Ravenloft
+  | "AAG"       // Astral Adventurer's Guide (Spelljammer)
+  // ── Unearthed Arcana ──────────────────────────────────
+  | "UA22WotM"  // UA 2022 Wonders of the Multiverse
+  // ── Третьи лица ───────────────────────────────────────
+  | "MHH"       // Midgard Heroes Handbook
+  | "ODL"       // One D&D (playtest)
+  | "EGtW"      // Explorer's Guide to Wildemount
+  // ── Homebrew / прочие ─────────────────────────────────
+  | "CoN"       // Candlekeep of Nightmares
+  | "DMGi"      // DMG (iconic)
+  | "MPRGM"     // MPMM Revised Game Master
+  | "PG"        // Player's Guide
+  | "LPZAE"     // La Parabole du Zèle des Ardents Elfes
   | "CUSTOM";
 
 /**

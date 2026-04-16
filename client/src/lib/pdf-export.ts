@@ -9,7 +9,6 @@ import {
 } from "pdf-lib";
 import {
   ABILITY_NAMES,
-  CLASS_DATA,
   PROFICIENCY_CATEGORY_LABELS,
   SKILLS,
   calculateModifier,
@@ -17,17 +16,18 @@ import {
   calculateSpellSaveDC,
   formatClassesDisplay,
   formatModifier,
+  getCharacterAutoProficiencies,
   getCharacterClasses,
   getProficiencyBonus,
   getRacialBonuses,
-  getRaceAndClassProficiencies,
   getTotalLevel,
+  resolveClassState,
   type AbilityName,
   type Character,
   type ClassEntry,
   type SkillName,
 } from "@shared/schema";
-import { getCombinedWeapons } from "@/lib/weapons";
+import { getActiveWeaponDamage, getCombinedWeapons } from "@/lib/weapons";
 
 const PDF_TEMPLATE_URL = "/charlist_blank.pdf";
 const PDF_FONT_URL = "/fonts/NotoSans-Regular.ttf";
@@ -302,11 +302,7 @@ function mergeUniqueValues(...groups: ReadonlyArray<readonly string[]>): string[
 }
 
 function buildProficienciesText(character: Character): string {
-  const autoProficiencies = getRaceAndClassProficiencies(
-    character.race,
-    character.class,
-    character.subrace,
-  );
+  const autoProficiencies = getCharacterAutoProficiencies(character);
 
   const lines = (
     ["languages", "weapons", "armor", "tools"] as const
@@ -439,11 +435,12 @@ function getWeaponDisplayRows(character: Character, proficiencyBonus: number) {
     const damageModifier =
       abilityModifier !== 0 ? formatModifier(abilityModifier) : "";
     const damageTypeSuffix = weapon.damageType ? ` ${weapon.damageType}` : "";
+    const activeDamage = getActiveWeaponDamage(weapon);
 
     return {
       name: weapon.name,
       attackBonus,
-      damage: `${weapon.damage}${damageModifier}${damageTypeSuffix}`.trim(),
+      damage: `${activeDamage}${damageModifier}${damageTypeSuffix}`.trim(),
     };
   });
 }
@@ -471,8 +468,10 @@ function getSpellSlotSummary(character: Character): { max: number; used: number 
   return slots;
 }
 
-function getSpellcastingClasses(classes: ClassEntry[]): ClassEntry[] {
-  return classes.filter((entry) => Boolean(CLASS_DATA[entry.name]?.spellcastingAbility));
+function getSpellcastingClasses(character: Character): ClassEntry[] {
+  const characterClasses = getCharacterClasses(character);
+  const casterNames = new Set(resolveClassState(character).spellcasting.casterClassNames);
+  return characterClasses.filter((entry) => casterNames.has(entry.name));
 }
 
 function getTextFieldSettings(fieldName: string): TextFieldSettings {
@@ -747,6 +746,7 @@ function buildPdfExportViewModel(
   const radioFields: Record<string, RadioFieldBinding> = {};
 
   const characterClasses = getCharacterClasses(character);
+  const resolvedClassState = resolveClassState(character);
   const totalLevel = getTotalLevelSafe(characterClasses);
   const proficiencyBonus = getProficiencyBonus(totalLevel);
   const featureSegments = buildFeatureTextSegments(character);
@@ -868,16 +868,34 @@ function buildPdfExportViewModel(
     setText(`attack_${attackRowNumber}_damage`, weaponRow.damage);
   });
 
-  const casterClasses = getSpellcastingClasses(characterClasses);
-  if (casterClasses.length > 0 && character.spellcasting) {
-    const ability = character.spellcasting.ability;
+  const casterClasses = getSpellcastingClasses(character);
+  if (casterClasses.length > 0 && resolvedClassState.spellcasting.ability) {
+    const spellcasting = character.spellcasting ?? {
+      ability: resolvedClassState.spellcasting.ability,
+      spellSlots: Array.from({ length: 9 }, (_, index) => ({
+        max: resolvedClassState.spellcasting.progression.spellSlots?.[index] ?? 0,
+        used: 0,
+      })),
+      pactMagic: resolvedClassState.spellcasting.progression.pactMagic
+        ? {
+            slotLevel: resolvedClassState.spellcasting.progression.pactMagic.slotLevel,
+            max: resolvedClassState.spellcasting.progression.pactMagic.max,
+            used: 0,
+          }
+        : { slotLevel: 1, max: 0, used: 0 },
+      spells: [],
+    };
+    const ability = spellcasting.ability;
     const abilityModifier = getAbilityModifier(character, ability);
     const spellSaveDc = calculateSpellSaveDC(abilityModifier, proficiencyBonus);
     const spellAttackBonus = calculateSpellAttackBonus(
       abilityModifier,
       proficiencyBonus,
     );
-    const spellSlotSummary = getSpellSlotSummary(character);
+    const spellSlotSummary = getSpellSlotSummary({
+      ...character,
+      spellcasting,
+    });
 
     setText("spellcasting_class", formatClassAndLevel(casterClasses));
     setText("spellcasting_ability", ABILITY_TO_RUSSIAN_SHORT_LABEL[ability]);
@@ -888,7 +906,7 @@ function buildPdfExportViewModel(
     for (let level = 0; level <= 9; level += 1) {
       spellsByLevel.set(
         level,
-        (character.spellcasting.spells || [])
+        (spellcasting.spells || [])
           .filter((spell) => spell.level === level)
           .map((spell) => spell.name),
       );

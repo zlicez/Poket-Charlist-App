@@ -41,13 +41,14 @@ import {
   getProficiencyBonus,
   formatModifier,
   getRacialBonuses,
-  getRaceAndClassProficiencies,
+  getCharacterAutoProficiencies,
   getCharacterClasses,
   getTotalLevel,
   calculateMaxHp,
-  hasAnyCasterClass,
+  resolveClassState,
   type AbilityName,
   type Weapon,
+  type WeaponGripMode,
   type Proficiencies,
 } from "@shared/schema";
 import {
@@ -58,6 +59,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { exportCharacterToJSON } from "@/lib/json-export";
+import { getActiveWeaponDamage } from "@/lib/weapons";
 import {
   Dialog,
   DialogContent,
@@ -142,12 +144,14 @@ function CharacterSheetContent() {
   } | null>(null);
   const pdfIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const resolvedClassState =
+    !isLoading && character ? resolveClassState(character) : null;
 
   // Compute early (with null-guard) so useEffect can depend on it
   const showSpellsSection =
     !isLoading &&
     !!character &&
-    (isEditing || !!character.spellcasting || hasAnyCasterClass(getCharacterClasses(character)));
+    (isEditing || Boolean(resolvedClassState?.spellcasting.hasSpellcasting));
 
   // If character loses spellcasting while on the spells tab — fall back to combat
   useEffect(() => {
@@ -310,10 +314,11 @@ function CharacterSheetContent() {
 
   const rollWeaponDamage = (weapon: Weapon, damageModifier: number) => {
     const abilityLabel = weapon.abilityMod === "dex" ? "ЛОВ" : "СИЛ";
+    const activeDamage = getActiveWeaponDamage(weapon);
     addRoll(
       rollDice(
         `Урон: ${weapon.name}`,
-        weapon.damage,
+        activeDamage,
         damageModifier,
         [
           weapon.damageType,
@@ -323,6 +328,27 @@ function CharacterSheetContent() {
         ].filter(Boolean),
       ),
     );
+  };
+
+  const handleWeaponGripChange = (weaponId: string, gripMode: WeaponGripMode) => {
+    if (!character) return;
+    handleChange({
+      weapons: character.weapons.map((weapon) =>
+        weapon.id === weaponId ? { ...weapon, gripMode } : weapon,
+      ),
+    });
+  };
+
+  const handleInventoryWeaponGripChange = (
+    weaponId: string,
+    gripMode: WeaponGripMode,
+  ) => {
+    if (!character) return;
+    handleChange({
+      equipment: character.equipment.map((item) =>
+        item.id === weaponId ? { ...item, gripMode } : item,
+      ),
+    });
   };
 
   const sectionNavItems = [
@@ -377,7 +403,7 @@ function CharacterSheetContent() {
   );
 
   // Merge manual proficiencies with auto-computed ones from race/class
-  const autoProfs = getRaceAndClassProficiencies(character.race, character.class, character.subrace);
+  const autoProfs = getCharacterAutoProficiencies(character);
   const effectiveProficiencies: Proficiencies = {
     languages: Array.from(new Set([...(character.proficiencies?.languages ?? []), ...autoProfs.languages])),
     weapons: Array.from(new Set([...(character.proficiencies?.weapons ?? []), ...autoProfs.weapons])),
@@ -564,9 +590,7 @@ function CharacterSheetContent() {
                 }
                 onChange={(proficiencies) => handleChange({ proficiencies })}
                 isEditing={isEditing}
-                race={character.race}
-                className={character.class}
-                subrace={character.subrace}
+                character={character}
                 raceSelections={character.raceSelections}
               />
             )}
@@ -663,6 +687,8 @@ function CharacterSheetContent() {
                 }
                 onRollAttack={rollWeaponAttack}
                 onRollDamage={rollWeaponDamage}
+                onWeaponGripChange={handleWeaponGripChange}
+                onInventoryWeaponGripChange={handleInventoryWeaponGripChange}
                 isEditing={isEditing}
                 isLocked={character.weaponsLocked ?? false}
                 onToggleLock={() =>
@@ -727,9 +753,7 @@ function CharacterSheetContent() {
                   }
                   onChange={(proficiencies) => handleChange({ proficiencies })}
                   isEditing={isEditing}
-                  race={character.race}
-                  className={character.class}
-                  subrace={character.subrace}
+                  character={character}
                   raceSelections={character.raceSelections}
                 />
               )}

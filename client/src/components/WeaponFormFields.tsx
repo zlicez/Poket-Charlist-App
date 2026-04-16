@@ -1,34 +1,33 @@
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { WeaponGripToggle } from "@/components/WeaponGripToggle";
 import type { WeaponFormValues, WeaponCategory } from "@/lib/weapons";
-import type { WeaponAbilityMod } from "@shared/schema";
-
-const WEAPON_PROPERTIES_LIST = [
-  "Двуручное",
-  "Лёгкое",
-  "Метательное",
-  "Тяжёлое",
-  "Универсальное",
-  "Фехтовальное",
-  "Боеприпасы",
-  "Перезарядка",
-  "Досягаемость",
-  "Специальное",
-] as const;
+import { WEAPON_PROPERTIES, type WeaponAbilityMod } from "@shared/schema";
 
 interface WeaponFormFieldsProps {
   values: WeaponFormValues;
   onChange: (updates: Partial<WeaponFormValues>) => void;
 }
 
+const VERSATILE_PROPERTY_LABEL = "Универсальное";
+const FINESSE_PROPERTY_LABEL = "Фехтовальное";
+
 export function WeaponFormFields({ values, onChange }: WeaponFormFieldsProps) {
-  const toggleProperty = (prop: string) => {
-    const next = values.properties.includes(prop)
-      ? values.properties.filter((p) => p !== prop)
-      : [...values.properties, prop];
-    // Auto-set abilityMod to dex when Фехтовальное is selected
-    const isFinesse = next.some((p) => p.toLowerCase().includes("фехтовальное"));
-    onChange({ properties: next, ...(isFinesse ? { abilityMod: "dex" } : {}) });
+  const isVersatile = values.properties.includes(VERSATILE_PROPERTY_LABEL);
+
+  const toggleProperty = (property: string) => {
+    const nextProperties = values.properties.includes(property)
+      ? values.properties.filter((value) => value !== property)
+      : [...values.properties, property];
+    const isFinesse = nextProperties.includes(FINESSE_PROPERTY_LABEL);
+    const nextIsVersatile = nextProperties.includes(VERSATILE_PROPERTY_LABEL);
+
+    onChange({
+      properties: nextProperties,
+      abilityMod: isFinesse ? "dex" : values.abilityMod,
+      versatileDamage: nextIsVersatile ? values.versatileDamage : "",
+      gripMode: nextIsVersatile ? values.gripMode : "oneHand",
+    });
   };
 
   return (
@@ -39,7 +38,7 @@ export function WeaponFormFields({ values, onChange }: WeaponFormFieldsProps) {
           <Input
             type="number"
             value={values.attackBonus}
-            onChange={(e) => onChange({ attackBonus: parseInt(e.target.value) || 0 })}
+            onChange={(e) => onChange({ attackBonus: parseInt(e.target.value, 10) || 0 })}
             data-testid="input-weapon-attack"
           />
         </div>
@@ -68,7 +67,7 @@ export function WeaponFormFields({ values, onChange }: WeaponFormFieldsProps) {
           <label className="text-sm text-muted-foreground">Модификатор</label>
           <Select
             value={values.abilityMod}
-            onValueChange={(v) => onChange({ abilityMod: v as WeaponAbilityMod })}
+            onValueChange={(value) => onChange({ abilityMod: value as WeaponAbilityMod })}
           >
             <SelectTrigger data-testid="select-weapon-ability">
               <SelectValue />
@@ -85,8 +84,8 @@ export function WeaponFormFields({ values, onChange }: WeaponFormFieldsProps) {
         <label className="text-sm text-muted-foreground">Категория</label>
         <Select
           value={values.weaponCategory ?? ""}
-          onValueChange={(v) =>
-            onChange({ weaponCategory: (v || undefined) as WeaponCategory | undefined })
+          onValueChange={(value) =>
+            onChange({ weaponCategory: (value || undefined) as WeaponCategory | undefined })
           }
         >
           <SelectTrigger data-testid="select-weapon-category">
@@ -103,26 +102,53 @@ export function WeaponFormFields({ values, onChange }: WeaponFormFieldsProps) {
       <div>
         <label className="text-sm text-muted-foreground mb-1.5 block">Свойства</label>
         <div className="flex flex-wrap gap-1.5" data-testid="weapon-properties-chips">
-          {WEAPON_PROPERTIES_LIST.map((prop) => {
-            const isSelected = values.properties.includes(prop);
+          {WEAPON_PROPERTIES.map((property) => {
+            const isSelected = values.properties.includes(property);
             return (
               <button
-                key={prop}
+                key={property}
                 type="button"
-                onClick={() => toggleProperty(prop)}
+                onClick={() => toggleProperty(property)}
                 className={`px-2.5 py-0.5 rounded-full text-xs border transition-colors select-none ${
                   isSelected
                     ? "bg-accent/20 border-accent/60 text-accent"
                     : "border-border text-muted-foreground hover:border-accent/40 hover:text-foreground"
                 }`}
-                data-testid={`chip-prop-${prop}`}
+                data-testid={`chip-prop-${property}`}
               >
-                {prop}
+                {property}
               </button>
             );
           })}
         </div>
       </div>
+
+      {isVersatile && (
+        <div className="rounded-md border border-border/70 bg-muted/20 p-3 space-y-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex-1">
+              <label className="text-sm text-muted-foreground">Урон в двух руках</label>
+              <Input
+                value={values.versatileDamage}
+                onChange={(e) => onChange({ versatileDamage: e.target.value })}
+                placeholder="1d10"
+                data-testid="input-weapon-versatile-damage"
+              />
+            </div>
+            <div className="sm:pb-[1px]">
+              <span className="mb-1 block text-sm text-muted-foreground">Текущий хват</span>
+              <WeaponGripToggle
+                value={values.gripMode}
+                onChange={(gripMode) => onChange({ gripMode })}
+                testIdPrefix="weapon-form-grip"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Переключатель влияет на формулу урона для этого оружия в листе персонажа.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import {
-  CLASS_DATA,
   SKILLS,
+  buildClassStatePatch,
   getProficiencyBonus,
   type InsertCharacter,
   type SkillProficiency,
@@ -277,8 +277,7 @@ function parseLSSData(data: any): InsertCharacter {
   const allies = extractPlainText(data.text?.attacks) || "";
 
   const classEntry: ClassEntry = { name: className, level, subclass: subclass || undefined };
-
-  return {
+  const baseCharacter: InsertCharacter = {
     name,
     class: className,
     subclass: subclass || undefined,
@@ -334,6 +333,12 @@ function parseLSSData(data: any): InsertCharacter {
     weaponsLocked: false,
     featuresLocked: false,
     spellSlotsLocked: false,
+  };
+  const classStatePatch = buildClassStatePatch(baseCharacter);
+
+  return {
+    ...baseCharacter,
+    ...classStatePatch,
   };
 }
 

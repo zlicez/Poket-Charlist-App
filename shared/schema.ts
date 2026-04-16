@@ -5,9 +5,13 @@ export * from "./models/auth";
 
 export * from "./data/d5e-constants";
 export * from "./data/d5e-classes";
+export * from "./data/class-types";
+export * from "./data/class-progressions";
 export * from "./data/d5e-races";
 export * from "./data/d5e-equipment";
 export * from "./types/character-types";
+export * from "./lib/class-compat";
+export * from "./lib/class-engine";
 
 export const characters = pgTable("characters", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

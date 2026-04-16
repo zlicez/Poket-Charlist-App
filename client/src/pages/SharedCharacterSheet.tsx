@@ -25,7 +25,7 @@ import {
   getCharacterClasses,
   getTotalLevel,
   calculateMaxHp,
-  hasAnyCasterClass,
+  resolveClassState,
   type Character,
 } from "@shared/schema";
 import {
@@ -96,6 +96,7 @@ export default function SharedCharacterSheet() {
     character.subrace,
     character.selectedRacialAbilityBonuses,
   );
+  const resolvedClassState = resolveClassState(character);
   const noop = () => {};
   const charClassesForHp = getCharacterClasses(character);
   const totalLevelForHp = getTotalLevel(charClassesForHp);
@@ -114,8 +115,7 @@ export default function SharedCharacterSheet() {
     ? calculatedMaxHp + (character.customMaxHpBonus || 0)
     : character.maxHp;
   const showSpellsSection =
-    !!character.spellcasting ||
-    hasAnyCasterClass(getCharacterClasses(character));
+    Boolean(resolvedClassState.spellcasting.hasSpellcasting);
   const sectionNavItems = [
     { id: "section-combat", label: "Общее", icon: User },
     { id: "section-abilities", label: "Характеристики", icon: FaDiceD20 },
@@ -297,6 +297,7 @@ export default function SharedCharacterSheet() {
                 onChange={noop}
                 onRollAttack={noop}
                 onRollDamage={noop}
+                allowGripToggle={false}
                 isEditing={false}
                 isLocked={true}
                 equippedFromInventory={character.equipment}
@@ -346,9 +347,7 @@ export default function SharedCharacterSheet() {
                 }
                 onChange={noop}
                 isEditing={false}
-                race={character.race}
-                className={character.class}
-                subrace={character.subrace}
+                character={character}
                 raceSelections={character.raceSelections}
               />
             </div>

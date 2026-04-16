@@ -75,7 +75,10 @@ import { WeaponFormFields } from "@/components/WeaponFormFields";
 import {
   DEFAULT_WEAPON_FORM_VALUES,
   createEquipmentWeaponFromForm,
-  weaponPropsToArray,
+  getActiveWeaponDamage,
+  getWeaponPropertiesDisplay,
+  normalizeWeaponGripMode,
+  parseWeaponProperties,
   type WeaponFormValues,
 } from "@/lib/weapons";
 
@@ -202,7 +205,14 @@ function AddFromCatalogDialog({
                 </div>
                 <div className="text-xs text-muted-foreground mt-0.5">
                   {item.isWeapon && (
-                    <span>{item.damage} {item.damageType}</span>
+                    <span>
+                      {getActiveWeaponDamage({
+                        damage: item.damage,
+                        versatileDamage: item.versatileDamage,
+                        properties: item.weaponProperties,
+                      })}{" "}
+                      {item.damageType}
+                    </span>
                   )}
                   {item.isArmor && (
                     <span>КД {item.armorBaseAC}</span>
@@ -210,8 +220,10 @@ function AddFromCatalogDialog({
                   {item.description && !item.isWeapon && !item.isArmor && (
                     <span>{item.description}</span>
                   )}
-                  {item.weaponProperties && (
-                    <span className="block text-muted-foreground/70">{item.weaponProperties}</span>
+                  {item.isWeapon && getWeaponPropertiesDisplay(item.weaponProperties, item.versatileDamage) && (
+                    <span className="block text-muted-foreground/70">
+                      {getWeaponPropertiesDisplay(item.weaponProperties, item.versatileDamage)}
+                    </span>
                   )}
                 </div>
               </button>
@@ -263,13 +275,27 @@ function AddCustomItemDialog({
   const [isArmor, setIsArmor] = useState(defaultIsArmor);
   const [weaponForm, setWeaponForm] = useState<WeaponFormValues>(
     initialItem?.isWeapon
-      ? {
-          ...DEFAULT_WEAPON_FORM_VALUES,
-          damage: initialItem.damage ?? DEFAULT_WEAPON_FORM_VALUES.damage,
-          damageType: initialItem.damageType ?? DEFAULT_WEAPON_FORM_VALUES.damageType,
-          properties: weaponPropsToArray(initialItem.weaponProperties),
-          weaponCategory: initialItem.weaponCategory,
-        }
+      ? (() => {
+          const parsedProperties = parseWeaponProperties(initialItem.weaponProperties);
+          const versatileDamage =
+            initialItem.versatileDamage ?? parsedProperties.versatileDamage ?? "";
+
+          return {
+            ...DEFAULT_WEAPON_FORM_VALUES,
+            damage: initialItem.damage ?? DEFAULT_WEAPON_FORM_VALUES.damage,
+            versatileDamage,
+            damageType: initialItem.damageType ?? DEFAULT_WEAPON_FORM_VALUES.damageType,
+            properties: parsedProperties.properties,
+            gripMode: normalizeWeaponGripMode({
+              gripMode: initialItem.gripMode,
+              versatileDamage,
+              properties: initialItem.weaponProperties,
+            }),
+            weaponCategory: initialItem.weaponCategory,
+            abilityMod: (initialItem.abilityMod ?? DEFAULT_WEAPON_FORM_VALUES.abilityMod) as "str" | "dex",
+            attackBonus: initialItem.attackBonus ?? DEFAULT_WEAPON_FORM_VALUES.attackBonus,
+          };
+        })()
       : DEFAULT_WEAPON_FORM_VALUES
   );
   const [armorBaseAC, setArmorBaseAC] = useState(initialItem?.armorBaseAC ?? 12);
@@ -286,11 +312,21 @@ function AddCustomItemDialog({
     setIsArmor(!!initialItem.isArmor);
     setArmorBaseAC(initialItem.armorBaseAC ?? 12);
     if (initialItem.isWeapon) {
+      const parsedProperties = parseWeaponProperties(initialItem.weaponProperties);
+      const versatileDamage =
+        initialItem.versatileDamage ?? parsedProperties.versatileDamage ?? "";
+
       setWeaponForm({
         ...DEFAULT_WEAPON_FORM_VALUES,
         damage: initialItem.damage ?? DEFAULT_WEAPON_FORM_VALUES.damage,
+        versatileDamage,
         damageType: initialItem.damageType ?? DEFAULT_WEAPON_FORM_VALUES.damageType,
-        properties: weaponPropsToArray(initialItem.weaponProperties),
+        properties: parsedProperties.properties,
+        gripMode: normalizeWeaponGripMode({
+          gripMode: initialItem.gripMode,
+          versatileDamage,
+          properties: initialItem.weaponProperties,
+        }),
         weaponCategory: initialItem.weaponCategory,
         abilityMod: (initialItem.abilityMod ?? DEFAULT_WEAPON_FORM_VALUES.abilityMod) as "str" | "dex",
         attackBonus: initialItem.attackBonus ?? DEFAULT_WEAPON_FORM_VALUES.attackBonus,
@@ -545,6 +581,17 @@ function SortableEquipmentItem({
     id: item.id,
     disabled: !canReorder,
   });
+  const activeWeaponDamage = item.isWeapon
+    ? getActiveWeaponDamage({
+        damage: item.damage,
+        versatileDamage: item.versatileDamage,
+        gripMode: item.gripMode,
+        properties: item.weaponProperties,
+      })
+    : undefined;
+  const weaponPropertiesDisplay = item.isWeapon
+    ? getWeaponPropertiesDisplay(item.weaponProperties, item.versatileDamage)
+    : undefined;
 
   // Container ref to measure actual rendered width for trigger threshold
   const containerRef = useRef<HTMLDivElement>(null);
@@ -809,13 +856,15 @@ function SortableEquipmentItem({
               </Tooltip>
             )}
             {item.isWeapon && (
-              <Badge variant="outline" className="text-[10px] sm:text-xs h-4 sm:h-5 px-1 hidden sm:inline-flex">{item.damage}</Badge>
+              <Badge variant="outline" className="text-[10px] sm:text-xs h-4 sm:h-5 px-1 hidden sm:inline-flex">
+                {activeWeaponDamage}
+              </Badge>
             )}
           </div>
-          {(item.description || item.weaponProperties || item.damageType) && (
+          {(item.description || weaponPropertiesDisplay || item.damageType) && (
             <div className="text-[10px] sm:text-xs text-muted-foreground truncate">
               {item.isWeapon && item.damageType && <span>{item.damageType}</span>}
-              {item.weaponProperties && <span> • {item.weaponProperties}</span>}
+              {weaponPropertiesDisplay && <span> • {weaponPropertiesDisplay}</span>}
               {!item.isWeapon && item.description && <span>{item.description}</span>}
             </div>
           )}

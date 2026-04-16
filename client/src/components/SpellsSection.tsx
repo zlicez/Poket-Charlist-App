@@ -59,7 +59,6 @@ import {
 } from "lucide-react";
 import {
   ABILITY_LABELS,
-  CLASS_DATA,
   calculateModifier,
   calculateSpellSaveDC,
   calculateSpellAttackBonus,
@@ -68,6 +67,7 @@ import {
   getRacialBonuses,
   getCharacterClasses,
   getTotalLevel,
+  resolveClassState,
 } from "@shared/schema";
 import type {
   Character,
@@ -81,7 +81,6 @@ import {
 } from "@shared/data/spells-library";
 import { RichTextContent } from "@/components/RichTextContent";
 import { RichTextField } from "@/components/RichTextField";
-import { getSpellcastingProgression } from "@shared/data/spell-slots";
 import { NumericInput } from "@/components/ui/numeric-input";
 
 const SPELL_LEVEL_LABELS: Record<number, string> = {
@@ -1063,15 +1062,10 @@ export function SpellsSection({
   isLocked = false,
   onToggleLock,
 }: SpellsSectionProps) {
+  const resolvedClassState = resolveClassState(character);
   const charClasses = getCharacterClasses(character);
-  const casterClass = charClasses.find(
-    (c) => CLASS_DATA[c.name]?.spellcastingAbility,
-  );
-  const classData = casterClass
-    ? CLASS_DATA[casterClass.name]
-    : CLASS_DATA[character.class];
-  const classSpellAbility = classData?.spellcastingAbility;
-  const calculatedProgression = getSpellcastingProgression(charClasses);
+  const classSpellAbility = resolvedClassState.spellcasting.ability;
+  const calculatedProgression = resolvedClassState.spellcasting.progression;
   const calculatedSlots = calculatedProgression.spellSlots;
   const calculatedPactMagic = calculatedProgression.pactMagic;
 
