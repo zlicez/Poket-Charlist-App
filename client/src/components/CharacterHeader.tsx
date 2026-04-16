@@ -80,11 +80,14 @@ import {
   ABILITY_LABELS,
   LANGUAGES,
   createEmptyAbilityBonuses,
+  buildClassStatePatch,
+  getClassDefinitionByName,
   getProficiencyBonus,
   formatModifier,
   getXPProgress,
   getLevelFromXP,
   getCharacterClasses,
+  getCharacterClassSelections,
   getTotalLevel,
   calculateModifier,
   getRacialBonuses,
@@ -93,20 +96,54 @@ import {
   getRaceCreatureType,
   getRaceResistances,
 } from "@shared/schema";
-import type { Character, AbilityName, ClassEntry, RaceDefinition } from "@shared/schema";
+import type {
+  Character,
+  AbilityName,
+  ClassSelection,
+  RaceDefinition,
+} from "@shared/schema";
 
 // ─── Race Picker — shared constants ──────────────────────────────────────────
 
 const SOURCE_LABELS: Record<string, string> = {
-  PHB:    "Книга игрока",
-  VGM:    "Руководство Воло",
-  MTF:    "Том о врагах Морденкайнена",
-  TCE:    "Котёл всего Таши",
-  MPMM:   "Монстры мультивселенной",
-  OGA:    "One Grung Above",
-  FTD:    "Сокровищница драконов Физбана",
-  VRGtR:  "Руководство Ван Рихтена",
-  CUSTOM: "Пользовательские",
+  // Базовые
+  PHB:      "Книга игрока",
+  VGM:      "Руководство Воло по монстрам",
+  OGA:      "One Grung Above",
+  MTF:      "Том о врагах Морденкайнена",
+  TCE:      "Котёл всего Таши",
+  FTD:      "Сокровищница драконов Физбана",
+  MPMM:     "Монстры мультивселенной",
+  // Приключения
+  EV:       "Vecna: Eve of Ruin",
+  TOA:      "Гробница аннигиляции",
+  AI:       "Acquisitions Incorporated",
+  LR:       "Locathah Rising",
+  WBtW:     "За пределами Витчлайта",
+  DSotDQ:   "Dragonlance: В тени Королевы Драконов",
+  // Сеттинги
+  SCAG:     "Руководство искателя приключений по Берегу Мечей",
+  PSA:      "Plane Shift: Амонкет",
+  ttP:      "Пакет тортла",
+  GGR:      "Руководство гильдмастеров по Равнике",
+  ERLW:     "Эберрон: Восстание последней войны",
+  MOT:      "Мифические одиссеи Тероса",
+  SCC:      "Стрикхейвен: Учебный план хаоса",
+  VRGtR:    "Руководство Ван Рихтена по Равенлофту",
+  AAG:      "Руководство звёздного путешественника (Spelljammer)",
+  // Unearthed Arcana
+  UA22WotM: "UA 2022: Чудеса мультивселенной",
+  // Третьи лица
+  MHH:      "Midgard Heroes Handbook",
+  ODL:      "One D&D (плейтест)",
+  EGtW:     "Руководство исследователя по Вилдемаунту",
+  // Homebrew
+  CoN:      "Candlekeep of Nightmares",
+  DMGi:     "DMG (iconic)",
+  MPRGM:    "MPMM Revised Game Master",
+  PG:       "Player's Guide",
+  LPZAE:    "LPZAE",
+  CUSTOM:   "Пользовательские",
 };
 
 const RACE_DAMAGE_LABELS: Record<string, string> = {
@@ -143,7 +180,20 @@ function countActiveFilters(f: ActiveFilters): number {
 }
 
 // All known sources that appear in RACE_DATA (ordered for display)
-const ALL_SOURCES = ["PHB", "VGM", "MTF", "TCE", "MPMM", "OGA", "FTD", "VRGtR"] as const;
+const ALL_SOURCES = [
+  // Базовые
+  "PHB", "VGM", "OGA", "MTF", "TCE", "FTD", "MPMM",
+  // Приключения
+  "EV", "TOA", "AI", "LR", "WBtW", "DSotDQ",
+  // Сеттинги
+  "SCAG", "PSA", "ttP", "GGR", "ERLW", "MOT", "SCC", "VRGtR", "AAG",
+  // Unearthed Arcana
+  "UA22WotM",
+  // Третьи лица
+  "MHH", "ODL", "EGtW",
+  // Homebrew
+  "CoN", "DMGi", "MPRGM", "PG", "LPZAE", "CUSTOM",
+] as const;
 
 // Per-source race counts (static, computed once)
 const SOURCE_COUNTS: Record<string, number> = Object.fromEntries(
@@ -208,17 +258,17 @@ function RaceListRow({
         {race.entityType === "lineage" && (
           <span className="text-[9px] font-semibold text-purple-500 uppercase tracking-wide">ЛИН</span>
         )}
-        <span className="text-[10px] tabular-nums w-[28px] text-right">{race.speed}фт</span>
+        {(race.darkvision ?? 0) > 0
+          ? <Eye className="w-3 h-3" />
+          : <div className="w-3" />
+        }
         <span className={cn(
           "text-[9px] font-semibold uppercase w-[14px] text-center",
           race.size === "Small" ? "text-amber-500" : "text-muted-foreground/40",
         )}>
           {race.size === "Small" ? "S" : "M"}
         </span>
-        {(race.darkvision ?? 0) > 0
-          ? <Eye className="w-3 h-3" />
-          : <div className="w-3" />
-        }
+        <span className="text-[10px] tabular-nums w-[28px] text-right">{race.speed}фт</span>
       </div>
     </button>
   );
@@ -296,7 +346,7 @@ function RaceDetailPanel({ race }: { race: RaceDefinition | null }) {
       : "Средний размер — стандарт для большинства рас. Нет особых ограничений.";
 
   return (
-    <ScrollArea className="h-full">
+    <ScrollArea className="flex-1 min-h-0 h-full">
       <div className="p-4 space-y-4 pb-6">
 
         {/* Header */}
@@ -310,9 +360,16 @@ function RaceDetailPanel({ race }: { race: RaceDefinition | null }) {
             )}
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground">
-              {SOURCE_LABELS[race.source] ?? race.source}
-            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 cursor-help font-medium">
+                  {race.source}
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {SOURCE_LABELS[race.source] ?? race.source}
+              </TooltipContent>
+            </Tooltip>
             <span className="text-muted-foreground/40">·</span>
             <span className="text-xs text-muted-foreground">{race.creatureType}</span>
           </div>
@@ -738,27 +795,33 @@ function RacePickerDialog({
               {ALL_SOURCES.filter((src) => (SOURCE_COUNTS[src] ?? 0) > 0).map((src) => {
                 const active = pendingFilters.sources.includes(src);
                 return (
-                  <button
-                    key={src}
-                    type="button"
-                    onClick={() =>
-                      setPendingFilters((prev) => ({
-                        ...prev,
-                        sources: active
-                          ? prev.sources.filter((s) => s !== src)
-                          : [...prev.sources, src],
-                      }))
-                    }
-                    className={cn(
-                      "rounded-full px-2 py-0.5 text-[11px] font-medium border transition-colors",
-                      active
-                        ? "bg-accent/15 border-accent/50 text-foreground"
-                        : "border-border/50 text-muted-foreground hover:border-border hover:text-foreground bg-transparent",
-                    )}
-                  >
-                    {src}
-                    <span className="ml-1 opacity-55">({SOURCE_COUNTS[src]})</span>
-                  </button>
+                  <Tooltip key={src}>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPendingFilters((prev) => ({
+                            ...prev,
+                            sources: active
+                              ? prev.sources.filter((s) => s !== src)
+                              : [...prev.sources, src],
+                          }))
+                        }
+                        className={cn(
+                          "rounded-full px-2 py-0.5 text-[11px] font-medium border transition-colors",
+                          active
+                            ? "bg-accent/15 border-accent/50 text-foreground"
+                            : "border-border/50 text-muted-foreground hover:border-border hover:text-foreground bg-transparent",
+                        )}
+                      >
+                        {src}
+                        <span className="ml-1 opacity-55">({SOURCE_COUNTS[src]})</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      {SOURCE_LABELS[src] ?? src}
+                    </TooltipContent>
+                  </Tooltip>
                 );
               })}
             </div>
@@ -838,7 +901,7 @@ function RacePickerDialog({
         <div className="flex items-center text-[10px] text-muted-foreground/60 uppercase tracking-wide">
           <span className="w-4 shrink-0" />
           <span className="flex-1 ml-2">Название</span>
-          <span className="w-24 text-right pr-1">Скор. · Р · Зрение</span>
+          <span className="whitespace-nowrap text-right pr-1">Зрение · Р · Скор.</span>
         </div>
       </div>
     </>
@@ -846,7 +909,7 @@ function RacePickerDialog({
 
   // ── Shared: scrollable race list ───────────────────────────────────────────
   const raceList = (
-    <ScrollArea className="flex-1 px-2 min-h-0">
+    <ScrollArea className="flex-1 min-h-0 px-2">
       <div className="pb-3">
         {sorted.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">Ничего не найдено</p>
@@ -935,9 +998,9 @@ function RacePickerDialog({
       <>
         {trigger}
         <Drawer open={open} onOpenChange={handleOpenChange}>
-          <DrawerContent className="flex flex-col p-0 gap-0 max-h-[94vh]">
+          <DrawerContent className="flex flex-col p-0 gap-0 h-[94vh] overflow-hidden">
             {mobileView === "list" ? (
-              <div className="flex flex-col flex-1 min-h-0">
+              <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
                 <DrawerHeader className="px-4 pt-3 pb-2 shrink-0 text-left border-b border-border/30">
                   <DrawerTitle className="flex items-baseline gap-2 text-base">
                     Выбор расы
@@ -949,10 +1012,12 @@ function RacePickerDialog({
                   </DrawerTitle>
                 </DrawerHeader>
                 {listControls}
-                {raceList}
+                <div data-vaul-no-drag className="flex-1 min-h-0 flex flex-col">
+                  {raceList}
+                </div>
               </div>
             ) : (
-              <div className="flex flex-col flex-1 min-h-0">
+              <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
                 <div className="shrink-0 px-3 pt-2 pb-1.5 border-b border-border/50 flex items-center gap-2">
                   <Button
                     variant="ghost"
@@ -966,7 +1031,9 @@ function RacePickerDialog({
                     <span className="font-semibold text-sm truncate">{highlightedRace.name}</span>
                   )}
                 </div>
-                <RaceDetailPanel race={highlightedRace} />
+                <div data-vaul-no-drag className="flex-1 min-h-0 flex flex-col">
+                  <RaceDetailPanel race={highlightedRace} />
+                </div>
                 {actionBar}
               </div>
             )}
@@ -1471,44 +1538,109 @@ function ClassTooltipContent({ className }: { className: string }) {
   );
 }
 
+function slugifyClassSelectionValue(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9а-яё]+/gi, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function createClassSelectionId(index: number, className: string): string {
+  return `class-selection-${index + 1}-${slugifyClassSelectionValue(className) || "custom"}`;
+}
+
 function MulticlassEditor({
-  classes,
-  onClassesChange,
+  selections,
+  onSelectionsChange,
 }: {
-  classes: ClassEntry[];
-  onClassesChange: (classes: ClassEntry[]) => void;
+  selections: ClassSelection[];
+  onSelectionsChange: (selections: ClassSelection[]) => void;
 }) {
+  const classes = selections.map((selection) => ({
+    name: selection.className,
+    level: selection.level,
+    subclass: selection.subclassName,
+  }));
   const totalLevel = getTotalLevel(classes);
 
   const handleClassNameChange = (index: number, newName: string) => {
-    const updated = classes.map((c, i) =>
-      i === index ? { ...c, name: newName } : c,
+    const definition = getClassDefinitionByName(newName);
+    const updated = selections.map((selection, i) =>
+      i === index
+        ? {
+            ...selection,
+            id: createClassSelectionId(index, newName),
+            classId: definition?.id ?? slugifyClassSelectionValue(newName),
+            className: newName,
+            source: definition?.source ?? selection.source ?? "CUSTOM",
+            contentVersion:
+              definition?.contentVersion ?? selection.contentVersion ?? "2014",
+            subclassId: undefined,
+            subclassName: undefined,
+            choices: {},
+            optionalFeatureIds: [],
+            resourceState: undefined,
+          }
+        : selection,
     );
-    onClassesChange(updated);
+    onSelectionsChange(updated);
   };
 
   const handleClassLevelChange = (index: number, newLevel: number) => {
-    const otherLevelsTotal = classes.reduce(
-      (sum, c, i) => (i === index ? sum : sum + c.level),
+    const otherLevelsTotal = selections.reduce(
+      (sum, selection, i) => (i === index ? sum : sum + selection.level),
       0,
     );
     const maxForThis = Math.max(1, 20 - otherLevelsTotal);
     const level = Math.max(1, Math.min(maxForThis, newLevel));
-    const updated = classes.map((c, i) => (i === index ? { ...c, level } : c));
-    onClassesChange(updated);
+    const updated = selections.map((selection, i) =>
+      i === index ? { ...selection, level } : selection,
+    );
+    onSelectionsChange(updated);
+  };
+
+  const handleSubclassChange = (index: number, newSubclass: string) => {
+    const subclassName = newSubclass.trim();
+    const updated = selections.map((selection, i) =>
+      i === index
+        ? {
+            ...selection,
+            subclassId: subclassName
+              ? slugifyClassSelectionValue(subclassName)
+              : undefined,
+            subclassName: subclassName || undefined,
+          }
+        : selection,
+    );
+    onSelectionsChange(updated);
   };
 
   const addClass = () => {
     if (totalLevel >= 20) return;
-    const usedClasses = new Set(classes.map((c) => c.name));
+    const usedClasses = new Set(selections.map((selection) => selection.className));
     const available = CLASSES.filter((c) => !usedClasses.has(c));
     if (available.length === 0) return;
-    onClassesChange([...classes, { name: available[0], level: 1 }]);
+    const newName = available[0];
+    const definition = getClassDefinitionByName(newName);
+    onSelectionsChange([
+      ...selections,
+      {
+        id: createClassSelectionId(selections.length, newName),
+        classId: definition?.id ?? slugifyClassSelectionValue(newName),
+        className: newName,
+        source: definition?.source ?? "PHB",
+        contentVersion: definition?.contentVersion ?? "2014",
+        level: 1,
+        choices: {},
+        optionalFeatureIds: [],
+      },
+    ]);
   };
 
   const removeClass = (index: number) => {
-    if (classes.length <= 1) return;
-    onClassesChange(classes.filter((_, i) => i !== index));
+    if (selections.length <= 1) return;
+    onSelectionsChange(selections.filter((_, i) => i !== index));
   };
 
   return (
@@ -1530,57 +1662,80 @@ function MulticlassEditor({
           </Button>
         )}
       </div>
-      {classes.map((entry, index) => (
-        <div key={index} className="flex items-center gap-2">
-          <Select
-            value={entry.name}
-            onValueChange={(v) => handleClassNameChange(index, v)}
-          >
-            <SelectTrigger
-              className="flex-1 h-10 text-sm"
-              data-testid={`select-class-${index}`}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {CLASSES.map((cls) => (
-                <SelectItem
-                  key={cls}
-                  value={cls}
-                  disabled={
-                    cls !== entry.name && classes.some((c) => c.name === cls)
-                  }
+      {selections.map((selection, index) => {
+        const entry = classes[index];
+        return (
+          <div key={selection.id} className="rounded-lg border border-border/60 p-2.5 space-y-2">
+            <div className="flex items-center gap-2">
+              <Select
+                value={entry.name}
+                onValueChange={(v) => handleClassNameChange(index, v)}
+              >
+                <SelectTrigger
+                  className="flex-1 h-10 text-sm"
+                  data-testid={`select-class-${index}`}
                 >
-                  {cls}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Input
-            type="number"
-            inputMode="numeric"
-            min={1}
-            max={20}
-            value={entry.level}
-            onChange={(e) =>
-              handleClassLevelChange(index, parseInt(e.target.value) || 1)
-            }
-            className="w-16 h-10 text-center font-bold"
-            data-testid={`input-class-level-${index}`}
-          />
-          {classes.length > 1 && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => removeClass(index)}
-              className="h-10 w-10 shrink-0 text-muted-foreground hover:text-destructive"
-              data-testid={`button-remove-class-${index}`}
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          )}
-        </div>
-      ))}
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CLASSES.map((cls) => (
+                    <SelectItem
+                      key={cls}
+                      value={cls}
+                      disabled={
+                        cls !== entry.name &&
+                        selections.some((current) => current.className === cls)
+                      }
+                    >
+                      {cls}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={20}
+                value={entry.level}
+                onChange={(e) =>
+                  handleClassLevelChange(index, parseInt(e.target.value) || 1)
+                }
+                className="w-16 h-10 text-center font-bold"
+                data-testid={`input-class-level-${index}`}
+              />
+              {selections.length > 1 && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeClass(index)}
+                  className="h-10 w-10 shrink-0 text-muted-foreground hover:text-destructive"
+                  data-testid={`button-remove-class-${index}`}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <label
+                className="text-[11px] text-muted-foreground block"
+                htmlFor={`input-subclass-${index}`}
+              >
+                Подкласс
+              </label>
+              <Input
+                id={`input-subclass-${index}`}
+                value={selection.subclassName ?? ""}
+                onChange={(e) => handleSubclassChange(index, e.target.value)}
+                placeholder="Если уже выбран"
+                className="h-9 text-sm"
+                data-testid={`input-subclass-${index}`}
+              />
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -1588,13 +1743,13 @@ function MulticlassEditor({
 function EditingFields({
   character,
   onChange,
-  handleClassesChange,
+  handleClassSelectionsChange,
   handleRaceChange,
   subraces,
 }: {
   character: Character;
   onChange: (updates: Partial<Character>) => void;
-  handleClassesChange: (classes: ClassEntry[]) => void;
+  handleClassSelectionsChange: (selections: ClassSelection[]) => void;
   handleRaceChange: (newRace: string, newSubrace?: string) => void;
   subraces: string[];
 }) {
@@ -1626,10 +1781,10 @@ function EditingFields({
           <Select
             value={character.subrace || "none"}
             onValueChange={(value) => {
-              const newSubrace = value === "none" ? undefined : value;
+              const newSubrace = value === "none" ? "" : value;
               onChange({
                 subrace: newSubrace,
-                speed: getRaceSpeed(character.race, newSubrace),
+                speed: getRaceSpeed(character.race, newSubrace || undefined),
               });
             }}
           >
@@ -1664,8 +1819,8 @@ function EditingFields({
       />
 
       <MulticlassEditor
-        classes={getCharacterClasses(character)}
-        onClassesChange={handleClassesChange}
+        selections={getCharacterClassSelections(character)}
+        onSelectionsChange={handleClassSelectionsChange}
       />
 
       <div>
@@ -2095,6 +2250,7 @@ export function CharacterHeader({
       (racialBonuses.CON || 0) +
       (character.customAbilityBonuses?.CON || 0),
   );
+  const classSelections = getCharacterClassSelections(character);
   const charClasses = getCharacterClasses(character);
   const totalLevel = getTotalLevel(charClasses);
   const profBonus = getProficiencyBonus(totalLevel);
@@ -2120,67 +2276,36 @@ export function CharacterHeader({
   const handleLevelUp = () => {
     const newLevel = Math.min(20, xpLevel);
     const levelDiff = newLevel - totalLevel;
-    const newClasses = charClasses.map((c, i) =>
-      i === 0 ? { ...c, level: c.level + levelDiff } : c,
+    const nextSelections = classSelections.map((selection, index) =>
+      index === 0
+        ? { ...selection, level: selection.level + levelDiff }
+        : selection,
     );
-    handleClassesChange(newClasses);
+    handleClassSelectionsChange(nextSelections);
   };
 
-  const handleClassesChange = (newClasses: ClassEntry[]) => {
-    const newTotalLevel = getTotalLevel(newClasses);
-    const primaryClass = newClasses[0];
-    const primaryData = CLASS_DATA[primaryClass.name];
-
-    const savingThrows = primaryData
-      ? {
-          STR: primaryData.savingThrows.includes("STR"),
-          DEX: primaryData.savingThrows.includes("DEX"),
-          CON: primaryData.savingThrows.includes("CON"),
-          INT: primaryData.savingThrows.includes("INT"),
-          WIS: primaryData.savingThrows.includes("WIS"),
-          CHA: primaryData.savingThrows.includes("CHA"),
-        }
-      : character.savingThrows;
-
-    const updates: Partial<Character> = {
-      classes: newClasses,
-      class: primaryClass.name,
-      subclass: primaryClass.subclass,
-      level: newTotalLevel,
-      savingThrows,
-      proficiencyBonus: getProficiencyBonus(newTotalLevel),
-      hitDiceRemaining: newTotalLevel,
-    };
-
-    const casterClass = newClasses.find(
-      (c) => CLASS_DATA[c.name]?.spellcastingAbility,
-    );
-    if (casterClass) {
-      const casterData = CLASS_DATA[casterClass.name]!;
-      const existingSpellcasting = character.spellcasting ?? {
-        ability: casterData.spellcastingAbility!,
-        spellSlots: Array.from({ length: 9 }, () => ({ max: 0, used: 0 })),
-        pactMagic: { slotLevel: 1, max: 0, used: 0 },
-        spells: [],
-      };
-      updates.spellcasting = {
-        ...existingSpellcasting,
-        pactMagic: existingSpellcasting.pactMagic ?? {
-          slotLevel: 1,
-          max: 0,
-          used: 0,
-        },
-        ability: casterData.spellcastingAbility!,
-      };
-    }
-
-    onChange(updates);
+  const handleClassSelectionsChange = (newSelections: ClassSelection[]) => {
+    const patch = buildClassStatePatch(character, newSelections);
+    onChange({
+      ...patch,
+      spellcasting:
+        patch.spellcasting ??
+        (character.spellcasting
+          ? {
+              ...character.spellcasting,
+              spellSlots: Array.from({ length: 9 }, () => ({ max: 0, used: 0 })),
+              pactMagic: { slotLevel: 1, max: 0, used: 0 },
+            }
+          : undefined),
+    });
   };
 
   const handleRaceChange = (newRace: string, newSubrace?: string) => {
     onChange({
       race: newRace,
-      subrace: newSubrace,
+      // Use "" instead of undefined: JSON.stringify drops undefined, so the server
+      // would never receive the "clear subrace" signal and the old value would persist.
+      subrace: newSubrace ?? "",
       speed: getRaceSpeed(newRace, newSubrace),
       selectedRacialAbilityBonuses: createEmptyAbilityBonuses(),
       raceSelections: {},
@@ -2242,45 +2367,20 @@ export function CharacterHeader({
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               {isEditing && isDesktop ? (
                 <div className="flex flex-col gap-2 w-full">
-                  <div className="flex flex-wrap gap-2">
-                    <div className="flex items-center gap-1 flex-1 min-w-[100px]">
-                      <RacePickerDialog
-                        value={character.race}
-                        subrace={character.subrace}
-                        onChange={handleRaceChange}
-                      />
-                      {character.race && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="flex-shrink-0"
-                              data-testid="button-race-info"
-                            >
-                              <Info className="h-4 w-4 text-muted-foreground" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="bottom" className="p-3">
-                            <RaceTooltipContent
-                              raceName={character.race}
-                              subraceName={character.subrace}
-                              selectedRacialAbilityBonuses={
-                                character.selectedRacialAbilityBonuses
-                              }
-                            />
-                          </TooltipContent>
-                        </Tooltip>
-                      )}
-                    </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <RacePickerDialog
+                      value={character.race}
+                      subrace={character.subrace}
+                      onChange={handleRaceChange}
+                    />
                     {subraces.length > 0 && (
                       <Select
                         value={character.subrace || "none"}
                         onValueChange={(value) => {
-                          const newSubrace = value === "none" ? undefined : value;
+                          const newSubrace = value === "none" ? "" : value;
                           onChange({
                             subrace: newSubrace,
-                            speed: getRaceSpeed(character.race, newSubrace),
+                            speed: getRaceSpeed(character.race, newSubrace || undefined),
                           });
                         }}
                       >
@@ -2300,6 +2400,29 @@ export function CharacterHeader({
                         </SelectContent>
                       </Select>
                     )}
+                    {character.race && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="flex-shrink-0"
+                            data-testid="button-race-info"
+                          >
+                            <Info className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="p-3">
+                          <RaceTooltipContent
+                            raceName={character.race}
+                            subraceName={character.subrace}
+                            selectedRacialAbilityBonuses={
+                              character.selectedRacialAbilityBonuses
+                            }
+                          />
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
                   </div>
                   <FlexibleRaceBonusesEditor
                     key={character.race}
@@ -2312,8 +2435,8 @@ export function CharacterHeader({
                     onChange={onChange}
                   />
                   <MulticlassEditor
-                    classes={charClasses}
-                    onClassesChange={handleClassesChange}
+                    selections={classSelections}
+                    onSelectionsChange={handleClassSelectionsChange}
                   />
                 </div>
               ) : (
@@ -2619,7 +2742,7 @@ export function CharacterHeader({
               <EditingFields
                 character={character}
                 onChange={onChange}
-                handleClassesChange={handleClassesChange}
+                handleClassSelectionsChange={handleClassSelectionsChange}
                 handleRaceChange={handleRaceChange}
                 subraces={subraces}
               />

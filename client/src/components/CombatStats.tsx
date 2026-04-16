@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { NumericInput } from "@/components/ui/numeric-input";
@@ -43,13 +44,29 @@ export function HpTracker({
   onChange,
   isEditing
 }: HpTrackerProps) {
-  const percentage = Math.max(0, Math.min(100, (current / max) * 100));
-  const tempPercentage = Math.max(0, Math.min(100 - percentage, (temp / max) * 100));
+  // Local state drives the display for instant responsiveness.
+  // The ref is updated synchronously on every click so rapid clicks
+  // always compute from the latest value, not a stale prop closure.
+  const [displayHp, setDisplayHp] = useState(current);
+  const displayHpRef = useRef(current);
+
+  // Sync from the prop whenever it changes from an external source
+  // (server response, undo, etc.). In practice this is a no-op after
+  // our own onChange calls because the prop converges to the same value.
+  useEffect(() => {
+    setDisplayHp(current);
+    displayHpRef.current = current;
+  }, [current]);
 
   const adjustHp = (delta: number) => {
-    const newHp = Math.min(max, Math.max(0, current + delta));
+    const newHp = Math.min(max, Math.max(0, displayHpRef.current + delta));
+    displayHpRef.current = newHp; // synchronous: next click sees this immediately
+    setDisplayHp(newHp);
     onChange({ currentHp: newHp });
   };
+
+  const percentage = Math.max(0, Math.min(100, (displayHp / max) * 100));
+  const tempPercentage = Math.max(0, Math.min(100 - percentage, (temp / max) * 100));
 
   return (
     <Card className="stat-card-primary p-3" data-testid="stat-hp">
@@ -77,7 +94,7 @@ export function HpTracker({
           />
         )}
         <div className="absolute inset-0 flex items-center justify-center text-destructive-foreground text-sm font-bold font-mono drop-shadow">
-          {current} / {max}
+          {displayHp} / {max}
         </div>
       </div>
 
