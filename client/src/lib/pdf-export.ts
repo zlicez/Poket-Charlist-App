@@ -235,7 +235,11 @@ function formatClassAndLevel(classes: ClassEntry[]): string {
 }
 
 function getTotalAbilityScore(character: Character, ability: AbilityName): number {
-  const racialBonuses = getRacialBonuses(character.race, character.subrace);
+  const racialBonuses = getRacialBonuses(
+    character.race,
+    character.subrace,
+    character.selectedRacialAbilityBonuses,
+  );
   return (
     character.abilityScores[ability] +
     (racialBonuses[ability] || 0) +

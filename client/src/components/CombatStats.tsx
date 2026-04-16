@@ -316,7 +316,11 @@ export function DeathSavesTracker({
 }
 
 export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hideHp }: CombatStatsProps) {
-  const racialBonuses = getRacialBonuses(character.race, character.subrace);
+  const racialBonuses = getRacialBonuses(
+    character.race,
+    character.subrace,
+    character.selectedRacialAbilityBonuses,
+  );
   const totalDex = character.abilityScores.DEX + (racialBonuses.DEX || 0) + (character.customAbilityBonuses?.DEX || 0);
   const dexMod = calculateModifier(totalDex);
   const totalCon = character.abilityScores.CON + (racialBonuses.CON || 0) + (character.customAbilityBonuses?.CON || 0);

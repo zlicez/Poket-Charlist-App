@@ -28,6 +28,7 @@ interface AbilityWithSkillsProps {
   customBonus: number;
   race: string;
   subrace?: string;
+  selectedRacialAbilityBonuses?: Partial<Record<AbilityName, number>>;
   level: number;
   skills: Record<string, SkillProficiency>;
   savingThrowProficient: boolean;
@@ -49,6 +50,7 @@ export function AbilityWithSkills({
   customBonus,
   race,
   subrace,
+  selectedRacialAbilityBonuses,
   level,
   skills,
   savingThrowProficient,
@@ -61,7 +63,11 @@ export function AbilityWithSkills({
   onRollSkill,
   isEditing,
 }: AbilityWithSkillsProps) {
-  const racialBonuses = getRacialBonuses(race, subrace);
+  const racialBonuses = getRacialBonuses(
+    race,
+    subrace,
+    selectedRacialAbilityBonuses,
+  );
   const racialBonus = racialBonuses[ability] || 0;
   const totalScore = baseScore + racialBonus + customBonus;
   const modifier = calculateModifier(totalScore);

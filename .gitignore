@@ -8,3 +8,7 @@ vite.config.ts.*
 ecosystem.config.cjs
 artifacts/
 attached_assets/
+scripts/data/raw-snapshots/
+scripts/data/import-log.json
+.dev-server.log
+.tmp-*.js

@@ -693,9 +693,6 @@ input[type="number"]::-webkit-inner-spin-button {
     }
   }
 
-  [id^="section-"] {
-    scroll-margin-top: 6rem;
-  }
 }
 
 /* ──── MOBILE BOTTOM TAB NAVIGATION ──────────────────────────────────────── */
@@ -716,9 +713,3 @@ input[type="number"]::-webkit-inner-spin-button {
   max-height: none;
 }
 
-/* On mobile (<lg) sections don't need scroll-margin since there is no anchor scroll */
-@media (max-width: 1023px) {
-  [id^="section-"] {
-    scroll-margin-top: 0;
-  }
-}

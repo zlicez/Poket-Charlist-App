@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,12 +12,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Drawer,
   DrawerContent,
@@ -51,17 +57,29 @@ import {
   Wand2,
   CheckCircle2,
   Pencil,
+  Search,
+  Check,
+  Eye,
+  ChevronDown,
+  Globe,
+  ShieldCheck,
+  Filter,
+  Eraser,
 } from "lucide-react";
 import { AvatarPickerModal, AvatarViewModal } from "@/components/AvatarPickerModal";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { NumericInput } from "@/components/ui/numeric-input";
+import { cn } from "@/lib/utils";
 import {
+  ABILITY_NAMES,
   CLASSES,
   RACES,
   ALIGNMENTS,
   RACE_DATA,
   CLASS_DATA,
   ABILITY_LABELS,
+  LANGUAGES,
+  createEmptyAbilityBonuses,
   getProficiencyBonus,
   formatModifier,
   getXPProgress,
@@ -70,26 +88,1272 @@ import {
   getTotalLevel,
   calculateModifier,
   getRacialBonuses,
+  getValidatedSelectedRacialBonuses,
+  getRaceSpeed,
+  getRaceCreatureType,
+  getRaceResistances,
 } from "@shared/schema";
-import type { Character, AbilityName, ClassEntry } from "@shared/schema";
+import type { Character, AbilityName, ClassEntry, RaceDefinition } from "@shared/schema";
+
+// ─── Race Picker — shared constants ──────────────────────────────────────────
+
+const SOURCE_LABELS: Record<string, string> = {
+  PHB:    "Книга игрока",
+  VGM:    "Руководство Воло",
+  MTF:    "Том о врагах Морденкайнена",
+  TCE:    "Котёл всего Таши",
+  MPMM:   "Монстры мультивселенной",
+  OGA:    "One Grung Above",
+  FTD:    "Сокровищница драконов Физбана",
+  VRGtR:  "Руководство Ван Рихтена",
+  CUSTOM: "Пользовательские",
+};
+
+const RACE_DAMAGE_LABELS: Record<string, string> = {
+  fire: "Огонь", cold: "Холод", lightning: "Молния",
+  acid: "Кислота", poison: "Яд", psychic: "Психика",
+  radiant: "Сияние", necrotic: "Некротика", thunder: "Гром",
+  force: "Силовой", piercing: "Колющий",
+  slashing: "Рубящий", bludgeoning: "Дробящий",
+};
+
+// ─── Race Picker — filter logic ───────────────────────────────────────────────
+
+// ─── Race Picker — multi-filter state ────────────────────────────────────────
+
+type ActiveFilters = {
+  sources: string[];
+  size: "" | "Small" | "Medium" | "Large";
+  darkvision: boolean;
+  lineage: boolean;
+};
+
+const DEFAULT_FILTERS: ActiveFilters = {
+  sources: [],
+  size: "",
+  darkvision: false,
+  lineage: false,
+};
+
+function countActiveFilters(f: ActiveFilters): number {
+  return (f.sources.length > 0 ? 1 : 0) +
+    (f.size ? 1 : 0) +
+    (f.darkvision ? 1 : 0) +
+    (f.lineage ? 1 : 0);
+}
+
+// All known sources that appear in RACE_DATA (ordered for display)
+const ALL_SOURCES = ["PHB", "VGM", "MTF", "TCE", "MPMM", "OGA", "FTD", "VRGtR"] as const;
+
+// Per-source race counts (static, computed once)
+const SOURCE_COUNTS: Record<string, number> = Object.fromEntries(
+  ALL_SOURCES.map((src) => [src, Object.values(RACE_DATA).filter((r) => r.source === src).length]),
+);
+
+function applyFilters(
+  raceData: Record<string, RaceDefinition>,
+  filters: ActiveFilters,
+  search: string,
+): RaceDefinition[] {
+  let result = Object.values(raceData);
+  if (search) {
+    const s = search.toLowerCase();
+    result = result.filter((r) => r.name.toLowerCase().includes(s));
+  }
+  if (filters.sources.length > 0) {
+    result = result.filter((r) => filters.sources.includes(r.source));
+  }
+  if (filters.size) {
+    result = result.filter((r) => r.size === filters.size);
+  }
+  if (filters.darkvision) {
+    result = result.filter((r) => (r.darkvision ?? 0) > 0);
+  }
+  if (filters.lineage) {
+    result = result.filter((r) => r.entityType === "lineage");
+  }
+  return result;
+}
+
+// ─── Race Picker — list row ───────────────────────────────────────────────────
+
+function RaceListRow({
+  race,
+  isSelected,
+  isActive,
+  onClick,
+}: {
+  race: RaceDefinition;
+  isSelected: boolean;
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "w-full flex items-center gap-2 px-2 py-2.5 rounded-md text-sm transition-colors text-left",
+        isActive
+          ? "bg-accent/15 text-foreground"
+          : "hover:bg-muted/60 text-foreground",
+      )}
+      data-testid={`race-option-${race.id}`}
+    >
+      <div className="w-4 shrink-0">
+        {isSelected && <Check className="w-4 h-4 text-accent" />}
+      </div>
+      <span className="flex-1 font-medium">{race.name}</span>
+      <div className="flex items-center gap-1.5 shrink-0 text-muted-foreground">
+        {race.entityType === "lineage" && (
+          <span className="text-[9px] font-semibold text-purple-500 uppercase tracking-wide">ЛИН</span>
+        )}
+        <span className="text-[10px] tabular-nums w-[28px] text-right">{race.speed}фт</span>
+        <span className={cn(
+          "text-[9px] font-semibold uppercase w-[14px] text-center",
+          race.size === "Small" ? "text-amber-500" : "text-muted-foreground/40",
+        )}>
+          {race.size === "Small" ? "S" : "M"}
+        </span>
+        {(race.darkvision ?? 0) > 0
+          ? <Eye className="w-3 h-3" />
+          : <div className="w-3" />
+        }
+      </div>
+    </button>
+  );
+}
+
+// ─── Race Picker — stat pill ──────────────────────────────────────────────────
+
+function RaceStatPill({
+  label,
+  value,
+  tooltip,
+}: {
+  label: string;
+  value: string;
+  tooltip: string;
+}) {
+  return (
+    <HelpTooltip
+      content={<p className="text-xs max-w-[220px]">{tooltip}</p>}
+      side="top"
+      asChild
+    >
+      <div className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg bg-muted/50 border border-border/40 cursor-help min-w-[68px]">
+        <span className="text-[10px] text-muted-foreground uppercase tracking-wide leading-none">{label}</span>
+        <span className="text-sm font-semibold leading-tight">{value}</span>
+      </div>
+    </HelpTooltip>
+  );
+}
+
+// ─── Race Picker — detail panel ───────────────────────────────────────────────
+
+function RaceDetailPanel({ race }: { race: RaceDefinition | null }) {
+  if (!race) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center px-6 py-10 space-y-5">
+        <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
+          <User className="w-8 h-8 text-muted-foreground" />
+        </div>
+        <div className="space-y-1.5">
+          <h3 className="font-semibold text-base">Выберите расу</h3>
+          <p className="text-sm text-muted-foreground">
+            Нажмите на любую расу слева — здесь появится её описание
+          </p>
+        </div>
+        <div className="w-full max-w-[260px] space-y-3 text-left">
+          <div className="flex gap-2.5 items-start">
+            <span className="text-lg shrink-0">🎭</span>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              <strong className="text-foreground">Раса</strong> — кем был ваш персонаж с рождения: человеком, эльфом, гоблином или кем-то ещё
+            </p>
+          </div>
+          <div className="flex gap-2.5 items-start">
+            <span className="text-lg shrink-0">⚡</span>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Она даёт <strong className="text-foreground">бонусы характеристик</strong>, скорость движения и уникальные способности
+            </p>
+          </div>
+          <div className="flex gap-2.5 items-start">
+            <span className="text-lg shrink-0">📖</span>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Новичкам рекомендуем <strong className="text-foreground">Книга игрока (PHB)</strong> — там стандартные сбалансированные расы
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const hasFixedBonuses = Object.values(race.abilityBonuses).some((v) => v !== 0);
+  const sizeLabel = race.size === "Small" ? "Маленький" : race.size === "Large" ? "Большой" : "Средний";
+  const sizeTip =
+    race.size === "Small"
+      ? "Маленький размер. Персонаж не может использовать тяжёлое двуручное оружие, зато легче прячется."
+      : "Средний размер — стандарт для большинства рас. Нет особых ограничений.";
+
+  return (
+    <ScrollArea className="h-full">
+      <div className="p-4 space-y-4 pb-6">
+
+        {/* Header */}
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-xl font-bold leading-tight">{race.name}</h2>
+            {race.entityType === "lineage" && (
+              <Badge className="text-xs bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-400/30 border">
+                Линидж
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground">
+              {SOURCE_LABELS[race.source] ?? race.source}
+            </span>
+            <span className="text-muted-foreground/40">·</span>
+            <span className="text-xs text-muted-foreground">{race.creatureType}</span>
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed pt-0.5">
+            {race.description}
+          </p>
+        </div>
+
+        {/* Key stats row */}
+        <div className="flex flex-wrap gap-2">
+          <RaceStatPill
+            label="Скорость"
+            value={`${race.speed} фт.`}
+            tooltip="Скорость — сколько футов персонаж проходит за ход (1 клетка = 5 фт.). Стандарт — 30 фт."
+          />
+          <RaceStatPill
+            label="Размер"
+            value={sizeLabel}
+            tooltip={sizeTip}
+          />
+          <RaceStatPill
+            label="Тёмное зрение"
+            value={(race.darkvision ?? 0) > 0 ? `${race.darkvision} фт.` : "Нет"}
+            tooltip="Тёмное зрение: видите в кромешной темноте как в тусклом свете. Очень полезно в подземельях."
+          />
+          {(race.altSpeeds?.swim ?? 0) > 0 && (
+            <RaceStatPill label="Плавание" value={`${race.altSpeeds!.swim} фт.`}
+              tooltip="Скорость плавания — плывёте без штрафов в воде." />
+          )}
+          {(race.altSpeeds?.climb ?? 0) > 0 && (
+            <RaceStatPill label="Лазание" value={`${race.altSpeeds!.climb} фт.`}
+              tooltip="Скорость лазания — карабкаетесь по вертикальным поверхностям." />
+          )}
+          {(race.altSpeeds?.fly ?? 0) > 0 && (
+            <RaceStatPill label="Полёт" value={`${race.altSpeeds!.fly} фт.`}
+              tooltip="Скорость полёта." />
+          )}
+        </div>
+
+        {/* Ability bonuses */}
+        <div className="space-y-1.5">
+          <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Бонусы характеристик
+          </h4>
+          {hasFixedBonuses ? (
+            <div className="flex flex-wrap gap-1.5">
+              {(ABILITY_NAMES as readonly AbilityName[])
+                .filter((a) => (race.abilityBonuses[a] ?? 0) !== 0)
+                .map((a) => (
+                  <Badge key={a} variant="secondary" className="text-xs font-medium">
+                    {ABILITY_LABELS[a].ru} +{race.abilityBonuses[a]}
+                  </Badge>
+                ))}
+            </div>
+          ) : race.abilityBonusSelection ? (
+            <div className="rounded-lg bg-muted/40 px-3 py-2">
+              <p className="text-xs text-muted-foreground">{race.abilityBonusSelection.description}</p>
+              <p className="text-[11px] text-muted-foreground/70 mt-1">
+                Вы распределяете бонусы сами — это делает расу универсальной для любого класса
+              </p>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground italic">Нет фиксированных бонусов</p>
+          )}
+        </div>
+
+        {/* Resistances */}
+        {(race.resistances?.length ?? 0) > 0 && (
+          <div className="space-y-1.5">
+            <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Сопротивление к урону
+            </h4>
+            <div className="flex flex-wrap gap-1.5">
+              {race.resistances!.map((r) => (
+                <Badge key={r} variant="outline"
+                  className="text-xs gap-1 border-emerald-500/40 text-emerald-700 dark:text-emerald-400">
+                  <ShieldCheck className="w-3 h-3" />
+                  {RACE_DAMAGE_LABELS[r] ?? r}
+                </Badge>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Сопротивление — получаете вдвое меньше урона указанного типа
+            </p>
+          </div>
+        )}
+
+        {/* Immunities */}
+        {(race.immunities?.length ?? 0) > 0 && (
+          <div className="space-y-1.5">
+            <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Иммунитет к урону
+            </h4>
+            <div className="flex flex-wrap gap-1.5">
+              {race.immunities!.map((r) => (
+                <Badge key={r} variant="outline"
+                  className="text-xs gap-1 border-blue-500/40 text-blue-700 dark:text-blue-400">
+                  <ShieldCheck className="w-3 h-3" />
+                  {RACE_DAMAGE_LABELS[r] ?? r}
+                </Badge>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Иммунитет — не получаете урон указанного типа совсем
+            </p>
+          </div>
+        )}
+
+        {/* Traits */}
+        {race.traits && race.traits.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Расовые особенности
+            </h4>
+            <ul className="space-y-2">
+              {race.traits.map((trait, i) => {
+                const text = typeof trait === "string" ? trait : `${trait.name}: ${trait.description}`;
+                const colonIdx = text.indexOf(":");
+                if (colonIdx > 0 && colonIdx < 45) {
+                  return (
+                    <li key={i} className="text-sm leading-relaxed">
+                      <span className="font-medium">{text.slice(0, colonIdx).trim()}</span>
+                      <span className="text-muted-foreground"> — {text.slice(colonIdx + 1).trim()}</span>
+                    </li>
+                  );
+                }
+                return (
+                  <li key={i} className="flex gap-2 text-sm">
+                    <span className="text-accent mt-0.5 shrink-0">•</span>
+                    <span className="text-muted-foreground leading-relaxed">{text}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
+        {/* Spell grants */}
+        {(race.spellGrants?.length ?? 0) > 0 && (
+          <div className="space-y-1.5">
+            <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Расовые заклинания
+            </h4>
+            <p className="text-[11px] text-muted-foreground">
+              Изучаете эти заклинания автоматически — тратить ячейки не нужно (если не указано иное)
+            </p>
+            <ul className="space-y-1.5">
+              {race.spellGrants!.map((sg, i) => (
+                <li key={i} className="flex items-baseline gap-2 text-sm">
+                  <span className="font-medium">{sg.spellName}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {sg.minLevel === 0 ? "заговор (∞)" : `с ${sg.minLevel} ур.`}
+                    {sg.usesLongRest ? " · 1×/длин. отдых" : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Skill proficiencies (auto) */}
+        {(race.skillProficiencies?.length ?? 0) > 0 && (
+          <div className="space-y-1.5">
+            <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Владение навыками
+            </h4>
+            <div className="flex flex-wrap gap-1.5">
+              {race.skillProficiencies!.map((s) => (
+                <Badge key={s} variant="outline" className="text-xs">{s}</Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Skill choices */}
+        {race.skillChoices && race.skillChoices.count > 0 && (
+          <div className="space-y-1.5">
+            <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Выбор навыков
+            </h4>
+            <p className="text-xs text-muted-foreground">
+              Вы выбираете {race.skillChoices.count}{" "}
+              {race.skillChoices.count === 1 ? "навык" : "навыка"}{" "}
+              {race.skillChoices.options === "any"
+                ? "из любых доступных"
+                : `из: ${(race.skillChoices.options as string[]).join(", ")}`}
+            </p>
+          </div>
+        )}
+
+        {/* Languages */}
+        {race.languages && race.languages.length > 0 && (
+          <div className="space-y-1.5">
+            <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Языки</h4>
+            <div className="flex flex-wrap gap-1.5">
+              {race.languages.map((lang, i) => (
+                <Badge key={i} variant="secondary" className="text-xs gap-1">
+                  <Globe className="w-3 h-3" />
+                  {lang === "Один на выбор" ? "Один на выбор (выберете после)" : lang}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Subraces */}
+        {race.subraces && Object.keys(race.subraces).length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Подрасы — выберете после выбора расы
+            </h4>
+            <div className="space-y-1.5">
+              {Object.values(race.subraces).map((sub) => {
+                const bonusEntries = Object.entries(sub.abilityBonuses).filter(([, v]) => v !== 0);
+                return (
+                  <div key={sub.id}
+                    className="rounded-lg bg-muted/30 border border-border/40 px-3 py-2.5 space-y-1">
+                    <div className="font-medium text-sm">{sub.name}</div>
+                    {sub.description && (
+                      <p className="text-xs text-muted-foreground leading-relaxed">{sub.description}</p>
+                    )}
+                    {(bonusEntries.length > 0 || sub.speed || sub.darkvision) && (
+                      <div className="flex flex-wrap gap-1 pt-0.5">
+                        {bonusEntries.map(([ability, value]) => (
+                          <Badge key={ability} variant="secondary" className="text-[10px] px-1.5 py-0">
+                            {ABILITY_LABELS[ability as AbilityName]?.ru ?? ability} +{value}
+                          </Badge>
+                        ))}
+                        {sub.speed && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                            {sub.speed} фт.
+                          </Badge>
+                        )}
+                        {sub.darkvision && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-1">
+                            <Eye className="w-2.5 h-2.5" />{sub.darkvision} фт.
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+      </div>
+    </ScrollArea>
+  );
+}
+
+// ─── Race Picker Dialog ───────────────────────────────────────────────────────
+
+function RacePickerDialog({
+  value,
+  subrace,
+  onChange,
+}: {
+  value: string;
+  subrace?: string;
+  onChange: (race: string, subrace?: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [appliedFilters, setAppliedFilters] = useState<ActiveFilters>(DEFAULT_FILTERS);
+  const [pendingFilters, setPendingFilters] = useState<ActiveFilters>(DEFAULT_FILTERS);
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const [highlighted, setHighlighted] = useState<string>(value);
+  const [pendingSubrace, setPendingSubrace] = useState<string | undefined>(subrace);
+  const [mobileView, setMobileView] = useState<"list" | "detail">("list");
+  const isDesktop = useMediaQuery("(min-width: 640px)");
+
+  const currentRaceData = RACE_DATA[value];
+  const totalCount = Object.keys(RACE_DATA).length;
+  const activeFilterCount = countActiveFilters(appliedFilters);
+  const sorted = useMemo(() => {
+    const filtered = applyFilters(RACE_DATA, appliedFilters, search);
+    return filtered.sort((a, b) => a.name.localeCompare(b.name, "ru"));
+  }, [appliedFilters, search]);
+  const highlightedRace = RACE_DATA[highlighted] ?? null;
+  const highlightedSubraces = highlightedRace?.subraces
+    ? Object.values(highlightedRace.subraces)
+    : [];
+  const isCurrentlySelected = highlightedRace?.name === value;
+  const isAlreadySelectedWithSameSubrace =
+    isCurrentlySelected && (pendingSubrace ?? undefined) === (subrace ?? undefined);
+
+  // Reset pendingSubrace when moving to a different race in the list
+  useEffect(() => {
+    if (highlightedRace?.name === value) {
+      setPendingSubrace(subrace);
+    } else {
+      setPendingSubrace(undefined);
+    }
+  }, [highlighted]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-sync: when filters/search removes highlighted race from results, jump to first
+  useEffect(() => {
+    if (sorted.length > 0 && !sorted.find((r) => r.name === highlighted)) {
+      setHighlighted(sorted[0].name);
+    }
+  }, [appliedFilters, search]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleOpenChange = (v: boolean) => {
+    setOpen(v);
+    if (v) {
+      setHighlighted(value || sorted[0]?.name || "");
+      setPendingSubrace(subrace);
+      setMobileView("list");
+      setFilterPanelOpen(false);
+    } else {
+      setSearch("");
+      // Keep appliedFilters across opens so user doesn't lose their filter config
+    }
+  };
+
+  const handleConfirm = () => {
+    if (!highlightedRace) return;
+    onChange(highlightedRace.name, pendingSubrace);
+    setOpen(false);
+    setSearch("");
+  };
+
+  const handleClearFilters = () => {
+    setAppliedFilters(DEFAULT_FILTERS);
+    setPendingFilters(DEFAULT_FILTERS);
+  };
+
+  const handleApplyFilters = () => {
+    setAppliedFilters(pendingFilters);
+    setFilterPanelOpen(false);
+  };
+
+  const toggleFilterPanel = () => {
+    if (!filterPanelOpen) setPendingFilters(appliedFilters); // sync draft to current
+    setFilterPanelOpen((v) => !v);
+  };
+
+  const handleRowClick = (raceName: string) => {
+    setHighlighted(raceName);
+    if (!isDesktop) setMobileView("detail");
+  };
+
+  // Steps the user still needs to take after confirming (subraces handled inline)
+  const pendingSteps = useMemo(() => {
+    if (!highlightedRace) return [];
+    const steps: string[] = [];
+    if (highlightedRace.abilityBonusSelection) {
+      steps.push("распределить бонусы характеристик");
+    }
+    if (highlightedRace.skillChoices && highlightedRace.skillChoices.count > 0) {
+      const n = highlightedRace.skillChoices.count;
+      steps.push(`выбрать ${n} навык${n === 1 ? "" : n < 5 ? "а" : "ов"}`);
+    }
+    if (highlightedRace.languages?.some((l) => l === "Один на выбор")) {
+      const n = highlightedRace.languages.filter((l) => l === "Один на выбор").length;
+      steps.push(n === 1 ? "выбрать язык" : `выбрать ${n} языка`);
+    }
+    return steps;
+  }, [highlightedRace]);
+
+  // ── Shared: search bar / filter panel + column headers ────────────────────
+  const listControls = (
+    <>
+      {/* Search row OR filter panel header */}
+      <div className="px-3 pb-2 shrink-0 flex items-center gap-1.5">
+        {filterPanelOpen ? (
+          <span className="flex-1 text-sm font-semibold">Фильтры</span>
+        ) : (
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Поиск…"
+              className="pl-8 h-8 text-sm"
+              autoFocus={isDesktop}
+            />
+          </div>
+        )}
+        {/* Clear filters (eraser) — only when filters are applied */}
+        {activeFilterCount > 0 && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+            onClick={handleClearFilters}
+            title="Сбросить фильтры"
+          >
+            <Eraser className="w-3.5 h-3.5" />
+          </Button>
+        )}
+        {/* Filter panel toggle (funnel) */}
+        <Button
+          type="button"
+          variant={filterPanelOpen ? "secondary" : "ghost"}
+          size="icon"
+          className="h-8 w-8 shrink-0 relative"
+          onClick={toggleFilterPanel}
+          title="Фильтры"
+        >
+          <Filter className="w-3.5 h-3.5" />
+          {activeFilterCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] rounded-full bg-accent flex items-center justify-center text-[8px] font-bold text-white px-0.5">
+              {activeFilterCount}
+            </span>
+          )}
+        </Button>
+      </div>
+
+      {/* Filter panel (shown instead of chips when open) */}
+      {filterPanelOpen && (
+        <div className="px-3 pb-3 shrink-0 space-y-3 border-b border-border/30">
+
+          {/* Source checkboxes */}
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Источник
+            </p>
+            <div className="flex flex-wrap gap-1">
+              {ALL_SOURCES.filter((src) => (SOURCE_COUNTS[src] ?? 0) > 0).map((src) => {
+                const active = pendingFilters.sources.includes(src);
+                return (
+                  <button
+                    key={src}
+                    type="button"
+                    onClick={() =>
+                      setPendingFilters((prev) => ({
+                        ...prev,
+                        sources: active
+                          ? prev.sources.filter((s) => s !== src)
+                          : [...prev.sources, src],
+                      }))
+                    }
+                    className={cn(
+                      "rounded-full px-2 py-0.5 text-[11px] font-medium border transition-colors",
+                      active
+                        ? "bg-accent/15 border-accent/50 text-foreground"
+                        : "border-border/50 text-muted-foreground hover:border-border hover:text-foreground bg-transparent",
+                    )}
+                  >
+                    {src}
+                    <span className="ml-1 opacity-55">({SOURCE_COUNTS[src]})</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Size radio */}
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Размер
+            </p>
+            <div className="flex gap-1">
+              {[
+                { value: "" as const, label: "Любой" },
+                { value: "Small" as const, label: "Маленький" },
+                { value: "Medium" as const, label: "Средний" },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setPendingFilters((prev) => ({ ...prev, size: opt.value }))}
+                  className={cn(
+                    "rounded-full px-2.5 py-1 text-xs font-medium border transition-colors",
+                    pendingFilters.size === opt.value
+                      ? "bg-accent/15 border-accent/50 text-foreground"
+                      : "border-border/50 text-muted-foreground hover:border-border hover:text-foreground bg-transparent",
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Toggle chips */}
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Особенности
+            </p>
+            <div className="flex flex-wrap gap-1">
+              {([
+                { key: "darkvision", label: "Тёмное зрение" },
+                { key: "lineage",    label: "Линидж" },
+              ] as const).map(({ key, label }) => {
+                const active = pendingFilters[key];
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setPendingFilters((prev) => ({ ...prev, [key]: !prev[key] }))}
+                    className={cn(
+                      "rounded-full px-2.5 py-1 text-xs font-medium border transition-colors",
+                      active
+                        ? "bg-accent/15 border-accent/50 text-foreground"
+                        : "border-border/50 text-muted-foreground hover:border-border hover:text-foreground bg-transparent",
+                    )}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Apply button */}
+          <Button
+            type="button"
+            className="w-full h-8 text-sm"
+            onClick={handleApplyFilters}
+          >
+            Применить фильтры
+          </Button>
+        </div>
+      )}
+
+      {/* Column headers — always visible */}
+      <div className="px-4 pb-1 shrink-0">
+        <div className="flex items-center text-[10px] text-muted-foreground/60 uppercase tracking-wide">
+          <span className="w-4 shrink-0" />
+          <span className="flex-1 ml-2">Название</span>
+          <span className="w-24 text-right pr-1">Скор. · Р · Зрение</span>
+        </div>
+      </div>
+    </>
+  );
+
+  // ── Shared: scrollable race list ───────────────────────────────────────────
+  const raceList = (
+    <ScrollArea className="flex-1 px-2 min-h-0">
+      <div className="pb-3">
+        {sorted.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-8">Ничего не найдено</p>
+        ) : (
+          sorted.map((r) => (
+            <RaceListRow
+              key={r.id}
+              race={r}
+              isSelected={r.name === value}
+              isActive={r.name === highlighted}
+              onClick={() => handleRowClick(r.name)}
+            />
+          ))
+        )}
+      </div>
+    </ScrollArea>
+  );
+
+  // ── Shared: sticky action bar (subrace select + confirm button) ────────────
+  const actionBar = highlightedRace ? (
+    <div className="shrink-0 border-t border-border/50 bg-background px-4 py-3 space-y-2.5">
+      {highlightedSubraces.length > 0 && (
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">Подраса</label>
+          <Select
+            value={pendingSubrace ?? "__none__"}
+            onValueChange={(v) => setPendingSubrace(v === "__none__" ? undefined : v)}
+          >
+            <SelectTrigger className="h-9 text-sm" data-testid="select-subrace-in-picker">
+              <SelectValue placeholder="Выбрать подрасу…" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">Без подрасы</SelectItem>
+              {highlightedSubraces.map((sub) => (
+                <SelectItem key={sub.id} value={sub.name}>{sub.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+      {pendingSteps.length > 0 && (
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          После выбора нужно будет: {pendingSteps.join(", ")}
+        </p>
+      )}
+      <Button
+        className="w-full gap-2"
+        variant={isAlreadySelectedWithSameSubrace ? "outline" : "default"}
+        onClick={handleConfirm}
+      >
+        {isAlreadySelectedWithSameSubrace
+          ? <><Check className="w-4 h-4" /> Уже выбрано</>
+          : `Выбрать: ${highlightedRace.name}${pendingSubrace ? ` · ${pendingSubrace}` : ""}`
+        }
+      </Button>
+    </div>
+  ) : null;
+
+  const trigger = (
+    <Button
+      type="button"
+      variant="outline"
+      className="flex-1 h-10 text-sm justify-between gap-2 font-normal"
+      onClick={() => handleOpenChange(true)}
+      data-testid="button-open-race-picker"
+    >
+      <span className="truncate text-left">
+        {value
+          ? subrace ? `${value} · ${subrace}` : value
+          : "Выберите расу…"}
+      </span>
+      <div className="flex items-center gap-1 shrink-0">
+        {currentRaceData && (
+          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-normal">
+            {currentRaceData.source}
+          </Badge>
+        )}
+        <ChevronDown className="w-4 h-4 text-muted-foreground" />
+      </div>
+    </Button>
+  );
+
+  // ── Mobile: Drawer (bottom sheet) ─────────────────────────────────────────
+  if (!isDesktop) {
+    return (
+      <>
+        {trigger}
+        <Drawer open={open} onOpenChange={handleOpenChange}>
+          <DrawerContent className="flex flex-col p-0 gap-0 max-h-[94vh]">
+            {mobileView === "list" ? (
+              <div className="flex flex-col flex-1 min-h-0">
+                <DrawerHeader className="px-4 pt-3 pb-2 shrink-0 text-left border-b border-border/30">
+                  <DrawerTitle className="flex items-baseline gap-2 text-base">
+                    Выбор расы
+                    <span className="text-xs font-normal text-muted-foreground">
+                      {sorted.length === totalCount
+                        ? `${totalCount} рас`
+                        : `${sorted.length} из ${totalCount}`}
+                    </span>
+                  </DrawerTitle>
+                </DrawerHeader>
+                {listControls}
+                {raceList}
+              </div>
+            ) : (
+              <div className="flex flex-col flex-1 min-h-0">
+                <div className="shrink-0 px-3 pt-2 pb-1.5 border-b border-border/50 flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1 h-7 text-xs -ml-2 text-muted-foreground shrink-0"
+                    onClick={() => setMobileView("list")}
+                  >
+                    ← Список
+                  </Button>
+                  {highlightedRace && (
+                    <span className="font-semibold text-sm truncate">{highlightedRace.name}</span>
+                  )}
+                </div>
+                <RaceDetailPanel race={highlightedRace} />
+                {actionBar}
+              </div>
+            )}
+          </DrawerContent>
+        </Drawer>
+      </>
+    );
+  }
+
+  // ── Desktop: Dialog (two-panel) ────────────────────────────────────────────
+  return (
+    <>
+      {trigger}
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent className="p-0 gap-0 overflow-hidden flex flex-row max-w-5xl h-[88vh]">
+          <DialogTitle className="sr-only">Выбор расы</DialogTitle>
+
+          {/* Left / List panel */}
+          <div className="w-72 border-r border-border/50 shrink-0 h-full flex flex-col">
+            <div className="px-4 pt-4 pb-3 shrink-0">
+              <div className="flex items-baseline gap-2">
+                <h2 className="font-semibold text-base">Выбор расы</h2>
+                <span className="text-xs font-normal text-muted-foreground">
+                  {sorted.length === totalCount
+                    ? `${totalCount} рас`
+                    : `${sorted.length} из ${totalCount}`}
+                </span>
+              </div>
+            </div>
+            {listControls}
+            {raceList}
+          </div>
+
+          {/* Right / Detail + action panel */}
+          <div className="flex flex-col flex-1 min-h-0 min-w-0">
+            <RaceDetailPanel race={highlightedRace} />
+            {actionBar}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+// ─── Language Choice Editor ───────────────────────────────────────────────────
+
+function LanguageChoiceEditor({
+  character,
+  onChange,
+}: {
+  character: Character;
+  onChange: (updates: Partial<Character>) => void;
+}) {
+  const raceData = RACE_DATA[character.race];
+  if (!raceData) return null;
+
+  const choiceSlots = raceData.languages.filter((l) => l === "Один на выбор");
+  if (choiceSlots.length === 0) return null;
+
+  const currentChoices =
+    (character.raceSelections?.["language-choices"] as string[] | undefined) ?? [];
+
+  // Languages already fixed by the race (non-choice slots)
+  const fixedLangs = raceData.languages.filter((l) => l !== "Один на выбор");
+
+  const handleChoiceChange = (index: number, lang: string) => {
+    const next = [...currentChoices];
+    next[index] = lang;
+    onChange({
+      raceSelections: {
+        ...(character.raceSelections ?? {}),
+        "language-choices": next,
+      },
+    });
+  };
+
+  return (
+    <div className="rounded-xl border border-border/60 bg-muted/20 p-3 space-y-2">
+      <div className="flex items-center gap-1.5">
+        <Globe className="w-3.5 h-3.5 text-muted-foreground" />
+        <span className="text-xs font-medium">
+          {choiceSlots.length === 1 ? "Дополнительный язык" : `Дополнительные языки (${choiceSlots.length})`}
+        </span>
+      </div>
+      {choiceSlots.map((_, i) => (
+        <Select
+          key={i}
+          value={currentChoices[i] ?? ""}
+          onValueChange={(v) => handleChoiceChange(i, v)}
+        >
+          <SelectTrigger className="h-9 text-sm" data-testid={`select-language-choice-${i}`}>
+            <SelectValue placeholder="Выберите язык…" />
+          </SelectTrigger>
+          <SelectContent>
+            {(LANGUAGES as readonly string[]).map((lang) => {
+              const usedByOtherSlot = currentChoices.some((c, j) => j !== i && c === lang);
+              const isFixedLang = fixedLangs.includes(lang);
+              return (
+                <SelectItem
+                  key={lang}
+                  value={lang}
+                  disabled={usedByOtherSlot || isFixedLang}
+                >
+                  {lang}
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
+      ))}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 function formatAbilityBonuses(
   bonuses: Partial<Record<AbilityName, number>>,
 ): string {
-  return Object.entries(bonuses)
-    .map(
-      ([ability, bonus]) =>
-        `${ABILITY_LABELS[ability as AbilityName].ru} +${bonus}`,
-    )
+  return ABILITY_NAMES.filter((ability) => (bonuses[ability] || 0) !== 0)
+    .map((ability) => `${ABILITY_LABELS[ability].ru} +${bonuses[ability]}`)
     .join(", ");
+}
+
+type FlexibleBonusMode = "split" | "spread";
+
+function hasAssignedAbilityBonuses(
+  bonuses?: Partial<Record<AbilityName, number>>,
+): boolean {
+  return ABILITY_NAMES.some((ability) => (bonuses?.[ability] || 0) > 0);
+}
+
+function detectFlexibleBonusMode(
+  bonuses?: Partial<Record<AbilityName, number>>,
+): FlexibleBonusMode | null {
+  const appliedBonuses = ABILITY_NAMES.map((ability) => bonuses?.[ability] || 0)
+    .filter((bonus) => bonus > 0)
+    .sort((a, b) => b - a);
+
+  if (appliedBonuses.includes(2)) {
+    return "split";
+  }
+
+  if (
+    appliedBonuses.length === 3 &&
+    appliedBonuses.every((bonus) => bonus === 1)
+  ) {
+    return "spread";
+  }
+
+  return null;
+}
+
+function buildSplitAbilityBonuses(
+  primary?: AbilityName,
+  secondary?: AbilityName,
+) {
+  const bonuses = createEmptyAbilityBonuses();
+
+  if (primary) {
+    bonuses[primary] = 2;
+  }
+
+  if (secondary && secondary !== primary) {
+    bonuses[secondary] = 1;
+  }
+
+  return bonuses;
+}
+
+function buildSpreadAbilityBonuses(selectedAbilities: AbilityName[]) {
+  const bonuses = createEmptyAbilityBonuses();
+
+  for (const ability of selectedAbilities.slice(0, 3)) {
+    bonuses[ability] = 1;
+  }
+
+  return bonuses;
+}
+
+function AbilityBonusChip({
+  label,
+  selected,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  selected: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+        "disabled:cursor-not-allowed disabled:opacity-40",
+        selected
+          ? "border-accent bg-accent/12 text-foreground shadow-sm"
+          : "border-border bg-background text-muted-foreground hover:border-accent/40 hover:text-foreground",
+      )}
+    >
+      {label}
+    </button>
+  );
+}
+
+function FlexibleRaceBonusesEditor({
+  character,
+  onChange,
+}: {
+  character: Character;
+  onChange: (updates: Partial<Character>) => void;
+}) {
+  const raceData = RACE_DATA[character.race];
+  const selection = raceData?.abilityBonusSelection;
+
+  if (!selection) {
+    return null;
+  }
+
+  const selectedBonuses =
+    character.selectedRacialAbilityBonuses ?? createEmptyAbilityBonuses();
+  const validatedSelectedBonuses = getValidatedSelectedRacialBonuses(
+    character.race,
+    selectedBonuses,
+  );
+  const hasValidSelection = hasAssignedAbilityBonuses(validatedSelectedBonuses);
+  const detectedMode = detectFlexibleBonusMode(selectedBonuses);
+  const [mode, setMode] = useState<FlexibleBonusMode>(() =>
+    detectedMode ?? "split",
+  );
+
+  useEffect(() => {
+    if (detectedMode) {
+      setMode(detectedMode);
+    }
+  }, [detectedMode]);
+
+  const splitPrimary = ABILITY_NAMES.find(
+    (ability) => selectedBonuses[ability] === 2,
+  );
+  const splitSecondary = ABILITY_NAMES.find(
+    (ability) => selectedBonuses[ability] === 1,
+  );
+  const spreadSelections = ABILITY_NAMES.filter(
+    (ability) => selectedBonuses[ability] === 1,
+  );
+  const splitLabel =
+    selection.patterns.find((pattern) => pattern.id === "split")?.label ||
+    "+2 и +1";
+  const spreadLabel =
+    selection.patterns.find((pattern) => pattern.id === "spread")?.label ||
+    "+1 к трём";
+
+  const setSelectedBonuses = (
+    nextBonuses: ReturnType<typeof createEmptyAbilityBonuses>,
+  ) => {
+    onChange({ selectedRacialAbilityBonuses: nextBonuses });
+  };
+
+  const handleModeChange = (nextMode: FlexibleBonusMode) => {
+    setMode(nextMode);
+    setSelectedBonuses(createEmptyAbilityBonuses());
+  };
+
+  return (
+    <div className="rounded-xl border border-border/60 bg-muted/20 p-3 space-y-3">
+      <div className="space-y-1">
+        <div className="text-xs font-medium">Расовые бонусы характеристик</div>
+        <p className="text-xs text-muted-foreground">{selection.description}</p>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          variant={mode === "split" ? "default" : "outline"}
+          size="sm"
+          className="h-8 text-xs"
+          onClick={() => handleModeChange("split")}
+        >
+          {splitLabel}
+        </Button>
+        <Button
+          type="button"
+          variant={mode === "spread" ? "default" : "outline"}
+          size="sm"
+          className="h-8 text-xs"
+          onClick={() => handleModeChange("spread")}
+        >
+          {spreadLabel}
+        </Button>
+      </div>
+
+      {mode === "split" ? (
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <div className="text-xs text-muted-foreground">Выберите бонус +2</div>
+            <div className="flex flex-wrap gap-2">
+              {ABILITY_NAMES.map((ability) => (
+                <AbilityBonusChip
+                  key={`split-primary-${ability}`}
+                  label={ABILITY_LABELS[ability].ru}
+                  selected={splitPrimary === ability}
+                  onClick={() => {
+                    const nextPrimary =
+                      splitPrimary === ability ? undefined : ability;
+                    const nextSecondary =
+                      splitSecondary === nextPrimary ? undefined : splitSecondary;
+                    setSelectedBonuses(
+                      buildSplitAbilityBonuses(nextPrimary, nextSecondary),
+                    );
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="text-xs text-muted-foreground">Выберите бонус +1</div>
+            <div className="flex flex-wrap gap-2">
+              {ABILITY_NAMES.map((ability) => (
+                <AbilityBonusChip
+                  key={`split-secondary-${ability}`}
+                  label={ABILITY_LABELS[ability].ru}
+                  selected={splitSecondary === ability}
+                  disabled={splitPrimary === ability}
+                  onClick={() => {
+                    if (splitPrimary === ability) return;
+                    const nextSecondary =
+                      splitSecondary === ability ? undefined : ability;
+                    setSelectedBonuses(
+                      buildSplitAbilityBonuses(splitPrimary, nextSecondary),
+                    );
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <div className="text-xs text-muted-foreground">
+            Выберите три разные характеристики
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {ABILITY_NAMES.map((ability) => {
+              const isSelected = spreadSelections.includes(ability);
+              const isDisabled = !isSelected && spreadSelections.length >= 3;
+              return (
+                <AbilityBonusChip
+                  key={`spread-${ability}`}
+                  label={ABILITY_LABELS[ability].ru}
+                  selected={isSelected}
+                  disabled={isDisabled}
+                  onClick={() => {
+                    const nextSelections = isSelected
+                      ? spreadSelections.filter((value) => value !== ability)
+                      : [...spreadSelections, ability];
+                    setSelectedBonuses(buildSpreadAbilityBonuses(nextSelections));
+                  }}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {!hasValidSelection && (
+        <p className="text-[11px] text-muted-foreground">
+          Бонусы начнут учитываться после полного выбора схемы.
+        </p>
+      )}
+    </div>
+  );
 }
 
 function RaceTooltipContent({
   raceName,
   subraceName,
+  selectedRacialAbilityBonuses,
 }: {
   raceName: string;
   subraceName?: string;
+  selectedRacialAbilityBonuses?: Partial<Record<AbilityName, number>>;
 }) {
   const raceData = RACE_DATA[raceName];
   if (!raceData) return null;
@@ -97,24 +1361,34 @@ function RaceTooltipContent({
   const subraceData = subraceName
     ? raceData.subraces?.[subraceName]
     : undefined;
-  const combinedBonuses = { ...raceData.abilityBonuses };
-  if (subraceData && typeof subraceData === "object") {
-    Object.entries(subraceData.abilityBonuses).forEach(([key, value]) => {
-      combinedBonuses[key as AbilityName] =
-        (combinedBonuses[key as AbilityName] || 0) + value;
-    });
-  }
+  const combinedBonuses = getRacialBonuses(
+    raceName,
+    subraceName,
+    selectedRacialAbilityBonuses,
+  );
+  const formattedBonuses = formatAbilityBonuses(combinedBonuses);
+  const bonusSummary =
+    formattedBonuses ||
+    raceData.abilityBonusSelection?.description ||
+    "Нет";
 
   const subraceDescription =
     subraceData && typeof subraceData === "object"
       ? subraceData.description
       : undefined;
 
+  const effectiveSpeed = getRaceSpeed(raceName, subraceName);
+  const resistances = getRaceResistances(raceName, subraceName);
+  const creatureType = getRaceCreatureType(raceName);
+
   return (
     <div className="space-y-2 max-w-xs">
       <div className="font-bold text-sm">
         {raceName}
         {subraceName ? ` (${subraceName})` : ""}
+        <span className="font-normal text-muted-foreground ml-1 text-xs">
+          [{raceData.source}]
+        </span>
       </div>
       <p className="text-xs text-muted-foreground">{raceData.description}</p>
       {subraceDescription && (
@@ -123,11 +1397,24 @@ function RaceTooltipContent({
       <div className="space-y-1 text-xs">
         <div>
           <span className="font-medium">Бонусы:</span>{" "}
-          {formatAbilityBonuses(combinedBonuses)}
+          {bonusSummary}
         </div>
         <div>
-          <span className="font-medium">Скорость:</span> {raceData.speed} фт.
+          <span className="font-medium">Скорость:</span> {effectiveSpeed} фт.
         </div>
+        <div>
+          <span className="font-medium">Тип существа:</span> {creatureType}
+        </div>
+        <div>
+          <span className="font-medium">Размер:</span>{" "}
+          {raceData.size === "Small" ? "Маленький" : raceData.size === "Large" ? "Большой" : "Средний"}
+        </div>
+        {resistances.length > 0 && (
+          <div>
+            <span className="font-medium">Сопротивления:</span>{" "}
+            {resistances.join(", ")}
+          </div>
+        )}
         <div>
           <span className="font-medium">Языки:</span>{" "}
           {raceData.languages.join(", ")}
@@ -136,7 +1423,7 @@ function RaceTooltipContent({
           <span className="font-medium">Особенности:</span>
           <ul className="list-disc list-inside ml-1">
             {raceData.traits.map((trait, i) => (
-              <li key={i}>{trait}</li>
+              <li key={i}>{typeof trait === "string" ? trait : trait.name}</li>
             ))}
           </ul>
         </div>
@@ -308,7 +1595,7 @@ function EditingFields({
   character: Character;
   onChange: (updates: Partial<Character>) => void;
   handleClassesChange: (classes: ClassEntry[]) => void;
-  handleRaceChange: (newRace: string) => void;
+  handleRaceChange: (newRace: string, newSubrace?: string) => void;
   subraces: string[];
 }) {
   return (
@@ -328,18 +1615,7 @@ function EditingFields({
 
       <div>
         <label className="text-xs text-muted-foreground mb-1 block">Раса</label>
-        <Select value={character.race} onValueChange={handleRaceChange}>
-          <SelectTrigger className="h-10 text-sm" data-testid="select-race">
-            <SelectValue placeholder="Раса" />
-          </SelectTrigger>
-          <SelectContent>
-            {RACES.map((race) => (
-              <SelectItem key={race} value={race}>
-                {race}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <RacePickerDialog value={character.race} subrace={character.subrace} onChange={handleRaceChange} />
       </div>
 
       {subraces.length > 0 && (
@@ -349,9 +1625,13 @@ function EditingFields({
           </label>
           <Select
             value={character.subrace || "none"}
-            onValueChange={(value) =>
-              onChange({ subrace: value === "none" ? undefined : value })
-            }
+            onValueChange={(value) => {
+              const newSubrace = value === "none" ? undefined : value;
+              onChange({
+                subrace: newSubrace,
+                speed: getRaceSpeed(character.race, newSubrace),
+              });
+            }}
           >
             <SelectTrigger
               className="h-10 text-sm"
@@ -370,6 +1650,18 @@ function EditingFields({
           </Select>
         </div>
       )}
+
+      <FlexibleRaceBonusesEditor
+        key={character.race}
+        character={character}
+        onChange={onChange}
+      />
+
+      <LanguageChoiceEditor
+        key={`lang-${character.race}`}
+        character={character}
+        onChange={onChange}
+      />
 
       <MulticlassEditor
         classes={getCharacterClasses(character)}
@@ -777,12 +2069,14 @@ interface CharacterHeaderProps {
   character: Character;
   onChange: (updates: Partial<Character>) => void;
   isEditing: boolean;
+  onFinishEditing?: () => Promise<void> | void;
 }
 
 export function CharacterHeader({
   character,
   onChange,
   isEditing,
+  onFinishEditing,
 }: CharacterHeaderProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [shortRestOpen, setShortRestOpen] = useState(false);
@@ -791,7 +2085,11 @@ export function CharacterHeader({
   const [avatarViewOpen, setAvatarViewOpen] = useState(false);
   const isDesktop = useMediaQuery("(min-width: 640px)");
 
-  const racialBonuses = getRacialBonuses(character.race, character.subrace);
+  const racialBonuses = getRacialBonuses(
+    character.race,
+    character.subrace,
+    character.selectedRacialAbilityBonuses,
+  );
   const conMod = calculateModifier(
     character.abilityScores.CON +
       (racialBonuses.CON || 0) +
@@ -805,6 +2103,19 @@ export function CharacterHeader({
   const xpProgress = getXPProgress(character.experience, totalLevel);
   const xpLevel = getLevelFromXP(character.experience);
   const canLevelUp = xpLevel > totalLevel && totalLevel < 20;
+
+  const handleDrawerSave = async () => {
+    if (!onFinishEditing) {
+      setDrawerOpen(false);
+      return;
+    }
+
+    try {
+      await onFinishEditing();
+    } catch {
+      // saveChanges already shows a toast on failure; keep the drawer open
+    }
+  };
 
   const handleLevelUp = () => {
     const newLevel = Math.min(20, xpLevel);
@@ -866,12 +2177,13 @@ export function CharacterHeader({
     onChange(updates);
   };
 
-  const handleRaceChange = (newRace: string) => {
-    const newRaceData = RACE_DATA[newRace];
+  const handleRaceChange = (newRace: string, newSubrace?: string) => {
     onChange({
       race: newRace,
-      subrace: undefined,
-      speed: newRaceData?.speed || 30,
+      subrace: newSubrace,
+      speed: getRaceSpeed(newRace, newSubrace),
+      selectedRacialAbilityBonuses: createEmptyAbilityBonuses(),
+      raceSelections: {},
     });
   };
 
@@ -932,24 +2244,11 @@ export function CharacterHeader({
                 <div className="flex flex-col gap-2 w-full">
                   <div className="flex flex-wrap gap-2">
                     <div className="flex items-center gap-1 flex-1 min-w-[100px]">
-                      <Select
+                      <RacePickerDialog
                         value={character.race}
-                        onValueChange={handleRaceChange}
-                      >
-                        <SelectTrigger
-                          className="flex-1 h-10 text-sm"
-                          data-testid="select-race"
-                        >
-                          <SelectValue placeholder="Раса" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {RACES.map((race) => (
-                            <SelectItem key={race} value={race}>
-                              {race}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        subrace={character.subrace}
+                        onChange={handleRaceChange}
+                      />
                       {character.race && (
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -966,6 +2265,9 @@ export function CharacterHeader({
                             <RaceTooltipContent
                               raceName={character.race}
                               subraceName={character.subrace}
+                              selectedRacialAbilityBonuses={
+                                character.selectedRacialAbilityBonuses
+                              }
                             />
                           </TooltipContent>
                         </Tooltip>
@@ -974,11 +2276,13 @@ export function CharacterHeader({
                     {subraces.length > 0 && (
                       <Select
                         value={character.subrace || "none"}
-                        onValueChange={(value) =>
+                        onValueChange={(value) => {
+                          const newSubrace = value === "none" ? undefined : value;
                           onChange({
-                            subrace: value === "none" ? undefined : value,
-                          })
-                        }
+                            subrace: newSubrace,
+                            speed: getRaceSpeed(character.race, newSubrace),
+                          });
+                        }}
                       >
                         <SelectTrigger
                           className="flex-1 min-w-[100px] h-10 text-sm"
@@ -997,6 +2301,16 @@ export function CharacterHeader({
                       </Select>
                     )}
                   </div>
+                  <FlexibleRaceBonusesEditor
+                    key={character.race}
+                    character={character}
+                    onChange={onChange}
+                  />
+                  <LanguageChoiceEditor
+                    key={`lang-${character.race}`}
+                    character={character}
+                    onChange={onChange}
+                  />
                   <MulticlassEditor
                     classes={charClasses}
                     onClassesChange={handleClassesChange}
@@ -1005,7 +2319,15 @@ export function CharacterHeader({
               ) : (
                 <>
                   <HelpTooltip
-                    content={<RaceTooltipContent raceName={character.race} subraceName={character.subrace} />}
+                    content={
+                      <RaceTooltipContent
+                        raceName={character.race}
+                        subraceName={character.subrace}
+                        selectedRacialAbilityBonuses={
+                          character.selectedRacialAbilityBonuses
+                        }
+                      />
+                    }
                     side="bottom"
                     asChild
                     mobileAsChild
@@ -1302,7 +2624,10 @@ export function CharacterHeader({
                 subraces={subraces}
               />
               <DrawerFooter>
-                <Button onClick={() => setDrawerOpen(false)}>Готово</Button>
+                <Button variant="outline" onClick={() => setDrawerOpen(false)}>
+                  Продолжить
+                </Button>
+                <Button onClick={handleDrawerSave}>Сохранить</Button>
               </DrawerFooter>
             </div>
           </DrawerContent>

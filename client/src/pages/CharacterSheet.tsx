@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type ComponentType, type ReactNode } from "react";
 import { useParams, useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,10 +26,13 @@ import { RichTextContent } from "@/components/RichTextContent";
 import { RichTextField } from "@/components/RichTextField";
 import { useTheme } from "@/components/ThemeProvider";
 import { AccountDialog } from "@/components/AccountDialog";
+import { CharacterSheetDesktopNav } from "@/components/character-sheet/CharacterSheetDesktopNav";
+import { CharacterSheetMobileTabs } from "@/components/character-sheet/CharacterSheetMobileTabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { useDesktopSectionNavigation } from "@/hooks/useDesktopSectionNavigation";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { CharacterProvider, useCharacter } from "@/context/CharacterContext";
-import { cn } from "@/lib/utils";
 import {
   ABILITY_NAMES,
   ABILITY_LABELS,
@@ -138,6 +141,7 @@ function CharacterSheetContent() {
     progress: number;
   } | null>(null);
   const pdfIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   // Compute early (with null-guard) so useEffect can depend on it
   const showSpellsSection =
@@ -208,7 +212,11 @@ function CharacterSheetContent() {
   const getAbilityModifier = (ability: AbilityName) => {
     if (!character) return 0;
     const baseScore = character.abilityScores[ability];
-    const racialBonuses = getRacialBonuses(character.race, character.subrace);
+    const racialBonuses = getRacialBonuses(
+      character.race,
+      character.subrace,
+      character.selectedRacialAbilityBonuses,
+    );
     const racialBonus = racialBonuses[ability] || 0;
     const customBonus = character.customAbilityBonuses?.[ability] || 0;
     return calculateModifier(baseScore + racialBonus + customBonus);
@@ -317,6 +325,31 @@ function CharacterSheetContent() {
     );
   };
 
+  const sectionNavItems = [
+    { id: "section-combat", label: "Общее", mobileLabel: "Общее", icon: User },
+    { id: "section-abilities", label: "Характеристики", mobileLabel: "Броски", icon: FaDiceD20 },
+    { id: "section-equipment", label: "Оружие", mobileLabel: "Оружие", icon: Swords },
+    { id: "section-inventory", label: "Инвентарь", mobileLabel: "Вещи", icon: Backpack },
+    ...(showSpellsSection
+      ? [{ id: "section-spells", label: "Заклинания", mobileLabel: "Магия", icon: BookOpen }]
+      : []),
+    { id: "section-notes", label: "Заметки", mobileLabel: "Заметки", icon: StickyNote },
+  ];
+  const sectionNavIds = sectionNavItems.map(({ id }) => id);
+  const sectionNavIdsKey = sectionNavIds.join("|");
+  const firstSectionId = sectionNavIds[0] ?? "section-combat";
+
+  const desktopNavigation = useDesktopSectionNavigation({
+    enabled: isDesktop,
+    sectionIds: sectionNavIds,
+  });
+
+  useEffect(() => {
+    if (!sectionNavIds.includes(activeTab)) {
+      setActiveTab(firstSectionId);
+    }
+  }, [activeTab, firstSectionId, sectionNavIdsKey]);
+
   if (isLoading) {
     return <CharacterLoadingScreen />;
   }
@@ -337,7 +370,11 @@ function CharacterSheetContent() {
     );
   }
 
-  const racialBonuses = getRacialBonuses(character.race, character.subrace);
+  const racialBonuses = getRacialBonuses(
+    character.race,
+    character.subrace,
+    character.selectedRacialAbilityBonuses,
+  );
 
   // Merge manual proficiencies with auto-computed ones from race/class
   const autoProfs = getRaceAndClassProficiencies(character.race, character.class, character.subrace);
@@ -364,17 +401,6 @@ function CharacterSheetContent() {
   const effectiveMaxHp = isLevel1ForHp
     ? calculatedMaxHp + (character.customMaxHpBonus || 0)
     : character.maxHp;
-
-  const sectionNavItems = [
-    { id: "section-combat",    label: "Общее",          mobileLabel: "Общее",    icon: User },
-    { id: "section-abilities", label: "Характеристики", mobileLabel: "Броски",  icon: FaDiceD20 },
-    { id: "section-equipment", label: "Оружие",         mobileLabel: "Оружие",   icon: Swords },
-    { id: "section-inventory", label: "Инвентарь",      mobileLabel: "Вещи",     icon: Backpack },
-    ...(showSpellsSection
-      ? [{ id: "section-spells", label: "Заклинания", mobileLabel: "Магия", icon: BookOpen }]
-      : []),
-    { id: "section-notes", label: "Заметки", mobileLabel: "Заметки", icon: StickyNote },
-  ];
 
   const referenceSections = [
     {
@@ -452,12 +478,20 @@ function CharacterSheetContent() {
     { key: "hair"   as const, label: "Волосы",  placeholder: "тёмные",   testId: "input-hair" },
   ];
 
-  // ─── Section content renderer (shared between mobile tab view and desktop scroll) ───
-  const renderSection = (sectionId: string, isMobile = false) => {
+  // --- Section content renderer (shared between mobile tab view and desktop scroll) ---
+  const renderSection = (
+    sectionId: string,
+    layout: "mobile" | "desktop" = "desktop",
+  ) => {
+    const isMobile = layout === "mobile";
+
     switch (sectionId) {
       case "section-combat":
         return (
-          <section id="section-combat" className="space-y-3 sm:space-y-4">
+          <section
+            id={isMobile ? undefined : "section-combat"}
+            className="space-y-3 sm:space-y-4"
+          >
             <div className="section-label">Общее</div>
             {/* New-character hint — shown inside the combat section on all layouts */}
             {!isEditing &&
@@ -490,6 +524,7 @@ function CharacterSheetContent() {
                   character={character}
                   onChange={handleChange}
                   isEditing={isEditing}
+                  onFinishEditing={saveChanges}
                 />
               </div>
               <div className="space-y-3">
@@ -532,6 +567,7 @@ function CharacterSheetContent() {
                 race={character.race}
                 className={character.class}
                 subrace={character.subrace}
+                raceSelections={character.raceSelections}
               />
             )}
           </section>
@@ -539,7 +575,10 @@ function CharacterSheetContent() {
 
       case "section-abilities":
         return (
-          <section id="section-abilities" className="space-y-3">
+          <section
+            id={isMobile ? undefined : "section-abilities"}
+            className="space-y-3"
+          >
             <div className="section-label">Характеристики, спасброски и навыки</div>
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
               {ABILITY_NAMES.map((ability) => (
@@ -550,6 +589,9 @@ function CharacterSheetContent() {
                   customBonus={character.customAbilityBonuses?.[ability] || 0}
                   race={character.race}
                   subrace={character.subrace}
+                  selectedRacialAbilityBonuses={
+                    character.selectedRacialAbilityBonuses
+                  }
                   level={character.level}
                   skills={character.skills}
                   onScoreChange={(value) =>
@@ -602,7 +644,10 @@ function CharacterSheetContent() {
 
       case "section-equipment":
         return (
-          <section id="section-equipment" className="space-y-3">
+          <section
+            id={isMobile ? undefined : "section-equipment"}
+            className="space-y-3"
+          >
             <div className="section-label">Оружие и ключевые действия</div>
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] gap-3 sm:gap-4">
               <WeaponsList
@@ -652,7 +697,10 @@ function CharacterSheetContent() {
 
       case "section-inventory":
         return (
-          <section id="section-inventory" className="space-y-3">
+          <section
+            id={isMobile ? undefined : "section-inventory"}
+            className="space-y-3"
+          >
             <div className="section-label">Инвентарь и владения</div>
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)] gap-3 sm:gap-4 items-start">
               <EquipmentSystem
@@ -682,6 +730,7 @@ function CharacterSheetContent() {
                   race={character.race}
                   className={character.class}
                   subrace={character.subrace}
+                  raceSelections={character.raceSelections}
                 />
               )}
             </div>
@@ -691,7 +740,10 @@ function CharacterSheetContent() {
       case "section-spells":
         if (!showSpellsSection) return null;
         return (
-          <section id="section-spells" className="space-y-3">
+          <section
+            id={isMobile ? undefined : "section-spells"}
+            className="space-y-3"
+          >
             <div className="section-label">Заклинания</div>
             <SpellsSection
               character={character}
@@ -707,10 +759,13 @@ function CharacterSheetContent() {
 
       case "section-notes":
         return (
-          <section id="section-notes" className="space-y-3">
+          <section
+            id={isMobile ? undefined : "section-notes"}
+            className="space-y-3"
+          >
             <div className="section-label">Заметки и сведения</div>
 
-            {/* ── Appearance structured card ───────────────────────────── */}
+            {/* -- Appearance structured card ----------------------------- */}
             <Card className="stat-card-tertiary p-3" data-testid="section-appearance-card">
               <div className="mb-2 flex items-center gap-2">
                 <User className="w-4 h-4 text-accent" />
@@ -778,7 +833,7 @@ function CharacterSheetContent() {
               )}
             </Card>
 
-            {/* ── All text sections in 2-col grid ─────────────────────── */}
+            {/* -- All text sections in 2-col grid ----------------------- */}
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4">
               {referenceSections.map(
                 ({ key, label, icon: Icon, rows, minHeightClass, placeholder, testId }) => (
@@ -823,7 +878,30 @@ function CharacterSheetContent() {
     }
   };
 
-  // ─── Shared header JSX ───────────────────────────────────────────────────────
+  type CharacterSheetSectionDef = {
+    icon: ComponentType<{ className?: string }>;
+    id: string;
+    label: string;
+    mobileLabel: string;
+    render: (layout: "mobile" | "desktop") => ReactNode;
+  };
+
+  const sections: CharacterSheetSectionDef[] = sectionNavItems.map((section) => ({
+    ...section,
+    render: (layout) => renderSection(section.id, layout),
+  }));
+
+  const renderDesktopSection = (section: CharacterSheetSectionDef) => (
+    <div
+      key={section.id}
+      ref={(element) => desktopNavigation.registerSection(section.id, element)}
+      style={{ scrollMarginTop: `${desktopNavigation.sectionScrollMargin}px` }}
+    >
+      {section.render("desktop")}
+    </div>
+  );
+
+  // --- Shared header JSX -------------------------------------------------------
   const headerInner = (
     <div className="max-w-7xl mx-auto px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between gap-1 sm:gap-2">
       <Button
@@ -994,127 +1072,47 @@ function CharacterSheetContent() {
 
   return (
     <div className="bg-background">
+      {isDesktop ? (
+        <div className="min-h-screen">
+          <header
+            className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b"
+            data-testid="character-sheet-header"
+          >
+            {headerInner}
+          </header>
 
-      {/* ═══════════════════════════════════════════════════════════════════════
-          MOBILE LAYOUT (< lg): fixed full-screen flex column
-          Header → scrollable tab panel → bottom tab bar
-          ═══════════════════════════════════════════════════════════════════════ */}
-      <div className="lg:hidden fixed inset-0 flex flex-col">
+          <main className="max-w-7xl mx-auto p-2 sm:p-4">
+            <div className="space-y-4 sm:space-y-5">
+              <CharacterSheetDesktopNav
+                items={sections}
+                activeSectionId={desktopNavigation.activeSectionId}
+                onSelectSection={desktopNavigation.scrollToSection}
+                setNavElement={desktopNavigation.setNavElement}
+                stickyTop={desktopNavigation.headerHeight}
+              />
 
-        {/* Header */}
-        <header className="shrink-0 bg-background/95 backdrop-blur border-b">
-          {headerInner}
-        </header>
-
-        {/* Active tab content — key={activeTab} triggers re-mount + CSS animate-in */}
-        <div
-          key={activeTab}
-          className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-2 tab-panel-mobile
-                     animate-in fade-in-0 slide-in-from-bottom-2 duration-150"
-        >
-          {renderSection(activeTab, true)}
+              {sections.map(renderDesktopSection)}
+            </div>
+          </main>
         </div>
+      ) : (
+        <div className="fixed inset-0 flex flex-col">
+          <header className="shrink-0 bg-background/95 backdrop-blur border-b">
+            {headerInner}
+          </header>
 
-        {/* Bottom tab bar */}
-        <nav
-          aria-label="Навигация по персонажу"
-          className="shrink-0 border-t bg-background/95 backdrop-blur bottom-tab-bar"
-        >
-          <div className="flex items-stretch h-[60px] px-1">
-            {sectionNavItems.map(({ id: sectionId, mobileLabel, icon: Icon }) => {
-              const isActive = activeTab === sectionId;
-              return (
-                <button
-                  key={sectionId}
-                  onClick={() => setActiveTab(sectionId)}
-                  data-testid={`tab-${sectionId}`}
-                  aria-selected={isActive}
-                  className={cn(
-                    "relative flex flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5",
-                    "rounded-lg transition-colors duration-200 select-none",
-                    "-webkit-tap-highlight-color-transparent",
-                    isActive
-                      ? "text-primary"
-                      : "text-muted-foreground active:text-foreground/70",
-                  )}
-                >
-                  {/* Active indicator pill at top */}
-                  <span
-                    className={cn(
-                      "absolute top-0 left-1/2 -translate-x-1/2 h-0.5 rounded-full",
-                      "transition-all duration-300 ease-out",
-                      isActive ? "w-6 bg-primary" : "w-0 bg-transparent",
-                    )}
-                  />
-                  <Icon
-                    className={cn(
-                      "h-[18px] w-[18px] transition-transform duration-200",
-                      isActive && "scale-110",
-                    )}
-                  />
-                  <span className="text-[9px] font-medium leading-none truncate max-w-full">
-                    {mobileLabel}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </nav>
-      </div>
+          <CharacterSheetMobileTabs
+            items={sections}
+            value={activeTab}
+            onValueChange={setActiveTab}
+            renderContent={(sectionId) => renderSection(sectionId, "mobile")}
+          />
+        </div>
+      )}
 
-      {/* ═══════════════════════════════════════════════════════════════════════
-          DESKTOP LAYOUT (lg+): original sticky scroll layout, unchanged
-          ═══════════════════════════════════════════════════════════════════════ */}
-      <div className="hidden lg:block min-h-screen">
-
-        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
-          {headerInner}
-        </header>
-
-        <main className="max-w-7xl mx-auto p-2 sm:p-4">
-          <div className="space-y-4 sm:space-y-5">
-
-            {/* Desktop sticky section nav */}
-            <nav
-              className="sticky top-[49px] sm:top-[53px] z-40 border-b bg-background/95 backdrop-blur"
-              data-testid="section-nav"
-            >
-              <div className="-mx-2 sm:mx-0 nav-scroll-container">
-                <div className="overflow-x-auto scrollbar-hide px-2 sm:px-0 lg:overflow-visible">
-                  <div className="flex gap-2 py-2 lg:flex-wrap lg:justify-start">
-                    {sectionNavItems.map(({ id: sectionId, label, icon: Icon }) => (
-                      <button
-                        key={sectionId}
-                        onClick={() => {
-                          const el = document.getElementById(sectionId);
-                          if (!el) return;
-                          // Offset accounts for sticky header (~53px) + sticky section-nav (~52px)
-                          const offset = 110;
-                          const y = el.getBoundingClientRect().top + window.scrollY - offset;
-                          window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
-                        }}
-                        className="section-nav-chip"
-                        data-testid={`nav-${sectionId}`}
-                      >
-                        <Icon className="w-4 h-4 shrink-0" />
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </nav>
-
-            {/* All sections stacked for desktop scroll */}
-            {sectionNavItems.map(({ id: sectionId }) => renderSection(sectionId))}
-
-          </div>
-        </main>
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════════════════════
+      {/* =======================================================================
           SHARED OVERLAYS (both layouts)
-          ═══════════════════════════════════════════════════════════════════════ */}
+          ======================================================================= */}
 
       <DiceRoller
         isOpen={isDiceRollerOpen}

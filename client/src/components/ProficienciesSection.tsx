@@ -7,19 +7,35 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Languages, Swords, Shield, Wrench, Plus, X, ChevronDown, ChevronRight, BookOpen, Eye } from "lucide-react";
+import { Languages, Swords, Shield, Wrench, Plus, X, ChevronDown, ChevronRight, BookOpen, Eye, ShieldCheck } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { HelpTooltip, TooltipBody } from "@/components/ui/help-tooltip";
 import { PROFICIENCIES_SECTION_TOOLTIP } from "@/lib/tooltip-content";
-import type { Proficiencies, ProficiencyCategory } from "@shared/schema";
-import { 
-  PROFICIENCY_CATEGORY_LABELS, 
-  LANGUAGES, 
-  WEAPON_PROFICIENCIES, 
-  ARMOR_PROFICIENCIES, 
+import type { Proficiencies, ProficiencyCategory, DamageType } from "@shared/schema";
+import {
+  PROFICIENCY_CATEGORY_LABELS,
+  LANGUAGES,
+  WEAPON_PROFICIENCIES,
+  ARMOR_PROFICIENCIES,
   TOOL_PROFICIENCIES,
   getRaceAndClassProficiencies
 } from "@shared/schema";
+
+const DAMAGE_TYPE_LABELS: Record<DamageType, string> = {
+  fire:        "Огонь",
+  cold:        "Холод",
+  lightning:   "Молния",
+  acid:        "Кислота",
+  poison:      "Яд",
+  psychic:     "Психика",
+  radiant:     "Сияние",
+  necrotic:    "Некротика",
+  thunder:     "Гром",
+  force:       "Силовой",
+  piercing:    "Колющий",
+  slashing:    "Рубящий",
+  bludgeoning: "Дробящий",
+};
 
 interface ProficienciesSectionProps {
   proficiencies: Proficiencies;
@@ -28,6 +44,7 @@ interface ProficienciesSectionProps {
   race: string;
   className: string;
   subrace?: string;
+  raceSelections?: Record<string, unknown>;
 }
 
 const CATEGORY_ICONS: Record<ProficiencyCategory, typeof Languages> = {
@@ -221,9 +238,21 @@ function ProficiencyCategory({
   );
 }
 
-export function ProficienciesSection({ proficiencies, onChange, isEditing, race, className, subrace }: ProficienciesSectionProps) {
+export function ProficienciesSection({ proficiencies, onChange, isEditing, race, className, subrace, raceSelections }: ProficienciesSectionProps) {
   const autoProfs = getRaceAndClassProficiencies(race, className, subrace);
-  
+
+  // Resolve "Один на выбор" placeholders with actual chosen languages
+  const languageChoices = (raceSelections?.["language-choices"] as string[] | undefined) ?? [];
+  let choiceIdx = 0;
+  const resolvedAutoLanguages = autoProfs.languages.map((lang) => {
+    if (lang === "Один на выбор") {
+      const chosen = languageChoices[choiceIdx];
+      choiceIdx++;
+      return chosen ?? lang;
+    }
+    return lang;
+  });
+
   const handleAdd = (category: ProficiencyCategory, value: string) => {
     const current = proficiencies[category] || [];
     if (!current.includes(value)) {
@@ -242,9 +271,12 @@ export function ProficienciesSection({ proficiencies, onChange, isEditing, race,
     });
   };
 
+  const hasRaceBadges =
+    autoProfs.darkvision || autoProfs.skills.length > 0 || autoProfs.resistances.length > 0;
+
   return (
     <Card className="stat-card p-2 sm:p-3" data-testid="proficiencies-section">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-start justify-between mb-3 gap-2">
         <div className="flex items-center gap-2">
           <BookOpen className="w-4 h-4 text-accent" />
           <h3 className="font-semibold text-sm">Владения</h3>
@@ -253,19 +285,52 @@ export function ProficienciesSection({ proficiencies, onChange, isEditing, race,
             side="right"
           />
         </div>
-        {autoProfs.darkvision && (
-          <HelpTooltip
-            content={<p className="text-xs">Вы видите в темноте на расстоянии {autoProfs.darkvision} футов как при тусклом свете</p>}
-            side="bottom"
-            asChild
-          >
-            <span data-testid="darkvision-badge">
-              <Badge variant="secondary" className="gap-1 cursor-help">
-                <Eye className="w-3 h-3" />
-                Тёмное зрение {autoProfs.darkvision} фт.
-              </Badge>
-            </span>
-          </HelpTooltip>
+        {hasRaceBadges && (
+          <div className="flex flex-wrap items-center gap-1 justify-end">
+            {autoProfs.darkvision && (
+              <HelpTooltip
+                content={<p className="text-xs">Тёмное зрение: видите на {autoProfs.darkvision} фт. как при тусклом освещении</p>}
+                side="bottom"
+                asChild
+              >
+                <span data-testid="darkvision-badge">
+                  <Badge variant="secondary" className="gap-1 cursor-help text-xs">
+                    <Eye className="w-3 h-3" />
+                    {autoProfs.darkvision} фт.
+                  </Badge>
+                </span>
+              </HelpTooltip>
+            )}
+            {autoProfs.resistances.map((resist) => (
+              <HelpTooltip
+                key={resist}
+                content={<p className="text-xs">Сопротивление к урону: {DAMAGE_TYPE_LABELS[resist] ?? resist}</p>}
+                side="bottom"
+                asChild
+              >
+                <span>
+                  <Badge variant="secondary" className="gap-1 cursor-help text-xs">
+                    <ShieldCheck className="w-3 h-3 text-emerald-500" />
+                    {DAMAGE_TYPE_LABELS[resist] ?? resist}
+                  </Badge>
+                </span>
+              </HelpTooltip>
+            ))}
+            {autoProfs.skills.map((skill) => (
+              <HelpTooltip
+                key={skill}
+                content={<p className="text-xs">Владение навыком от расы</p>}
+                side="bottom"
+                asChild
+              >
+                <span>
+                  <Badge variant="outline" className="cursor-help text-xs">
+                    {skill}
+                  </Badge>
+                </span>
+              </HelpTooltip>
+            ))}
+          </div>
         )}
       </div>
 
@@ -273,7 +338,7 @@ export function ProficienciesSection({ proficiencies, onChange, isEditing, race,
         <ProficiencyCategoryWithAuto
           category="languages"
           items={proficiencies.languages || []}
-          autoItems={autoProfs.languages}
+          autoItems={resolvedAutoLanguages}
           isEditing={isEditing}
           onAdd={(v) => handleAdd("languages", v)}
           onRemove={(v) => handleRemove("languages", v)}
@@ -329,7 +394,9 @@ function ProficiencyCategoryWithAuto({
   const Icon = CATEGORY_ICONS[category];
   const label = PROFICIENCY_CATEGORY_LABELS[category];
   
-  const allItems = Array.from(new Set([...autoItems, ...items]));
+  const resolvedAutoItems = autoItems.filter((i) => i !== "Один на выбор");
+  const pendingChoices = autoItems.filter((i) => i === "Один на выбор").length;
+  const allItems = Array.from(new Set([...resolvedAutoItems, ...items]));
   const totalCount = allItems.length;
 
   return (
@@ -341,6 +408,11 @@ function ProficiencyCategoryWithAuto({
             <Icon className="w-4 h-4 text-primary" />
             <span className="text-sm font-medium">{label}</span>
             <Badge variant="secondary" className="ml-1">{totalCount}</Badge>
+            {pendingChoices > 0 && (
+              <Badge variant="outline" className="ml-0.5 border-dashed text-muted-foreground text-xs">
+                +{pendingChoices}
+              </Badge>
+            )}
           </Button>
         </CollapsibleTrigger>
         {isEditing && (
@@ -354,28 +426,42 @@ function ProficiencyCategoryWithAuto({
       
       <CollapsibleContent>
         <div className="flex flex-wrap gap-1.5 mt-2 pl-6">
-          {totalCount === 0 ? (
+          {totalCount === 0 && pendingChoices === 0 ? (
             <p className="text-xs text-muted-foreground italic">Нет владений</p>
           ) : (
             <>
-              {autoItems.map((item) => (
-                <HelpTooltip
-                  key={`auto-${item}`}
-                  content={<p className="text-xs">От расы/класса</p>}
-                  side="top"
-                  asChild
-                >
-                  <span>
-                    <Badge 
-                      variant="secondary"
-                      className="gap-1 cursor-help"
-                      data-testid={`proficiency-auto-${category}-${item}`}
+              {autoItems.map((item) => {
+                // "Один на выбор" that hasn't been resolved yet — show as pending
+                if (item === "Один на выбор") {
+                  return (
+                    <Badge
+                      key="pending-lang-choice"
+                      variant="outline"
+                      className="gap-1 border-dashed text-muted-foreground text-xs italic"
                     >
-                      {item}
+                      + выберите язык
                     </Badge>
-                  </span>
-                </HelpTooltip>
-              ))}
+                  );
+                }
+                return (
+                  <HelpTooltip
+                    key={`auto-${item}`}
+                    content={<p className="text-xs">От расы/класса</p>}
+                    side="top"
+                    asChild
+                  >
+                    <span>
+                      <Badge
+                        variant="secondary"
+                        className="gap-1 cursor-help"
+                        data-testid={`proficiency-auto-${category}-${item}`}
+                      >
+                        {item}
+                      </Badge>
+                    </span>
+                  </HelpTooltip>
+                );
+              })}
               {items.filter(item => !autoItems.includes(item)).map((item) => (
                 <Badge 
                   key={item} 

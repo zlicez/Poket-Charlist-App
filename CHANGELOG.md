@@ -4,6 +4,75 @@ All notable changes to Pocket Charlist are documented here.
 
 ---
 
+## [Unreleased] — Race system, navigation refactor
+
+### Added
+
+#### Race system — canonical types and supplemental data
+- `shared/data/race-types.ts` — новый файл с каноническими типами расовой системы: `RaceDefinition`, `RaceEntityType` (`race` | `subrace` | `lineage` | `variant`), `RaceSourceCode` (PHB, VGM, MTF, TCE, MPMM, OGA, FTD, VRGtR, CUSTOM), `DamageType`, `RaceAbilityBonusSelection` + `RaceAbilityBonusPattern` (гибкие бонусы для Тифлинга MPMM и линиджей), `RaceTrait` + `RaceTraitEffect`, `RaceSpellGrant`, `RaceSkillChoice`, `SubraceDefinition`.
+- `shared/data/d5e-races-supplements.ts` — расы из дополнительных источников (VGM, MTF, TCE, MPMM): Аазимар, Варфорж, Гобблин, Гоблин, Хобгоблин, Бугбир, Коболд, Ораг, Тифлинг (MPMM), Гитьянки, Гитцерай, Кентавр, Фавн, Хенгейокай, и линиджи Таши — Дампир, Рейс, Обертос.
+- `shared/data/d5e-races.ts` — расы переведены на полный `RaceDefinition` shape: добавлены поля `id`, `source`, `entityType`, `creatureType`, `description`, `traits: RaceTrait[]`, `darkvision`, `resistances`, `spellGrants`, `skillProficiencies`, `skillChoices`, `abilityBonusSelection`. Новые helper-функции: `getRaceSpeed`, `getRaceCreatureType`, `getRaceResistances`.
+
+#### Race system — новые поля персонажа
+- `shared/types/character-types.ts`: новые опциональные поля в схеме персонажа (backward compatible):
+  - `selectedRacialAbilityBonuses` — зафиксированное распределение гибких расовых бонусов
+  - `raceRef` — стабильный slug расы для корректного lookup при переименовании (напр. `"tiefling-mpmm"`)
+  - `raceSource` — источник расы (`"PHB"` | `"VGM"` | …)
+  - `raceSelections` — словарь выборов игрока внутри расовых способностей: выбор языков, навыков, ancestral ancestry и т.д.
+- `createEmptyAbilityBonuses()` — фабрика нулевого `AbilityBonuses` объекта
+- `getValidatedSelectedRacialBonuses(race, selectedRacialAbilityBonuses)` — валидирует гибкое распределение бонусов: сумма значений и паттерн должны соответствовать `abilityBonusSelection.patterns` расы
+- `getRacialBonuses` обновлён: принимает третий аргумент `selectedRacialAbilityBonuses`, применяет выбранные бонусы поверх фиксированных
+
+#### Race Picker — UI в CharacterHeader
+- Полноэкранный диалог выбора расы с двумя панелями (список + детали).
+- Поиск по названию.
+- Мульти-фильтры: источник (источников может быть несколько), размер (Маленький / Средний), тёмное зрение, тип линидж; счётчик активных фильтров + кнопка «Сбросить».
+- `RaceListRow` — строка списка: иконка активной расы, метка типа ЛИН, скорость, размер S/M, иконка тёмного зрения.
+- `RaceStatPill` — таблетка-тег для отображения отдельного параметра расы.
+- `RaceDetailPanel` — правая панель: название, тип, источник, описание, блок бонусов характеристик + `AbilityBonusSelector` для гибких паттернов, скорость, размер, тёмное зрение, сопротивления, язык, трейты, заклинания, подрасы.
+- `AbilityBonusSelector` — выбор паттерна распределения гибких бонусов (напр. `+2 / +1` или `+1 / +1 / +1`); индивидуальные Select-ы для каждого бонуса из паттерна с валидацией дублей.
+- Language choices — выбор языков для рас с placeholder «Один на выбор»; выбранные языки сохраняются в `raceSelections["language-choices"]`.
+- `SOURCE_LABELS` — русские названия источников для UI (`"PHB" → "Книга игрока"` и т.д.).
+
+#### CharacterSheet — навигация
+- `client/src/components/character-sheet/CharacterSheetDesktopNav.tsx` — выделенный компонент sticky-навбара для десктопного layout (scroll-spy).
+- `client/src/components/character-sheet/CharacterSheetMobileTabs.tsx` — выделенный компонент нижней таб-панели для мобильного layout с анимацией `fade-in + slide-in-from-bottom`.
+- `client/src/hooks/useDesktopSectionNavigation.ts` — хук scroll-spy навигации:
+  - ResizeObserver для header, nav и всех секций; обновление позиций через rAF
+  - Scroll lock при программной прокрутке: фиксирует активную секцию до достижения целевого положения с timeout 1200ms
+  - Поддержка `prefers-reduced-motion`: при включённой настройке использует `behavior: "auto"` вместо `"smooth"`
+  - `registerSection(sectionId, element)` — регистрация DOM-узлов секций
+  - `setNavElement(element)` — регистрация DOM-узла навбара
+  - `scrollToSection(sectionId)` — программная прокрутка с учётом sticky offset
+- `renderSection` в `CharacterSheet` принимает `layout: "mobile" | "desktop"` — мобильные табы не устанавливают `id` атрибуты на секциях (scroll-spy работает только на десктопе).
+
+#### ProficienciesSection — расовые данные
+- Отображение сопротивлений к урону из расовых данных: иконка `ShieldCheck` + список типов урона.
+- Разрешение «Один на выбор» плейсхолдеров в авто-языках: значения из `raceSelections["language-choices"]` подставляются вместо плейсхолдеров по порядку.
+- `raceSelections` добавлен в props интерфейса.
+
+#### CharacterHeader — onFinishEditing
+- `CharacterHeader` получил prop `onFinishEditing?: () => void` — вызывается после подтверждения изменений расы/подрасы, что сразу триггерит `saveChanges` без дополнительного клика.
+
+### Changed
+
+#### CharacterSheet — sections key
+- `sectionNavItems` перемещён выше в компоненте (до условного рендера), чтобы `useEffect` мог зависеть от списка секций до ошибки персонажа.
+
+### Added (dev tools)
+
+#### Скрипты импорта рас
+- `scripts/import-races.ts` — CLI-pipeline для импорта рас D&D 5e из ttg.club API: fetch → snapshot → normalize → validate → diagnostics → output (dry-run или запись в файл).
+- `scripts/lib/race-fetcher.ts` — загрузка и кэширование снэпшотов с ttg.club.
+- `scripts/lib/race-normalizer.ts` — преобразование raw API-ответа в `RaceDefinition`.
+- `scripts/lib/race-validator.ts` — Zod-валидация каноничной модели.
+- `scripts/lib/import-logger.ts` — цветной структурированный вывод для диагностики.
+
+### Added (tests)
+- `tests/race-system.test.ts` — unit-тесты расовой системы: `getRacialBonuses` с `selectedRacialAbilityBonuses`, `getValidatedSelectedRacialBonuses`, паттерны гибких бонусов.
+
+---
+
 ## 2026-04-10 — Security & quality pass (code review)
 
 ### Security

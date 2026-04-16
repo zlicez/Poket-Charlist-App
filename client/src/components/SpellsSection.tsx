@@ -1115,7 +1115,11 @@ export function SpellsSection({
     charClasses.map(({ name, level }) => `${name}:${level}`).join("|") ||
     "none";
 
-  const racialBonuses = getRacialBonuses(character.race, character.subrace);
+  const racialBonuses = getRacialBonuses(
+    character.race,
+    character.subrace,
+    character.selectedRacialAbilityBonuses,
+  );
   const abilityScore =
     character.abilityScores[spellcasting.ability] +
     (racialBonuses[spellcasting.ability] || 0) +

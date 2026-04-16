@@ -9,6 +9,7 @@ import {
   type Feature,
   type ClassEntry,
   DEFAULT_SKILLS_PROFICIENCY,
+  createEmptyAbilityBonuses,
 } from "@shared/schema";
 
 const LSS_SKILL_MAP: Record<string, string> = {
@@ -288,7 +289,8 @@ function parseLSSData(data: any): InsertCharacter {
     alignment,
     experience,
     abilityScores,
-    customAbilityBonuses: { STR: 0, DEX: 0, CON: 0, INT: 0, WIS: 0, CHA: 0 },
+    selectedRacialAbilityBonuses: createEmptyAbilityBonuses(),
+    customAbilityBonuses: createEmptyAbilityBonuses(),
     savingThrows,
     skills,
     armorClass,

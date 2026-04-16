@@ -62,6 +62,10 @@ flowchart LR
 - **Система оружия — категории и свойства**: каждое оружие имеет `weaponCategory: "simple" | "martial" | "exotic"`. Все 35 оружий стандартной библиотеки размечены по категориям D&D 5e. `isWeaponProficient` принимает категорию и сравнивает с владениями «Простое оружие» / «Воинское оружие». Форма создания/редактирования оружия содержит chip-кнопки для 10 канонических свойств (Двуручное, Фехтовальное и др.) и Select для категории; при выборе «Фехтовальное» `abilityMod` автоматически переключается на DEX.
 - **Отдых — короткий и долгий**: кнопки «Кор. отдых» и «Дол. отдых» в `CharacterHeader` (только в play-режиме). Короткий: трата костей хитов (d{X} + CON mod) с 500ms анимацией броска, пошаговый лог, восстановление HP. Долгий: полное восстановление HP, возврат половины максимума костей хитов (минимум 1), сброс всех spell slots и pact magic — с preview-карточками и `CheckCircle2` для уже заполненных ресурсов.
 - **Аватарка персонажа**: в edit-режиме — карандаш-оверлей на аватарку открывает `AvatarPickerModal` (drag-and-drop + файловый диалог, круговой кроппер через `react-easy-crop`, сжатие до 256×256 JPEG). В play-режиме — клик открывает fullscreen-просмотр (`AvatarViewModal`). Хранится как base64 data URL в `character.avatar`.
+- **Расовая система**: полный `RaceDefinition` shape для всех рас — id, source, entityType, speed, size, creatureType, traits, darkvision, resistances, spellGrants, skillChoices, abilityBonusSelection. Поддержка гибкого распределения расовых бонусов (MPMM линиджи, ревизии Таши): паттерны `+2/+1` или `+1/+1/+1` выбираются в Race Picker и сохраняются в `selectedRacialAbilityBonuses`. Расовые языки с placeholder «Один на выбор» резолвятся через `raceSelections["language-choices"]`.
+- **Race Picker**: диалог выбора расы с поиском и мульти-фильтрами (источник, размер, тёмное зрение, тип линидж). Правая панель детального просмотра: описание, бонусы, трейты, заклинания, скорость, тёмное зрение, сопротивления, языки, подрасы.
+- **Scroll-spy навигация на десктопе**: `useDesktopSectionNavigation` — ResizeObserver + rAF scroll-spy; scroll lock при программной прокрутке; поддержка `prefers-reduced-motion`; sticky offset рассчитывается по реальной высоте header и nav. Мобильный и десктопный layout используют общий `renderSection` с параметром `"mobile" | "desktop"`.
+- **Сопротивления в ProficienciesSection**: расовые сопротивления к типам урона отображаются отдельным блоком (ShieldCheck + список типов на русском).
 
 ### Ограничения
 - Нет email verification.
@@ -114,6 +118,9 @@ flowchart LR
 - `client/src/components/FeaturesList.tsx` — список способностей персонажа, раскрытие описаний и rich-text preview в диалоге создания.
 - `client/src/components/SpellsSection.tsx` — spellcasting UI, реактивная синхронизация spell slots, библиотека заклинаний и rich-text preview/edit для описаний заклинаний.
 - `client/src/components/AvatarPickerModal.tsx` — `AvatarPickerModal` (загрузка + кроппер) и `AvatarViewModal` (fullscreen-просмотр).
+- `client/src/components/character-sheet/CharacterSheetDesktopNav.tsx` — sticky scroll-spy навбар для десктопного layout.
+- `client/src/components/character-sheet/CharacterSheetMobileTabs.tsx` — нижняя таб-панель для мобильного layout с анимацией fade-in.
+- `client/src/hooks/useDesktopSectionNavigation.ts` — хук scroll-spy навигации: ResizeObserver + rAF, scroll lock при программной прокрутке, `prefers-reduced-motion` support.
 - `client/src/lib/weapons.ts` — типы и утилиты форм оружия: `WeaponCategory`, `WeaponFormValues` (с `properties: string[]`), `weaponPropsToArray` / `propsToString`, `isFinesseFromProps`.
 
 ### Основные серверные точки
@@ -127,8 +134,11 @@ flowchart LR
 ### Shared-слой
 - `shared/schema.ts` — таблица `characters` и реэкспорт shared types.
 - `shared/models/auth.ts` — таблица `users`, auth user types.
-- `shared/types/character-types.ts` — основная доменная модель персонажа, Zod-схемы, default character и расчётные функции.
+- `shared/types/character-types.ts` — основная доменная модель персонажа, Zod-схемы, default character и расчётные функции; включая `getRacialBonuses`, `getValidatedSelectedRacialBonuses`, `createEmptyAbilityBonuses`.
 - `shared/data/spells-library.ts` — нормализованная библиотека заклинаний из `shared/data/spells_library.json` (файл переехал из корня в `shared/data/`).
+- `shared/data/race-types.ts` — канонические типы расовой системы: `RaceDefinition`, `RaceEntityType`, `RaceSourceCode`, `DamageType`, `RaceAbilityBonusSelection`, `RaceTrait`, `RaceSpellGrant`.
+- `shared/data/d5e-races.ts` — расовые данные PHB в полном `RaceDefinition` shape; helper-функции `getRaceSpeed`, `getRaceCreatureType`, `getRaceResistances`.
+- `shared/data/d5e-races-supplements.ts` — расы из дополнительных источников (VGM, MTF, TCE, MPMM, OGA, FTD, VRGtR): Аазимар, Варфорж, MPMM-линиджи (Дампир, Рейс, Обертос) и др.
 
 ## 6. Mental Model Character
 
@@ -152,6 +162,10 @@ flowchart LR
 Это “паспорт” и сборка персонажа внутри `characters.data`:
 - `class`, `subclass`, `classes`
 - `race`, `subrace`
+- `raceRef` — стабильный slug расы (напр. `”tiefling-mpmm”`), backward-compatible
+- `raceSource` — источник расы (`”PHB”` | `”MPMM”` | …)
+- `raceSelections` — словарь выборов игрока внутри расовых способностей: `language-choices`, `skill-choices`, и т.д.
+- `selectedRacialAbilityBonuses` — гибкое распределение расовых бонусов к характеристикам (для рас с `abilityBonusSelection`)
 - `level`, `experience`
 - `background`, `alignment`
 - `abilityScores`, `customAbilityBonuses`
@@ -1096,6 +1110,7 @@ Vitest используется для unit tests:
 - `tests/spell-slots.test.ts`
 - `tests/public-character-schema.test.ts`
 - `tests/rich-text.test.ts`
+- `tests/race-system.test.ts`
 
 ### Что именно покрыто
 - deep merge логика
@@ -1104,6 +1119,7 @@ Vitest используется для unit tests:
 - spell slot progression, включая pact magic / multiclass поведение
 - shared allowlist для `publicCharacterSchema`
 - sanitization и базовый render Markdown + safe HTML
+- расовая система: `getRacialBonuses` с `selectedRacialAbilityBonuses`, `getValidatedSelectedRacialBonuses`, паттерны гибких бонусов
 
 ### Проверочные команды
 ```bash
@@ -1117,6 +1133,14 @@ npm run build
 ### Где искать бизнес-логику
 - `shared/types/character-types.ts` — основная доменная модель персонажа, Zod-схемы, default character, расчёты и utility-функции.
 - `shared/data/*.ts` — справочные D&D данные.
+
+### Где искать расовую систему
+- `shared/data/race-types.ts` — все типы (`RaceDefinition`, `DamageType`, `RaceAbilityBonusSelection`, …)
+- `shared/data/d5e-races.ts` — расы PHB, helper-функции `getRaceSpeed` / `getRaceCreatureType` / `getRaceResistances`
+- `shared/data/d5e-races-supplements.ts` — расы дополнений (VGM, MTF, TCE, MPMM и др.)
+- `shared/types/character-types.ts` — `getRacialBonuses`, `getValidatedSelectedRacialBonuses`, поля `selectedRacialAbilityBonuses`, `raceRef`, `raceSource`, `raceSelections` в `characterSchema`
+- `client/src/components/CharacterHeader.tsx` — Race Picker UI: `RaceListRow`, `RaceDetailPanel`, `AbilityBonusSelector`, `RaceStatPill`, фильтры
+- `scripts/import-races.ts` + `scripts/lib/` — CLI-инструмент для импорта данных рас из ttg.club (dev only)
 
 ### Где искать auth
 - `server/google-auth.ts` — production auth flow
@@ -1202,6 +1226,8 @@ Pocket Charlist сейчас — рабочее full-stack приложение 
 - PATCH-валидацией через Zod на входе и post-merge
 - индексами на таблице `characters` для быстрых выборок по userId и shareToken
 - консистентным TanStack Query cache: ответ PATCH сразу записывается в cache, список инвалидируется
+- расширенной расовой системой: полный `RaceDefinition` shape, PHB + расы дополнений, Race Picker с поиском и фильтрами, гибкие расовые бонусы, расовые трейты/сопротивления/заклинания
+- scroll-spy навигацией на десктопе (`useDesktopSectionNavigation`) и мобильными табами (`CharacterSheetMobileTabs`)
 
 Ключевой operational вывод:
 - документацию нужно читать вместе с реальным conflict model (раздел 10)

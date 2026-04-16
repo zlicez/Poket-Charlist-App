@@ -91,7 +91,11 @@ export default function SharedCharacterSheet() {
     );
   }
 
-  const racialBonuses = getRacialBonuses(character.race, character.subrace);
+  const racialBonuses = getRacialBonuses(
+    character.race,
+    character.subrace,
+    character.selectedRacialAbilityBonuses,
+  );
   const noop = () => {};
   const charClassesForHp = getCharacterClasses(character);
   const totalLevelForHp = getTotalLevel(charClassesForHp);
@@ -266,6 +270,9 @@ export default function SharedCharacterSheet() {
                   customBonus={character.customAbilityBonuses?.[ability] || 0}
                   race={character.race}
                   subrace={character.subrace}
+                  selectedRacialAbilityBonuses={
+                    character.selectedRacialAbilityBonuses
+                  }
                   level={character.level}
                   skills={character.skills}
                   savingThrowProficient={!!character.savingThrows[ability]}
@@ -342,6 +349,7 @@ export default function SharedCharacterSheet() {
                 race={character.race}
                 className={character.class}
                 subrace={character.subrace}
+                raceSelections={character.raceSelections}
               />
             </div>
           </section>

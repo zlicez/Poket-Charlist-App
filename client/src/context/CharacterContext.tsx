@@ -119,6 +119,7 @@ export function CharacterProvider({
     },
     onSettled: () => {
       isSavingRef.current = false;
+      queryClient.invalidateQueries({ queryKey: ["/api/characters", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/characters"] });
     },
   });
@@ -225,11 +226,17 @@ export function CharacterProvider({
 
   const saveChanges = useCallback(async () => {
     if (Object.keys(localChanges).length > 0) {
+      if (character) {
+        queryClient.setQueryData(
+          ["/api/characters", id],
+          deepMerge(character, localChanges),
+        );
+      }
       await updateMutation.mutateAsync(localChanges);
       setLocalChanges({});
     }
     setIsEditing(false);
-  }, [localChanges, updateMutation]);
+  }, [character, id, localChanges, updateMutation]);
 
   return (
     <CharacterContext.Provider

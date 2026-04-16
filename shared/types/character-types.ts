@@ -7,6 +7,7 @@ import {
   MARTIAL_WEAPONS,
 } from "../data/d5e-constants";
 import { RACE_DATA } from "../data/d5e-races";
+import type { DamageType, RaceSpellGrant } from "../data/race-types";
 import { CLASS_DATA } from "../data/d5e-classes";
 import type {
   ArmorData,
@@ -42,6 +43,17 @@ export const abilityBonusesSchema = z.object({
 });
 
 export type AbilityBonuses = z.infer<typeof abilityBonusesSchema>;
+
+export function createEmptyAbilityBonuses(): AbilityBonuses {
+  return {
+    STR: 0,
+    DEX: 0,
+    CON: 0,
+    INT: 0,
+    WIS: 0,
+    CHA: 0,
+  };
+}
 
 export const savingThrowsSchema = z.object({
   STR: z.boolean().default(false),
@@ -208,7 +220,13 @@ export const characterSchema = z.object({
   alignment: z.string().optional(),
   experience: z.number().min(0).default(0),
   abilityScores: abilityScoresSchema,
+  selectedRacialAbilityBonuses: abilityBonusesSchema.optional(),
   customAbilityBonuses: abilityBonusesSchema.optional(),
+  // Опциональные поля для обогащённой race-системы (additive, backward compat)
+  raceSource: z.string().optional(),   // "PHB" | "VGM" | "MPMM" и т.д.
+  raceRef: z.string().optional(),      // стабильный slug: "elf", "tiefling-mpmm"
+  // Выборы пользователя внутри racial features: skill-choice, language-choice, dragon-ancestry и т.д.
+  raceSelections: z.record(z.string(), z.unknown()).optional(),
   savingThrows: savingThrowsSchema,
   skills: z.record(z.string(), skillProficiencySchema),
   armorClass: z.number().min(0).default(10),
@@ -283,11 +301,15 @@ export function formatModifier(mod: number): string {
 export function getRacialBonuses(
   race: string,
   subrace?: string,
+  selectedRacialAbilityBonuses?: Partial<Record<AbilityName, number>>,
 ): Partial<Record<AbilityName, number>> {
   const raceData = RACE_DATA[race];
   if (!raceData) return {};
 
   const bonuses = { ...raceData.abilityBonuses };
+  const selectedBonuses = raceData.abilityBonusSelection
+    ? getValidatedSelectedRacialBonuses(race, selectedRacialAbilityBonuses)
+    : {};
 
   if (subrace && raceData.subraces && raceData.subraces[subrace]) {
     const subraceData = raceData.subraces[subrace];
@@ -299,7 +321,46 @@ export function getRacialBonuses(
     }
   }
 
+  for (const ability of ABILITY_NAMES) {
+    if (selectedBonuses[ability]) {
+      bonuses[ability] = (bonuses[ability] || 0) + selectedBonuses[ability]!;
+    }
+  }
+
   return bonuses;
+}
+
+export function getValidatedSelectedRacialBonuses(
+  race: string,
+  selectedRacialAbilityBonuses?: Partial<Record<AbilityName, number>>,
+): Partial<Record<AbilityName, number>> {
+  const raceData = RACE_DATA[race];
+  if (!raceData?.abilityBonusSelection || !selectedRacialAbilityBonuses) {
+    return {};
+  }
+
+  const normalized = createEmptyAbilityBonuses();
+  for (const ability of ABILITY_NAMES) {
+    const bonus = selectedRacialAbilityBonuses[ability];
+    normalized[ability] =
+      typeof bonus === "number" && bonus > 0 ? Math.trunc(bonus) : 0;
+  }
+
+  const appliedValues = Object.values(normalized)
+    .filter((bonus) => bonus > 0)
+    .sort((a, b) => b - a);
+
+  const hasMatchingPattern = raceData.abilityBonusSelection.patterns.some(
+    (pattern) => {
+      const expected = [...pattern.bonuses].sort((a, b) => b - a);
+      return (
+        expected.length === appliedValues.length &&
+        expected.every((value, index) => value === appliedValues[index])
+      );
+    },
+  );
+
+  return hasMatchingPattern ? normalized : {};
 }
 
 export function getTotalAbilityScore(
@@ -416,7 +477,11 @@ export interface CombinedProficiencies {
   weapons: string[];
   armor: string[];
   tools: string[];
+  /** Авто-назначенные профиценции навыков от расы/подрасы */
+  skills: string[];
   darkvision: number | null;
+  /** Сопротивления урону от расы/подрасы */
+  resistances: DamageType[];
 }
 
 export function getRaceAndClassProficiencies(
@@ -432,7 +497,9 @@ export function getRaceAndClassProficiencies(
     weapons: [],
     armor: [],
     tools: [],
+    skills: [],
     darkvision: null,
+    resistances: [],
   };
 
   if (raceData) {
@@ -440,7 +507,9 @@ export function getRaceAndClassProficiencies(
     result.weapons = [...(raceData.weaponProficiencies || [])];
     result.armor = [...(raceData.armorProficiencies || [])];
     result.tools = [...(raceData.toolProficiencies || [])];
+    result.skills = [...(raceData.skillProficiencies || [])];
     result.darkvision = raceData.darkvision || null;
+    result.resistances = [...(raceData.resistances || [])] as DamageType[];
 
     if (subrace && raceData.subraces && raceData.subraces[subrace]) {
       const subraceData = raceData.subraces[subrace];
@@ -453,8 +522,14 @@ export function getRaceAndClassProficiencies(
       if (subraceData.toolProficiencies) {
         result.tools.push(...subraceData.toolProficiencies);
       }
+      if (subraceData.skillProficiencies) {
+        result.skills.push(...subraceData.skillProficiencies);
+      }
       if (subraceData.darkvision) {
         result.darkvision = subraceData.darkvision;
+      }
+      if (subraceData.resistances) {
+        result.resistances.push(...(subraceData.resistances as DamageType[]));
       }
     }
   }
@@ -469,6 +544,8 @@ export function getRaceAndClassProficiencies(
   result.weapons = Array.from(new Set(result.weapons));
   result.armor = Array.from(new Set(result.armor));
   result.tools = Array.from(new Set(result.tools));
+  result.skills = Array.from(new Set(result.skills));
+  result.resistances = Array.from(new Set(result.resistances)) as DamageType[];
 
   return result;
 }
@@ -503,6 +580,85 @@ export function getRaceDarkvision(
 }
 
 export const getDarkvision = getRaceDarkvision;
+
+// ─── Extended race engine functions ──────────────────────────────────────────
+
+/**
+ * Возвращает эффективную скорость передвижения с учётом подрасы.
+ * Например, Лесной эльф имеет speed=35, переопределяя базовые 30 эльфа.
+ */
+export function getRaceSpeed(race: string, subrace?: string): number {
+  const raceData = RACE_DATA[race];
+  if (!raceData) return 30;
+  if (subrace && raceData.subraces?.[subrace]?.speed != null) {
+    return raceData.subraces[subrace].speed!;
+  }
+  return raceData.speed;
+}
+
+/**
+ * Возвращает тип существа расы (напр. "Гуманоид", "Нежить (Гуманоид)").
+ * Если раса неизвестна — возвращает "Гуманоид" как дефолт.
+ */
+export function getRaceCreatureType(race: string): string {
+  return RACE_DATA[race]?.creatureType ?? "Гуманоид";
+}
+
+/**
+ * Возвращает авто-назначенные профиценции навыков от расы и подрасы.
+ * Не включает навыки, выбираемые игроком (skillChoices).
+ */
+export function getRaceSkillGrants(race: string, subrace?: string): string[] {
+  const raceData = RACE_DATA[race];
+  if (!raceData) return [];
+
+  const skills: string[] = [...(raceData.skillProficiencies || [])];
+
+  if (subrace && raceData.subraces?.[subrace]?.skillProficiencies) {
+    skills.push(...raceData.subraces[subrace].skillProficiencies!);
+  }
+
+  return Array.from(new Set(skills));
+}
+
+/**
+ * Возвращает spell grants расы с учётом уровня персонажа и подрасы.
+ * Только заклинания с minLevel ≤ characterLevel включаются в результат.
+ */
+export function getRaceSpellGrants(
+  race: string,
+  characterLevel: number,
+  subrace?: string,
+): RaceSpellGrant[] {
+  const raceData = RACE_DATA[race];
+  if (!raceData) return [];
+
+  const allGrants: RaceSpellGrant[] = [
+    ...(raceData.spellGrants || []),
+  ];
+
+  if (subrace && raceData.subraces?.[subrace]?.spellGrants) {
+    allGrants.push(...raceData.subraces[subrace].spellGrants!);
+  }
+
+  return allGrants.filter((g) => g.minLevel <= characterLevel);
+}
+
+/**
+ * Возвращает сопротивления урону от расы и подрасы (объединённые, без дублей).
+ */
+export function getRaceResistances(race: string, subrace?: string): DamageType[] {
+  const raceData = RACE_DATA[race];
+  if (!raceData) return [];
+
+  const res: DamageType[] = [...((raceData.resistances || []) as DamageType[])];
+
+  if (subrace && raceData.subraces?.[subrace]?.resistances) {
+    res.push(...(raceData.subraces[subrace].resistances as DamageType[]));
+  }
+
+  return Array.from(new Set(res)) as DamageType[];
+}
 
 export function createEquipmentFromBase(
   baseItem: BaseEquipmentItem,
@@ -607,7 +763,8 @@ export function createDefaultCharacter(): InsertCharacter {
     alignment: "Истинно нейтральный",
     experience: 0,
     abilityScores: { STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10 },
-    customAbilityBonuses: { STR: 0, DEX: 0, CON: 0, INT: 0, WIS: 0, CHA: 0 },
+    selectedRacialAbilityBonuses: createEmptyAbilityBonuses(),
+    customAbilityBonuses: createEmptyAbilityBonuses(),
     savingThrows: {
       STR: classData.savingThrows.includes("STR"),
       DEX: classData.savingThrows.includes("DEX"),
