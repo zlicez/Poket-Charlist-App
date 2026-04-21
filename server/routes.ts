@@ -85,11 +85,33 @@ export async function registerRoutes(
     try {
       const userId = req.user.claims.sub;
       const validated = characterSchema.partial().parse(req.body);
-      const character = await storage.updateCharacter(req.params.id, userId, validated);
-      if (!character) {
+      // If-Match ожидается как ISO-строка из поля updatedAt последнего известного
+      // клиенту Character. Сервер возвращает его в каждом ответе (см. rowToCharacter).
+      // Заголовок отсутствует — клиент не участвует в optimistic-concurrency протоколе
+      // и работает как раньше (временная обратная совместимость на период миграции).
+      const ifMatchHeader = req.get("If-Match");
+      const expectedUpdatedAt =
+        typeof ifMatchHeader === "string" && ifMatchHeader.length > 0
+          ? ifMatchHeader.replace(/^"|"$/g, "") // допускаем как "..." так и голую строку
+          : undefined;
+      const result = await storage.updateCharacter(
+        req.params.id,
+        userId,
+        validated,
+        expectedUpdatedAt,
+      );
+      if (result.status === "notfound") {
         return res.status(404).json({ error: "Character not found" });
       }
-      res.json(character);
+      if (result.status === "conflict") {
+        // Отдаём актуальное состояние, чтобы клиент мог показать diff / rebase.
+        return res.status(409).json({
+          error: "Version mismatch",
+          currentUpdatedAt: result.current.updatedAt,
+          currentCharacter: result.current,
+        });
+      }
+      res.json(result.character);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Invalid character data", details: error.errors });

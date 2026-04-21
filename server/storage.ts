@@ -4,11 +4,23 @@ import { eq, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { deepMerge } from "./deep-merge";
 
+// Результат updateCharacter: явно разделяем три исхода, чтобы route мог
+// вернуть правильный HTTP-статус (200 / 409 / 404) без гаданий.
+export type UpdateCharacterResult =
+  | { status: "ok"; character: Character }
+  | { status: "conflict"; current: Character }
+  | { status: "notfound" };
+
 export interface IStorage {
   getCharacters(userId: string): Promise<Character[]>;
   getCharacter(id: string, userId: string): Promise<Character | undefined>;
   createCharacter(character: InsertCharacter, userId: string): Promise<Character>;
-  updateCharacter(id: string, userId: string, updates: Partial<Character>): Promise<Character | undefined>;
+  updateCharacter(
+    id: string,
+    userId: string,
+    updates: Partial<Character>,
+    expectedUpdatedAt?: string,
+  ): Promise<UpdateCharacterResult>;
   deleteCharacter(id: string, userId: string): Promise<boolean>;
   enableSharing(id: string, userId: string): Promise<{ shareToken: string } | undefined>;
   disableSharing(id: string, userId: string): Promise<boolean>;
@@ -63,9 +75,24 @@ export class DatabaseStorage implements IStorage {
     return rowToCharacter(row);
   }
 
-  async updateCharacter(id: string, userId: string, updates: Partial<Character>): Promise<Character | undefined> {
+  async updateCharacter(
+    id: string,
+    userId: string,
+    updates: Partial<Character>,
+    expectedUpdatedAt?: string,
+  ): Promise<UpdateCharacterResult> {
     const existing = await this.getCharacter(id, userId);
-    if (!existing) return undefined;
+    if (!existing) return { status: "notfound" };
+
+    // Optimistic concurrency: клиент передаёт известную ему версию в If-Match
+    // (прокидывается сюда как expectedUpdatedAt). Сравнение ISO-строк — DB и
+    // client оба округляют Date до миллисекунд на этом пути, совпадут.
+    // TOCTOU-окно между getCharacter и db.update небольшое и открывается только
+    // при конкурентной записи от одного пользователя; полная атомарность
+    // потребует миграции колонки на precision 3 и CAS в WHERE.
+    if (expectedUpdatedAt !== undefined && existing.updatedAt !== expectedUpdatedAt) {
+      return { status: "conflict", current: existing };
+    }
 
     // updatedAt пишется только сервером — любое значение из тела клиента игнорируется.
     // existing тоже содержит server-side updatedAt (из rowToCharacter); вырезаем его
@@ -88,9 +115,9 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(characters.id, id), eq(characters.userId, userId)))
       .returning();
 
-    if (!row) return undefined;
+    if (!row) return { status: "notfound" };
 
-    return rowToCharacter(row);
+    return { status: "ok", character: rowToCharacter(row) };
   }
 
   async deleteCharacter(id: string, userId: string): Promise<boolean> {
@@ -168,14 +195,22 @@ class MemStorage implements IStorage {
     return newChar;
   }
 
-  async updateCharacter(id: string, userId: string, updates: Partial<Character>): Promise<Character | undefined> {
+  async updateCharacter(
+    id: string,
+    userId: string,
+    updates: Partial<Character>,
+    expectedUpdatedAt?: string,
+  ): Promise<UpdateCharacterResult> {
     const existing = await this.getCharacter(id, userId);
-    if (!existing) return undefined;
+    if (!existing) return { status: "notfound" };
+    if (expectedUpdatedAt !== undefined && existing.updatedAt !== expectedUpdatedAt) {
+      return { status: "conflict", current: existing };
+    }
     const { id: _, userId: __, updatedAt: ___, ...updateData } = updates;
     const merged = deepMerge(existing, updateData);
     const updated = { ...merged, updatedAt: new Date().toISOString() };
     this.chars.set(id, updated);
-    return updated;
+    return { status: "ok", character: updated };
   }
 
   async deleteCharacter(id: string, userId: string): Promise<boolean> {
