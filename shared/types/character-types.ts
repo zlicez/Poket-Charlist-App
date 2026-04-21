@@ -257,6 +257,10 @@ export type ClassResourceState = z.infer<typeof classResourceStateSchema>;
 export const characterSchema = z.object({
   id: z.string(),
   userId: z.string().optional(),
+  // Серверная метка времени последнего обновления (ISO-строка). Используется как
+  // baseVersion для If-Match / optimistic concurrency. Только сервер эту метку
+  // пишет — на PATCH тело клиента это поле игнорируется (см. storage.updateCharacter).
+  updatedAt: z.string().optional(),
   name: z.string().min(1),
   avatar: z.string().optional(),
   class: z.string(),

@@ -16,27 +16,36 @@ export interface IStorage {
   getCharacterByShareToken(token: string): Promise<Character | undefined>;
 }
 
+// Проекция Drizzle-row в возвращаемый клиенту Character.
+// updatedAt идёт ПОСЛЕ spread'а data — канонический источник правды один (колонка БД),
+// даже если старые записи случайно содержат поле внутри JSONB.
+function rowToCharacter(row: {
+  id: string;
+  userId: string;
+  data: unknown;
+  updatedAt: Date | null;
+}): Character {
+  return {
+    id: row.id,
+    userId: row.userId,
+    ...(row.data as object),
+    updatedAt: row.updatedAt ? row.updatedAt.toISOString() : undefined,
+  } as Character;
+}
+
 export class DatabaseStorage implements IStorage {
   async getCharacters(userId: string): Promise<Character[]> {
     const rows = await db.select().from(characters).where(eq(characters.userId, userId));
-    return rows.map(row => ({
-      id: row.id,
-      userId: row.userId,
-      ...(row.data as object),
-    } as Character));
+    return rows.map(rowToCharacter);
   }
 
   async getCharacter(id: string, userId: string): Promise<Character | undefined> {
     const [row] = await db.select().from(characters)
       .where(and(eq(characters.id, id), eq(characters.userId, userId)));
-    
+
     if (!row) return undefined;
-    
-    return {
-      id: row.id,
-      userId: row.userId,
-      ...(row.data as object),
-    } as Character;
+
+    return rowToCharacter(row);
   }
 
   async createCharacter(insertCharacter: InsertCharacter, userId: string): Promise<Character> {
@@ -51,19 +60,19 @@ export class DatabaseStorage implements IStorage {
       data: characterData,
     }).returning();
 
-    return {
-      id: row.id,
-      userId: row.userId,
-      ...(row.data as object),
-    } as Character;
+    return rowToCharacter(row);
   }
 
   async updateCharacter(id: string, userId: string, updates: Partial<Character>): Promise<Character | undefined> {
     const existing = await this.getCharacter(id, userId);
     if (!existing) return undefined;
 
-    const { id: _, userId: __, ...updateData } = updates;
-    const merged = deepMerge(existing, updateData);
+    // updatedAt пишется только сервером — любое значение из тела клиента игнорируется.
+    // existing тоже содержит server-side updatedAt (из rowToCharacter); вырезаем его
+    // один раз перед merge, чтобы потом ничего не попало в JSONB data.
+    const { updatedAt: _exUpd, ...existingData } = existing;
+    const { id: _, userId: __, updatedAt: ___, ...updateData } = updates;
+    const merged = deepMerge(existingData, updateData);
     const validated = characterSchema.safeParse(merged);
     if (!validated.success) {
       console.warn("Merged character failed schema validation:", validated.error.flatten());
@@ -71,7 +80,7 @@ export class DatabaseStorage implements IStorage {
     const updated = validated.success ? validated.data : merged;
 
     const [row] = await db.update(characters)
-      .set({ 
+      .set({
         name: updated.name,
         data: updated,
         updatedAt: new Date(),
@@ -81,11 +90,7 @@ export class DatabaseStorage implements IStorage {
 
     if (!row) return undefined;
 
-    return {
-      id: row.id,
-      userId: row.userId,
-      ...(row.data as object),
-    } as Character;
+    return rowToCharacter(row);
   }
 
   async deleteCharacter(id: string, userId: string): Promise<boolean> {
@@ -132,11 +137,7 @@ export class DatabaseStorage implements IStorage {
     const [row] = await db.select().from(characters)
       .where(and(eq(characters.shareToken, token), eq(characters.isShared, true)));
     if (!row) return undefined;
-    return {
-      id: row.id,
-      userId: row.userId,
-      ...(row.data as object),
-    } as Character;
+    return rowToCharacter(row);
   }
 }
 
@@ -161,6 +162,7 @@ class MemStorage implements IStorage {
       id,
       userId,
       skills: character.skills || { ...DEFAULT_SKILLS_PROFICIENCY },
+      updatedAt: new Date().toISOString(),
     } as Character;
     this.chars.set(id, newChar);
     return newChar;
@@ -169,8 +171,9 @@ class MemStorage implements IStorage {
   async updateCharacter(id: string, userId: string, updates: Partial<Character>): Promise<Character | undefined> {
     const existing = await this.getCharacter(id, userId);
     if (!existing) return undefined;
-    const { id: _, userId: __, ...updateData } = updates;
-    const updated = deepMerge(existing, updateData);
+    const { id: _, userId: __, updatedAt: ___, ...updateData } = updates;
+    const merged = deepMerge(existing, updateData);
+    const updated = { ...merged, updatedAt: new Date().toISOString() };
     this.chars.set(id, updated);
     return updated;
   }
