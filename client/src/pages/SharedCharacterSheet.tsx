@@ -17,7 +17,7 @@ import { RichTextContent } from "@/components/RichTextContent";
 import { SpellsSection } from "@/components/SpellsSection";
 import { ProficienciesSection } from "@/components/ProficienciesSection";
 import { useTheme } from "@/components/ThemeProvider";
-import { queryKeys } from "@shared/constants";
+import { queryKeys, SECTION_IDS } from "@shared/constants";
 import {
   ABILITY_NAMES,
   calculateModifier,
@@ -118,12 +118,12 @@ export default function SharedCharacterSheet() {
   const showSpellsSection =
     Boolean(resolvedClassState.spellcasting.hasSpellcasting);
   const sectionNavItems = [
-    { id: "section-combat", label: "Общее", icon: User },
-    { id: "section-abilities", label: "Характеристики", icon: FaDiceD20 },
-    { id: "section-equipment", label: "Оружие", icon: Crosshair },
-    { id: "section-inventory", label: "Инвентарь", icon: Backpack },
+    { id: SECTION_IDS.combat, label: "Общее", icon: User },
+    { id: SECTION_IDS.abilities, label: "Характеристики", icon: FaDiceD20 },
+    { id: SECTION_IDS.equipment, label: "Оружие", icon: Crosshair },
+    { id: SECTION_IDS.inventory, label: "Инвентарь", icon: Backpack },
     ...(showSpellsSection
-      ? [{ id: "section-spells", label: "Заклинания", icon: BookOpen }]
+      ? [{ id: SECTION_IDS.spells, label: "Заклинания", icon: BookOpen }]
       : []),
   ];
   const referenceSections = [
@@ -159,7 +159,7 @@ export default function SharedCharacterSheet() {
   const sectionNavItemsWithNotes = [
     ...sectionNavItems,
     ...(referenceSections.length > 0
-      ? [{ id: "section-notes", label: "Заметки", icon: StickyNote }]
+      ? [{ id: SECTION_IDS.notes, label: "Заметки", icon: StickyNote }]
       : []),
   ];
 
@@ -221,7 +221,7 @@ export default function SharedCharacterSheet() {
             </div>
           </nav>
 
-          <section id="section-combat" className="space-y-3 sm:space-y-4">
+          <section id={SECTION_IDS.combat} className="space-y-3 sm:space-y-4">
             <div className="section-label">Общее</div>
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.95fr)] gap-3 sm:gap-4">
               <div className="min-w-0">
@@ -258,7 +258,7 @@ export default function SharedCharacterSheet() {
             </div>
           </section>
 
-          <section id="section-abilities" className="space-y-3">
+          <section id={SECTION_IDS.abilities} className="space-y-3">
             <div className="section-label">
               Характеристики, спасброски и навыки
             </div>
@@ -290,7 +290,7 @@ export default function SharedCharacterSheet() {
             </div>
           </section>
 
-          <section id="section-equipment" className="space-y-3">
+          <section id={SECTION_IDS.equipment} className="space-y-3">
             <div className="section-label">Оружие и ключевые действия</div>
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] gap-3 sm:gap-4">
               <WeaponsList
@@ -325,7 +325,7 @@ export default function SharedCharacterSheet() {
             </div>
           </section>
 
-          <section id="section-inventory" className="space-y-3">
+          <section id={SECTION_IDS.inventory} className="space-y-3">
             <div className="section-label">Инвентарь и владения</div>
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)] gap-3 sm:gap-4 items-start">
               <EquipmentSystem
@@ -355,7 +355,7 @@ export default function SharedCharacterSheet() {
           </section>
 
           {showSpellsSection && (
-            <section id="section-spells" className="space-y-3">
+            <section id={SECTION_IDS.spells} className="space-y-3">
               <div className="section-label">Заклинания</div>
               <SpellsSection
                 character={character}
@@ -366,7 +366,7 @@ export default function SharedCharacterSheet() {
           )}
 
           {normalizedReferenceSections.length > 0 && (
-            <section id="section-notes" className="space-y-3">
+            <section id={SECTION_IDS.notes} className="space-y-3">
               <div className="section-label">Заметки и сведения</div>
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4">
                 {normalizedReferenceSections.map(

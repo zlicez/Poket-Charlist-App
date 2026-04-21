@@ -39,6 +39,8 @@ import { useApplyHeal } from "@/hooks/character/useApplyHeal";
 import { useEquipmentOps } from "@/hooks/character/useEquipmentOps";
 import { useRemoveFeature } from "@/hooks/character/useRemoveFeature";
 import { useRemoveWeapon } from "@/hooks/character/useRemoveWeapon";
+import { useSetDeathSaves } from "@/hooks/character/useSetDeathSaves";
+import { useSetInspiration } from "@/hooks/character/useSetInspiration";
 import { useUpsertFeature } from "@/hooks/character/useUpsertFeature";
 import { useUpsertWeapon } from "@/hooks/character/useUpsertWeapon";
 import {
@@ -104,6 +106,7 @@ import {
   Brain,
 } from "lucide-react";
 import { FaDiceD20 } from "react-icons/fa";
+import { SECTION_IDS } from "@shared/constants";
 
 export default function CharacterSheet() {
   const { id } = useParams<{ id: string }>();
@@ -138,6 +141,8 @@ function CharacterSheetContent() {
   // CharacterSheet с early return при отсутствии id).
   const applyDamage = useApplyDamage(characterId!);
   const applyHeal = useApplyHeal(characterId!);
+  const setInspiration = useSetInspiration(characterId!);
+  const setDeathSaves = useSetDeathSaves(characterId!);
   const upsertWeapon = useUpsertWeapon(characterId!);
   const removeWeapon = useRemoveWeapon(characterId!);
   const upsertFeature = useUpsertFeature(characterId!);
@@ -154,7 +159,7 @@ function CharacterSheetContent() {
   const [newCharHintVisible, setNewCharHintVisible] = useState(true);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("section-combat");
+  const [activeTab, setActiveTab] = useState<string>(SECTION_IDS.combat);
 
   const { pdfToast, exportPdf } = usePdfExportToast();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
@@ -169,8 +174,8 @@ function CharacterSheetContent() {
 
   // If character loses spellcasting while on the spells tab — fall back to combat
   useEffect(() => {
-    if (!showSpellsSection && activeTab === "section-spells") {
-      setActiveTab("section-combat");
+    if (!showSpellsSection && activeTab === SECTION_IDS.spells) {
+      setActiveTab(SECTION_IDS.combat);
     }
   }, [showSpellsSection, activeTab]);
 
@@ -323,18 +328,18 @@ function CharacterSheetContent() {
   };
 
   const sectionNavItems = [
-    { id: "section-combat", label: "Общее", mobileLabel: "Общее", icon: User },
-    { id: "section-abilities", label: "Характеристики", mobileLabel: "Броски", icon: FaDiceD20 },
-    { id: "section-equipment", label: "Оружие", mobileLabel: "Оружие", icon: Swords },
-    { id: "section-inventory", label: "Инвентарь", mobileLabel: "Вещи", icon: Backpack },
+    { id: SECTION_IDS.combat, label: "Общее", mobileLabel: "Общее", icon: User },
+    { id: SECTION_IDS.abilities, label: "Характеристики", mobileLabel: "Броски", icon: FaDiceD20 },
+    { id: SECTION_IDS.equipment, label: "Оружие", mobileLabel: "Оружие", icon: Swords },
+    { id: SECTION_IDS.inventory, label: "Инвентарь", mobileLabel: "Вещи", icon: Backpack },
     ...(showSpellsSection
-      ? [{ id: "section-spells", label: "Заклинания", mobileLabel: "Магия", icon: BookOpen }]
+      ? [{ id: SECTION_IDS.spells, label: "Заклинания", mobileLabel: "Магия", icon: BookOpen }]
       : []),
-    { id: "section-notes", label: "Заметки", mobileLabel: "Заметки", icon: StickyNote },
+    { id: SECTION_IDS.notes, label: "Заметки", mobileLabel: "Заметки", icon: StickyNote },
   ];
-  const sectionNavIds = sectionNavItems.map(({ id }) => id);
+  const sectionNavIds: string[] = sectionNavItems.map(({ id }) => id);
   const sectionNavIdsKey = sectionNavIds.join("|");
-  const firstSectionId = sectionNavIds[0] ?? "section-combat";
+  const firstSectionId = sectionNavIds[0] ?? SECTION_IDS.combat;
 
   const desktopNavigation = useDesktopSectionNavigation({
     enabled: isDesktop,
@@ -483,10 +488,10 @@ function CharacterSheetContent() {
     const isMobile = layout === "mobile";
 
     switch (sectionId) {
-      case "section-combat":
+      case SECTION_IDS.combat:
         return (
           <section
-            id={isMobile ? undefined : "section-combat"}
+            id={isMobile ? undefined : SECTION_IDS.combat}
             className="space-y-3 sm:space-y-4"
           >
             <div className="section-label">Общее</div>
@@ -522,6 +527,7 @@ function CharacterSheetContent() {
                   onChange={handleChange}
                   isEditing={isEditing}
                   onFinishEditing={saveChanges}
+                  onToggleInspiration={setInspiration.mutate}
                 />
               </div>
               <div className="space-y-3">
@@ -547,6 +553,7 @@ function CharacterSheetContent() {
                 <DeathSavesTracker
                   deathSaves={character.deathSaves}
                   onChange={(deathSaves) => handleChange({ deathSaves })}
+                  onSetDeathSaves={setDeathSaves.mutate}
                   isEditing={isEditing}
                 />
               </div>
@@ -570,10 +577,10 @@ function CharacterSheetContent() {
           </section>
         );
 
-      case "section-abilities":
+      case SECTION_IDS.abilities:
         return (
           <section
-            id={isMobile ? undefined : "section-abilities"}
+            id={isMobile ? undefined : SECTION_IDS.abilities}
             className="space-y-3"
           >
             <div className="section-label">Характеристики, спасброски и навыки</div>
@@ -639,10 +646,10 @@ function CharacterSheetContent() {
           </section>
         );
 
-      case "section-equipment":
+      case SECTION_IDS.equipment:
         return (
           <section
-            id={isMobile ? undefined : "section-equipment"}
+            id={isMobile ? undefined : SECTION_IDS.equipment}
             className="space-y-3"
           >
             <div className="section-label">Оружие и ключевые действия</div>
@@ -702,10 +709,10 @@ function CharacterSheetContent() {
           </section>
         );
 
-      case "section-inventory":
+      case SECTION_IDS.inventory:
         return (
           <section
-            id={isMobile ? undefined : "section-inventory"}
+            id={isMobile ? undefined : SECTION_IDS.inventory}
             className="space-y-3"
           >
             <div className="section-label">Инвентарь и владения</div>
@@ -743,11 +750,11 @@ function CharacterSheetContent() {
           </section>
         );
 
-      case "section-spells":
+      case SECTION_IDS.spells:
         if (!showSpellsSection) return null;
         return (
           <section
-            id={isMobile ? undefined : "section-spells"}
+            id={isMobile ? undefined : SECTION_IDS.spells}
             className="space-y-3"
           >
             <div className="section-label">Заклинания</div>
@@ -763,10 +770,10 @@ function CharacterSheetContent() {
           </section>
         );
 
-      case "section-notes":
+      case SECTION_IDS.notes:
         return (
           <section
-            id={isMobile ? undefined : "section-notes"}
+            id={isMobile ? undefined : SECTION_IDS.notes}
             className="space-y-3"
           >
             <div className="section-label">Заметки и сведения</div>

@@ -74,21 +74,16 @@ export const LS_KEYS = {
 
 // ─── UI section ids (scroll-spy / tabs / anchors) ──────────────────────────
 //
-// Имена уже присутствуют в DOM, привязанные к существующему sidebar/tabs.
-// Для новой 4-табной IA будут добавлены новые, старые пометим как deprecated
-// в момент переключения фича-флага новой дизайн-системы.
+// Идентификаторы фактически используемых секций существующего sheet-layout'а.
+// Новая 4-табная IA добавит свои ключи (combat / sheet / spells / bag) при
+// включении VITE_NEW_DS — старые при этом будут помечены deprecated.
 
 export const SECTION_IDS = {
-  identity: "section-identity",
   combat: "section-combat",
   abilities: "section-abilities",
-  proficiencies: "section-proficiencies",
-  features: "section-features",
-  spells: "section-spells",
-  weapons: "section-weapons",
   equipment: "section-equipment",
+  inventory: "section-inventory",
+  spells: "section-spells",
   notes: "section-notes",
-  bag: "section-bag",
-  sheet: "section-sheet",
 } as const;
 export type SectionId = (typeof SECTION_IDS)[keyof typeof SECTION_IDS];
