@@ -19,16 +19,13 @@ import { CharacterCard } from "@/components/CharacterCard";
 import { AccountDialog } from "@/components/AccountDialog";
 import { AuthScreen } from "@/components/AuthScreen";
 import { useTheme } from "@/components/ThemeProvider";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
+import { createCharacter, deleteCharacter } from "@/lib/api/characters";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { parseLSSJson } from "@/lib/lss-import";
 import { createDefaultCharacter, type Character } from "@shared/schema";
-import {
-  CHARACTERS_LIST_URL,
-  characterUrl,
-  queryKeys,
-} from "@shared/constants";
+import { queryKeys } from "@shared/constants";
 import { Dices, LogOut, Moon, Plus, Scroll, Shield, Sun, Swords, Upload, User } from "lucide-react";
 
 export default function CharactersList() {
@@ -46,12 +43,8 @@ export default function CharactersList() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async () => {
-      const defaultCharacter = createDefaultCharacter();
-      return apiRequest("POST", CHARACTERS_LIST_URL, defaultCharacter);
-    },
-    onSuccess: async (response) => {
-      const newCharacter = await response.json();
+    mutationFn: async () => createCharacter(createDefaultCharacter()),
+    onSuccess: (newCharacter) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.charactersList() });
       setLocation(`/character/${newCharacter.id}`);
       toast({
@@ -69,7 +62,7 @@ export default function CharactersList() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => apiRequest("DELETE", characterUrl(id)),
+    mutationFn: async (id: string) => deleteCharacter(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.charactersList() });
       toast({ title: "Персонаж удален" });
@@ -85,9 +78,8 @@ export default function CharactersList() {
   });
 
   const importMutation = useMutation({
-    mutationFn: async (characterData: unknown) => apiRequest("POST", CHARACTERS_LIST_URL, characterData),
-    onSuccess: async (response) => {
-      const newCharacter = await response.json();
+    mutationFn: async (characterData: unknown) => createCharacter(characterData),
+    onSuccess: (newCharacter) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.charactersList() });
       setLocation(`/character/${newCharacter.id}`);
       toast({

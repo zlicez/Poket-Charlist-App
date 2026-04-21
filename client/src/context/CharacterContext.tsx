@@ -1,15 +1,16 @@
 import { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
+import {
+  disableShare,
+  enableShare,
+  updateCharacter as updateCharacterRequest,
+} from "@/lib/api/characters";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { type Character } from "@shared/schema";
-import {
-  characterShareUrl,
-  characterUrl,
-  queryKeys,
-} from "@shared/constants";
+import { queryKeys } from "@shared/constants";
 
 // Client-side deepMerge: applies all source keys including undefined
 // (differs from server version which skips undefined values)
@@ -95,7 +96,7 @@ export function CharacterProvider({
 
   const updateMutation = useMutation({
     mutationFn: async (updates: Partial<Character>) =>
-      apiRequest("PATCH", characterUrl(id), updates),
+      updateCharacterRequest(id, updates),
     onMutate: async (updates: Partial<Character>) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.character(id) });
       const previous = queryClient.getQueryData<Character>(queryKeys.character(id));
@@ -104,13 +105,10 @@ export function CharacterProvider({
       }
       return { previous };
     },
-    onSuccess: async (res: Response) => {
-      try {
-        const updated: Character = await res.json();
-        if (updated?.id) {
-          queryClient.setQueryData(queryKeys.character(id), updated);
-        }
-      } catch {}
+    onSuccess: (updated) => {
+      if (updated?.id) {
+        queryClient.setQueryData(queryKeys.character(id), updated);
+      }
     },
     onError: (_err, _updates, context) => {
       if (context?.previous) {
@@ -135,11 +133,10 @@ export function CharacterProvider({
   });
 
   const enableShareMutation = useMutation({
-    mutationFn: () => apiRequest("POST", characterShareUrl(id)),
-    onSuccess: async (res) => {
-      const data = await res.json();
+    mutationFn: () => enableShare(id),
+    onSuccess: ({ shareToken }) => {
       queryClient.setQueryData(queryKeys.characterShare(id), {
-        shareToken: data.shareToken,
+        shareToken,
         isShared: true,
       });
       queryClient.invalidateQueries({ queryKey: queryKeys.charactersList() });
@@ -150,7 +147,7 @@ export function CharacterProvider({
   });
 
   const disableShareMutation = useMutation({
-    mutationFn: () => apiRequest("DELETE", characterShareUrl(id)),
+    mutationFn: () => disableShare(id),
     onSuccess: () => {
       queryClient.setQueryData(queryKeys.characterShare(id), {
         shareToken: null,
