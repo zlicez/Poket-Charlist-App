@@ -15,22 +15,89 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+const CHARACTER_URL_RE = /^\/api\/characters\/([^/]+)$/;
+
+// Ошибка версии: выбрасывается, когда сервер отвечает 409 на PATCH.
+// Мутация использует её в onError, чтобы отличить conflict от прочих сбоев.
+export class VersionConflictError extends Error {
+  constructor(
+    public readonly characterId: string,
+    public readonly currentCharacter: unknown,
+    public readonly currentUpdatedAt: string | undefined,
+  ) {
+    super("Version mismatch");
+    this.name = "VersionConflictError";
+  }
+}
+
+// Безопасное чтение updatedAt из React Query кеша без статической зависимости
+// на queryClient (он объявлен в этом же файле ниже — чтобы избежать TDZ-цикла,
+// читаем через геттер после инициализации).
+function getCachedCharacterUpdatedAt(id: string): string | undefined {
+  const cached = queryClient.getQueryData<{ updatedAt?: string }>([
+    "/api/characters",
+    id,
+  ]);
+  return cached?.updatedAt;
+}
+
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  const characterIdMatch = url.match(CHARACTER_URL_RE);
+  const isPatchCharacter = method === "PATCH" && !!characterIdMatch;
+  const baseUpdatedAt = isPatchCharacter
+    ? getCachedCharacterUpdatedAt(characterIdMatch![1])
+    : undefined;
+
   try {
+    const headers: Record<string, string> = {};
+    if (data) headers["Content-Type"] = "application/json";
+    if (isPatchCharacter && baseUpdatedAt) headers["If-Match"] = baseUpdatedAt;
+
     const res = await fetch(url, {
       method,
-      headers: data ? { "Content-Type": "application/json" } : {},
+      headers,
       body: data ? JSON.stringify(data) : undefined,
       credentials: "include",
     });
 
+    if (res.status === 409 && isPatchCharacter) {
+      const body = await res
+        .clone()
+        .json()
+        .catch(() => ({}) as { currentCharacter?: unknown; currentUpdatedAt?: string });
+      const characterId = characterIdMatch![1];
+      // Сервер возвращает актуальную запись — кладём в кеш и IndexedDB, чтобы
+      // UI сразу показал правильное состояние.
+      if (body.currentCharacter) {
+        queryClient.setQueryData(["/api/characters", characterId], body.currentCharacter);
+        cacheCharacter(body.currentCharacter).catch(() => {});
+      }
+      window.dispatchEvent(
+        new CustomEvent("sync:conflict", {
+          detail: {
+            characterId,
+            url,
+            attempted: data,
+            current: body.currentCharacter,
+            currentUpdatedAt: body.currentUpdatedAt,
+            source: "patch",
+          },
+        }),
+      );
+      throw new VersionConflictError(
+        characterId,
+        body.currentCharacter,
+        body.currentUpdatedAt,
+      );
+    }
+
     await throwIfResNotOk(res);
 
-    if (method === "PATCH" && url.match(/\/api\/characters\/[^/]+$/)) {
+    if (isPatchCharacter) {
       try {
         const clone = res.clone();
         const updated = await clone.json();
@@ -40,28 +107,26 @@ export async function apiRequest(
       } catch {}
     }
 
-    if (method === "DELETE" && url.match(/\/api\/characters\/[^/]+$/)) {
-      const idMatch = url.match(/\/api\/characters\/([^/]+)$/);
-      if (idMatch) {
-        removeCachedCharacter(idMatch[1]).catch(() => {});
-      }
+    if (method === "DELETE" && characterIdMatch) {
+      removeCachedCharacter(characterIdMatch[1]).catch(() => {});
     }
 
     return res;
   } catch (err) {
+    if (err instanceof VersionConflictError) {
+      throw err;
+    }
     if (!navigator.onLine && method !== "GET") {
       await addPendingChange({
         method,
         url,
         body: data,
+        baseUpdatedAt,
         timestamp: Date.now(),
       });
 
-      if (method === "DELETE" && url.match(/\/api\/characters\/[^/]+$/)) {
-        const idMatch = url.match(/\/api\/characters\/([^/]+)$/);
-        if (idMatch) {
-          removeCachedCharacter(idMatch[1]).catch(() => {});
-        }
+      if (method === "DELETE" && characterIdMatch) {
+        removeCachedCharacter(characterIdMatch[1]).catch(() => {});
       }
 
       return new Response(JSON.stringify({ queued: true }), {

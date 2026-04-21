@@ -29,6 +29,13 @@ export function ConnectionStatus() {
           variant: "destructive",
         });
       }
+      if (result.conflicts > 0) {
+        toast({
+          title: "Конфликт версий",
+          description: `Нужна сверка: ${result.conflicts}`,
+          variant: "destructive",
+        });
+      }
     } catch {
       toast({
         title: "Ошибка синхронизации",

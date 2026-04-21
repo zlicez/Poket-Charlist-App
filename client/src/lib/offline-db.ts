@@ -3,11 +3,14 @@ const DB_VERSION = 1;
 const CHARACTERS_STORE = "characters";
 const PENDING_CHANGES_STORE = "pendingChanges";
 
-interface PendingChange {
+export interface PendingChange {
   id: string;
   method: string;
   url: string;
   body?: unknown;
+  // Версия, известная клиенту в момент постановки в очередь. Используется для
+  // If-Match при replay'е и для обнаружения расхождения с сервером до отправки.
+  baseUpdatedAt?: string;
   timestamp: number;
 }
 
