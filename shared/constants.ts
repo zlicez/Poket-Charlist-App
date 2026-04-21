@@ -65,6 +65,7 @@ export type SyncEventName = (typeof SYNC_EVENTS)[keyof typeof SYNC_EVENTS];
 
 export const LS_KEYS = {
   theme: "dnd-theme",
+  characterUi: "dnd-character-ui",
 } as const;
 
 // ─── UI section ids (scroll-spy / tabs / anchors) ──────────────────────────
