@@ -1,0 +1,8 @@
+dist/
+node_modules/
+.local/
+*.lock
+*.log
+charlist_blank.pdf
+attached_assets/
+.claude/

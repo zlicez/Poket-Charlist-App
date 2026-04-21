@@ -1253,20 +1253,14 @@ function FlexibleRaceBonusesEditor({
   const raceData = RACE_DATA[character.race];
   const selection = raceData?.abilityBonusSelection;
 
-  if (!selection) {
-    return null;
-  }
-
+  // Хуки должны вызываться в одном и том же порядке на каждом рендере —
+  // поэтому они идут до early-return. Состояние `mode` не зависит от selection;
+  // для рас без flexible-selection компонент просто не рендерится ниже.
   const selectedBonuses =
     character.selectedRacialAbilityBonuses ?? createEmptyAbilityBonuses();
-  const validatedSelectedBonuses = getValidatedSelectedRacialBonuses(
-    character.race,
-    selectedBonuses,
-  );
-  const hasValidSelection = hasAssignedAbilityBonuses(validatedSelectedBonuses);
   const detectedMode = detectFlexibleBonusMode(selectedBonuses);
-  const [mode, setMode] = useState<FlexibleBonusMode>(() =>
-    detectedMode ?? "split",
+  const [mode, setMode] = useState<FlexibleBonusMode>(
+    () => detectedMode ?? "split",
   );
 
   useEffect(() => {
@@ -1274,6 +1268,16 @@ function FlexibleRaceBonusesEditor({
       setMode(detectedMode);
     }
   }, [detectedMode]);
+
+  if (!selection) {
+    return null;
+  }
+
+  const validatedSelectedBonuses = getValidatedSelectedRacialBonuses(
+    character.race,
+    selectedBonuses,
+  );
+  const hasValidSelection = hasAssignedAbilityBonuses(validatedSelectedBonuses);
 
   const splitPrimary = ABILITY_NAMES.find(
     (ability) => selectedBonuses[ability] === 2,
