@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { NumericInput } from "@/components/ui/numeric-input";
@@ -23,6 +22,11 @@ interface HpTrackerProps {
   isAutoCalc: boolean;
   temp: number;
   onChange: (updates: { currentHp?: number; maxHp?: number; customMaxHpBonus?: number; tempHp?: number }) => void;
+  // Дискретные мутации из discrete-дорожки (Risk 3). Если не переданы, ±1
+  // кнопки продолжают слать через onChange (debounce-дорожка) — совместимо с
+  // read-only /shared/:token view, где мутаций нет вовсе.
+  onDamage?: (amount: number) => void;
+  onHeal?: (amount: number) => void;
   isEditing: boolean;
 }
 
@@ -42,30 +46,31 @@ export function HpTracker({
   isAutoCalc,
   temp,
   onChange,
+  onDamage,
+  onHeal,
   isEditing
 }: HpTrackerProps) {
-  // Local state drives the display for instant responsiveness.
-  // The ref is updated synchronously on every click so rapid clicks
-  // always compute from the latest value, not a stale prop closure.
-  const [displayHp, setDisplayHp] = useState(current);
-  const displayHpRef = useRef(current);
-
-  // Sync from the prop whenever it changes from an external source
-  // (server response, undo, etc.). In practice this is a no-op after
-  // our own onChange calls because the prop converges to the same value.
-  useEffect(() => {
-    setDisplayHp(current);
-    displayHpRef.current = current;
-  }, [current]);
-
+  // Discrete-дорожка (onDamage/onHeal) делает optimistic setQueryData внутри
+  // useMutation.onMutate — prop `current` обновляется синхронно ещё до ответа
+  // сервера. Fallback на onChange даёт прежнее поведение debounce-дорожки.
   const adjustHp = (delta: number) => {
-    const newHp = Math.min(max, Math.max(0, displayHpRef.current + delta));
-    displayHpRef.current = newHp; // synchronous: next click sees this immediately
-    setDisplayHp(newHp);
+    if (delta < 0) {
+      if (onDamage) {
+        onDamage(-delta);
+        return;
+      }
+    } else if (delta > 0) {
+      if (onHeal) {
+        onHeal(delta);
+        return;
+      }
+    }
+    // Fallback: full-field PATCH через debounce.
+    const newHp = Math.min(max, Math.max(0, current + delta));
     onChange({ currentHp: newHp });
   };
 
-  const percentage = Math.max(0, Math.min(100, (displayHp / max) * 100));
+  const percentage = Math.max(0, Math.min(100, (current / max) * 100));
   const tempPercentage = Math.max(0, Math.min(100 - percentage, (temp / max) * 100));
 
   return (
@@ -94,7 +99,7 @@ export function HpTracker({
           />
         )}
         <div className="absolute inset-0 flex items-center justify-center text-destructive-foreground text-sm font-bold font-mono drop-shadow">
-          {displayHp} / {max}
+          {current} / {max}
         </div>
       </div>
 

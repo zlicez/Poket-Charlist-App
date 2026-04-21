@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ConnectionStatus } from "@/components/ConnectionStatus";
+import { UndoToastHost } from "@/components/UndoToastHost";
 import CharactersList from "@/pages/CharactersList";
 import CharacterSheet from "@/pages/CharacterSheet";
 import SharedCharacterSheet from "@/pages/SharedCharacterSheet";
@@ -41,6 +42,7 @@ function App() {
         <TooltipProvider>
           <HtmlLoaderRemover />
           <Toaster />
+          <UndoToastHost />
           <ConnectionStatus />
           <Router />
         </TooltipProvider>

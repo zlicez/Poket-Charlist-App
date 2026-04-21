@@ -33,6 +33,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useDesktopSectionNavigation } from "@/hooks/useDesktopSectionNavigation";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { CharacterProvider, useCharacter } from "@/context/CharacterContext";
+import { useApplyDamage } from "@/hooks/character/useApplyDamage";
+import { useApplyHeal } from "@/hooks/character/useApplyHeal";
 import {
   ABILITY_NAMES,
   ABILITY_LABELS,
@@ -109,6 +111,7 @@ export default function CharacterSheet() {
 }
 
 function CharacterSheetContent() {
+  const { id: characterId } = useParams<{ id: string }>();
   const {
     character,
     isLoading,
@@ -124,6 +127,11 @@ function CharacterSheetContent() {
     handleCopyShareLink,
     copied,
   } = useCharacter();
+  // Discrete-дорожка для Play-mode HP-тапов (±1 в HpTracker). id берём из URL —
+  // он всегда определён к моменту рендера CharacterSheetContent (см. внешний
+  // CharacterSheet с early return при отсутствии id).
+  const applyDamage = useApplyDamage(characterId!);
+  const applyHeal = useApplyHeal(characterId!);
 
   const [, setLocation] = useLocation();
   const { theme, toggleTheme } = useTheme();
@@ -562,6 +570,8 @@ function CharacterSheetContent() {
                   isAutoCalc={isLevel1ForHp}
                   temp={character.tempHp}
                   onChange={handleChange}
+                  onDamage={applyDamage.mutate}
+                  onHeal={applyHeal.mutate}
                   isEditing={isEditing}
                 />
                 <CombatStats
