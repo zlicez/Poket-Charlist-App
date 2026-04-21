@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, MoreHorizontal } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { typeClass } from "@/ds/tokens";
@@ -13,9 +13,12 @@ import { usePlayMode } from "@/ds/hooks/usePlayMode";
  * Активный таб определяется URL'ом внутри BottomTabs (wouter useRoute).
  *
  * Layout (per handoff 03-screens.jsx .m-screen):
- *   [m-header  — back? avatar name/subtitle play-edit pill status-pill]
+ *   [m-header  — back avatar name/subtitle play-edit pill status-pill ⋯]
  *   [m-body    — scrollable content (дети)]
  *   [BottomTabs — 4 icons + labels + safe-area]
+ *
+ * onOverflow — «⋯» кнопка, открывает actions-меню (share/export, Phase H3).
+ * Скрывается, если не передана.
  */
 
 export interface MobileShellProps {
@@ -24,6 +27,7 @@ export interface MobileShellProps {
   subtitle?: string;
   avatar?: React.ReactNode;
   showSpellsTab?: boolean;
+  onOverflow?: () => void;
   children: React.ReactNode;
 }
 
@@ -33,6 +37,7 @@ export function MobileShell({
   subtitle,
   avatar,
   showSpellsTab = true,
+  onOverflow,
   children,
 }: MobileShellProps) {
   const { mode, setMode } = usePlayMode(characterId);
@@ -69,6 +74,21 @@ export function MobileShell({
         <div className="flex items-center gap-2">
           <StatusPillLive />
           <PlayEditPill value={mode} onChange={setMode} size="sm" />
+          {onOverflow && (
+            <button
+              type="button"
+              onClick={onOverflow}
+              aria-label="Меню действий"
+              className={cn(
+                "flex items-center justify-center w-8 h-8 rounded-full",
+                "text-ink-700 hover:bg-ink-100",
+                "focus:outline-none focus-visible:ring-[3px] focus-visible:ring-ruby-bg",
+              )}
+              data-testid="mobile-shell-overflow"
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </header>
 

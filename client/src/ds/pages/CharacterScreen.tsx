@@ -1,4 +1,5 @@
-import { Link, Redirect, useParams } from "wouter";
+import { Redirect, useLocation, useParams } from "wouter";
+import { useState } from "react";
 
 import { cn } from "@/lib/utils";
 import { useMediaQuery } from "@/hooks/use-media-query";
@@ -11,6 +12,13 @@ import { CombatTab } from "@/ds/screens/combat/CombatTab";
 import { SheetTab } from "@/ds/screens/sheet/SheetTab";
 import { SpellsTab } from "@/ds/screens/spells/SpellsTab";
 import { BagTab } from "@/ds/screens/bag/BagTab";
+import {
+  ActionsMenuSheet,
+  ExportMenuSheet,
+  NotFoundScreen,
+  ServerErrorScreen,
+  SharePanelSheet,
+} from "@/ds/screens/edge";
 
 /**
  * CharacterScreen — верхний orchestrator экрана персонажа.
@@ -75,17 +83,36 @@ function CharacterScreenBody({
   activeTab: TabId;
   isDesktop: boolean;
 }) {
+  const [, setLocation] = useLocation();
   const { character, isLoading, error } = useCharacterState(id);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
 
   if (error) {
+    const status = parseStatusFromError(error);
+    // 404 / 410 — персонажа нет (X-06).
+    if (status === 404 || status === 410) {
+      return <NotFoundScreen onCta={() => setLocation("/")} />;
+    }
+    // 5xx — server error (X-07) с retry.
+    if (typeof status === "number" && status >= 500) {
+      return (
+        <ServerErrorScreen
+          statusCode={status}
+          onRetry={() => window.location.reload()}
+          onBack={() => setLocation("/")}
+        />
+      );
+    }
+    // Прочие ошибки — generic 500 без status code.
     return (
-      <div className="min-h-dvh bg-paper text-ink-700 font-ds-sans p-8">
-        <div className={typeClass("h2")}>Не удалось загрузить персонажа</div>
-        <p className={cn(typeClass("body"), "mt-2")}>{(error as Error).message}</p>
-        <Link href="/" className="text-ocean underline mt-3 inline-block">
-          К списку
-        </Link>
-      </div>
+      <ServerErrorScreen
+        title="Не удалось загрузить персонажа"
+        description={(error as Error).message}
+        onRetry={() => window.location.reload()}
+        onBack={() => setLocation("/")}
+      />
     );
   }
 
@@ -105,13 +132,38 @@ function CharacterScreenBody({
   const subtitle = `${primaryClass} ${charLevel}`;
   const avatar = <Avatar seed={character.name} />;
 
+  const sheets = (
+    <>
+      <SharePanelSheet
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        characterId={id}
+        characterName={character.name}
+      />
+      <ExportMenuSheet
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        character={character}
+      />
+      <ActionsMenuSheet
+        open={actionsOpen}
+        onOpenChange={setActionsOpen}
+        onShare={() => setShareOpen(true)}
+        onExport={() => setExportOpen(true)}
+      />
+    </>
+  );
+
   if (isDesktop) {
     return (
+      <>
       <DesktopShell
         characterId={id}
         characterName={character.name}
         subtitle={subtitle}
         avatar={<Avatar seed={character.name} size={36} />}
+        onShare={() => setShareOpen(true)}
+        onExport={() => setExportOpen(true)}
         sections={[
           { id: "ds-section-identity", label: "Общее" },
           { id: "ds-section-combat", label: "Бой и HP" },
@@ -160,11 +212,15 @@ function CharacterScreenBody({
           </div>
         }
       />
+      {sheets}
+      </>
     );
   }
 
   return (
+    <>
     <MobileShell
+      onOverflow={() => setActionsOpen(true)}
       characterId={id}
       characterName={character.name}
       subtitle={subtitle}
@@ -181,5 +237,15 @@ function CharacterScreenBody({
       )}
       {activeTab === "bag" && <BagTab characterId={id} />}
     </MobileShell>
+    {sheets}
+    </>
   );
+}
+
+function parseStatusFromError(err: unknown): number | null {
+  if (!(err instanceof Error) || !err.message) return null;
+  const match = err.message.match(/^(\d{3})\b/);
+  if (!match) return null;
+  const code = Number.parseInt(match[1], 10);
+  return Number.isFinite(code) ? code : null;
 }

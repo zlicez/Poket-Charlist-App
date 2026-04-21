@@ -9,7 +9,10 @@ import { Route, Switch, useLocation } from "wouter";
 import { lazy, Suspense } from "react";
 
 import { CharacterLandingRedirect } from "./pages/CharacterScreen";
-import { SyncConflictSheet } from "./screens/edge/SyncConflictSheet";
+import {
+  NotFoundScreen,
+  SyncConflictSheet,
+} from "./screens/edge";
 import {
   AuthLoader,
   AuthScreen,
@@ -23,10 +26,14 @@ const HeroPreview = lazy(() => import("./pages/HeroPreview"));
 const WizardsPreview = lazy(() => import("./pages/WizardsPreview"));
 const AuthPreview = lazy(() => import("./pages/AuthPreview"));
 const ListPreview = lazy(() => import("./pages/ListPreview"));
+const EdgePreview = lazy(() => import("./pages/EdgePreview"));
 const CharactersListPage = lazy(
   () => import("./pages/CharactersListPage"),
 );
 const CharacterScreen = lazy(() => import("./pages/CharacterScreen"));
+const SharedReadOnlyScreen = lazy(
+  () => import("./screens/edge/SharedReadOnlyScreen"),
+);
 
 function Loading() {
   return (
@@ -78,6 +85,12 @@ function DevIndex() {
           — Phase H2 list preview (L-01..L-05 состояния)
         </li>
         <li>
+          <a href="/ds-edge" className="text-ocean hover:underline">
+            /ds-edge
+          </a>{" "}
+          — Phase H3 edge preview (X-01..X-08 sheets + error screens)
+        </li>
+        <li>
           <a href="/" className="text-ocean hover:underline">
             /
           </a>{" "}
@@ -103,7 +116,7 @@ function GatedRoutes() {
   const { isAuthenticated, isLoading } = useAuth();
   const [location] = useLocation();
 
-  // Превью-страницы доступны без логина — цель показать компоненты.
+  // Превью-страницы и публичный /shared/:token доступны без логина.
   if (location === "/ds-auth") {
     return (
       <Switch>
@@ -118,6 +131,20 @@ function GatedRoutes() {
       </Switch>
     );
   }
+  if (location === "/ds-edge") {
+    return (
+      <Switch>
+        <Route path="/ds-edge" component={EdgePreview} />
+      </Switch>
+    );
+  }
+  if (location.startsWith("/shared/")) {
+    return (
+      <Switch>
+        <Route path="/shared/:token" component={SharedReadOnlyScreen} />
+      </Switch>
+    );
+  }
 
   if (isLoading) return <AuthLoader />;
   if (!isAuthenticated) return <AuthScreen />;
@@ -129,10 +156,14 @@ function GatedRoutes() {
       <Route path="/ds-primitives" component={PrimitivesPreview} />
       <Route path="/ds-hero" component={HeroPreview} />
       <Route path="/ds-wizards" component={WizardsPreview} />
+      <Route path="/ds-dev" component={DevIndex} />
       {/* Character screen routes (Phase D) */}
       <Route path="/character/:id" component={CharacterLandingRedirect} />
       <Route path="/character/:id/:tab" component={CharacterScreen} />
-      <Route component={DevIndex} />
+      {/* 404 fallback (X-06) на неизвестный путь в DS-дереве. */}
+      <Route>
+        <NotFoundScreen />
+      </Route>
     </Switch>
   );
 }
