@@ -1,34 +1,30 @@
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { NumericInput } from "@/components/ui/numeric-input";
 import { Button } from "@/components/ui/button";
 import { HelpTooltip, TooltipBody } from "@/components/ui/help-tooltip";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Zap, Footprints, Heart, Skull, Plus, Minus, Dice6, Check, X, RotateCcw } from "lucide-react";
+import { Shield, Zap, Footprints, Plus, Minus, Dice6 } from "lucide-react";
+import { HIT_DICE_TOOLTIP } from "@/lib/tooltip-content";
 import {
-  HP_TOOLTIP,
-  TEMP_HP_TOOLTIP,
-  DEATH_SAVES_TOOLTIP,
-  HIT_DICE_TOOLTIP,
-} from "@/lib/tooltip-content";
-import { calculateModifier, formatModifier, calculateAC, calculateMaxHp, CLASS_DATA, getRacialBonuses, getCharacterClasses, getMulticlassHitDice, getTotalLevel } from "@shared/schema";
-import type { Character, DeathSaves, ArmorData } from "@shared/schema";
+  calculateModifier,
+  formatModifier,
+  calculateAC,
+  calculateMaxHp,
+  getRacialBonuses,
+  getCharacterClasses,
+  getMulticlassHitDice,
+  getTotalLevel,
+} from "@shared/schema";
+import type { Character, ArmorData } from "@shared/schema";
 
-interface HpTrackerProps {
-  current: number;
-  max: number;
-  calculatedMax: number;
-  customMaxHpBonus: number;
-  isAutoCalc: boolean;
-  temp: number;
-  onChange: (updates: { currentHp?: number; maxHp?: number; customMaxHpBonus?: number; tempHp?: number }) => void;
-  // Дискретные мутации из discrete-дорожки (Risk 3). Если не переданы, ±1
-  // кнопки продолжают слать через onChange (debounce-дорожка) — совместимо с
-  // read-only /shared/:token view, где мутаций нет вовсе.
-  onDamage?: (amount: number) => void;
-  onHeal?: (amount: number) => void;
-  isEditing: boolean;
-}
+// Два public-экспорта раньше жили в этом же файле. Оставлены как re-export
+// для обратной совместимости: оба консьюмера (CharacterSheet и
+// SharedCharacterSheet) импортируют всё из "@/components/CombatStats".
+export { HpTracker, type HpTrackerProps } from "./combat/HpTracker";
+export { DeathSavesTracker } from "./combat/DeathSavesTracker";
+
+import { HpTracker } from "./combat/HpTracker";
+import { DeathSavesTracker } from "./combat/DeathSavesTracker";
 
 interface CombatStatsProps {
   character: Character;
@@ -36,305 +32,6 @@ interface CombatStatsProps {
   isEditing: boolean;
   hideDeathSaves?: boolean;
   hideHp?: boolean;
-}
-
-export function HpTracker({
-  current,
-  max,
-  calculatedMax,
-  customMaxHpBonus,
-  isAutoCalc,
-  temp,
-  onChange,
-  onDamage,
-  onHeal,
-  isEditing
-}: HpTrackerProps) {
-  // Discrete-дорожка (onDamage/onHeal) делает optimistic setQueryData внутри
-  // useMutation.onMutate — prop `current` обновляется синхронно ещё до ответа
-  // сервера. Fallback на onChange даёт прежнее поведение debounce-дорожки.
-  const adjustHp = (delta: number) => {
-    if (delta < 0) {
-      if (onDamage) {
-        onDamage(-delta);
-        return;
-      }
-    } else if (delta > 0) {
-      if (onHeal) {
-        onHeal(delta);
-        return;
-      }
-    }
-    // Fallback: full-field PATCH через debounce.
-    const newHp = Math.min(max, Math.max(0, current + delta));
-    onChange({ currentHp: newHp });
-  };
-
-  const percentage = Math.max(0, Math.min(100, (current / max) * 100));
-  const tempPercentage = Math.max(0, Math.min(100 - percentage, (temp / max) * 100));
-
-  return (
-    <Card className="stat-card-primary p-3" data-testid="stat-hp">
-      <div className="flex items-center gap-2 mb-2">
-        <Heart className="w-5 h-5 text-negative" />
-        <span className="font-semibold text-sm">Хиты</span>
-        <HelpTooltip
-          content={<TooltipBody title={HP_TOOLTIP.title} lines={HP_TOOLTIP.lines} />}
-          side="right"
-        />
-        {temp > 0 && (
-          <span className="text-xs text-info font-mono ml-auto">+{temp} врем.</span>
-        )}
-      </div>
-
-      <div className="hp-bar mb-2">
-        <div 
-          className="hp-fill absolute left-0 top-0"
-          style={{ width: `${percentage}%` }}
-        />
-        {temp > 0 && (
-          <div 
-            className="hp-temp absolute top-0 h-full"
-            style={{ left: `${percentage}%`, width: `${tempPercentage}%` }}
-          />
-        )}
-        <div className="absolute inset-0 flex items-center justify-center text-destructive-foreground text-sm font-bold font-mono drop-shadow">
-          {current} / {max}
-        </div>
-      </div>
-
-      {isEditing ? (
-        isAutoCalc ? (
-          <div className="grid grid-cols-4 gap-1.5 mt-2">
-            <div>
-              <label className="text-xs text-muted-foreground">Текущие</label>
-              <NumericInput
-                value={current}
-                min={0}
-                max={max}
-                onChange={(v) => onChange({ currentHp: v })}
-                className="h-10 text-center font-mono"
-                data-testid="input-current-hp"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground">Расч.</label>
-              <div className="h-10 flex items-center justify-center font-mono text-sm border rounded-md bg-muted/50 text-muted-foreground" data-testid="display-calc-hp">
-                {calculatedMax}
-              </div>
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground">Бонус</label>
-              <NumericInput
-                value={customMaxHpBonus}
-                onChange={(v) => onChange({ customMaxHpBonus: v })}
-                className="h-10 text-center font-mono"
-                data-testid="input-max-hp-bonus"
-              />
-            </div>
-            <div>
-              <label className="flex items-center gap-1 text-xs text-muted-foreground">
-                Врем.
-                <HelpTooltip
-                  content={<TooltipBody title={TEMP_HP_TOOLTIP.title} lines={TEMP_HP_TOOLTIP.lines} />}
-                  side="top"
-                  iconSize="xs"
-                />
-              </label>
-              <NumericInput
-                value={temp}
-                min={0}
-                onChange={(v) => onChange({ tempHp: v })}
-                className="h-10 text-center font-mono"
-                data-testid="input-temp-hp"
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-3 gap-2 mt-2">
-            <div>
-              <label className="text-xs text-muted-foreground">Текущие</label>
-              <NumericInput
-                value={current}
-                min={0}
-                max={max}
-                onChange={(v) => onChange({ currentHp: v })}
-                className="h-10 text-center font-mono"
-                data-testid="input-current-hp"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground">Макс.</label>
-              <NumericInput
-                value={max}
-                min={1}
-                onChange={(v) => onChange({ maxHp: v })}
-                className="h-10 text-center font-mono"
-                data-testid="input-max-hp"
-              />
-            </div>
-            <div>
-              <label className="flex items-center gap-1 text-xs text-muted-foreground">
-                Врем.
-                <HelpTooltip
-                  content={<TooltipBody title={TEMP_HP_TOOLTIP.title} lines={TEMP_HP_TOOLTIP.lines} />}
-                  side="top"
-                  iconSize="xs"
-                />
-              </label>
-              <NumericInput
-                value={temp}
-                min={0}
-                onChange={(v) => onChange({ tempHp: v })}
-                className="h-10 text-center font-mono"
-                data-testid="input-temp-hp"
-              />
-            </div>
-          </div>
-        )
-      ) : (
-        <div className="flex justify-center gap-3">
-          <Button 
-            variant="outline" 
-            size="icon"
-            className="h-10 w-10 sm:h-9 sm:w-9"
-            onClick={() => adjustHp(-1)}
-            data-testid="button-hp-minus"
-          >
-            <Minus className="w-5 h-5" />
-          </Button>
-          <Button 
-            variant="outline" 
-            size="icon"
-            className="h-10 w-10 sm:h-9 sm:w-9"
-            onClick={() => adjustHp(1)}
-            data-testid="button-hp-plus"
-          >
-            <Plus className="w-5 h-5" />
-          </Button>
-        </div>
-      )}
-    </Card>
-  );
-}
-
-export function DeathSavesTracker({ 
-  deathSaves, 
-  onChange, 
-  isEditing 
-}: { 
-  deathSaves: DeathSaves; 
-  onChange: (deathSaves: DeathSaves) => void;
-  isEditing: boolean;
-}) {
-  const toggleSuccess = (index: number) => {
-    if (isEditing) return;
-    const newSuccesses = deathSaves.successes >= index + 1 ? index : index + 1;
-    onChange({ ...deathSaves, successes: newSuccesses });
-  };
-
-  const toggleFailure = (index: number) => {
-    if (isEditing) return;
-    const newFailures = deathSaves.failures >= index + 1 ? index : index + 1;
-    onChange({ ...deathSaves, failures: newFailures });
-  };
-
-  const reset = () => {
-    onChange({ successes: 0, failures: 0 });
-  };
-
-  const isStabilized = deathSaves.successes >= 3;
-  const isDead = deathSaves.failures >= 3;
-
-  return (
-    <Card className={`stat-card p-3 transition-colors ${isStabilized ? 'ring-2 ring-positive/50' : ''} ${isDead ? 'ring-2 ring-negative/50' : ''}`} data-testid="stat-death-saves">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Skull className={`w-5 h-5 shrink-0 ${isDead ? 'text-negative' : isStabilized ? 'text-positive' : 'text-muted-foreground'}`} />
-          <span className="font-semibold text-sm">Спасброски от смерти</span>
-          <HelpTooltip
-            content={<TooltipBody title={DEATH_SAVES_TOOLTIP.title} lines={DEATH_SAVES_TOOLTIP.lines} />}
-            side="top"
-          />
-          <div className="w-[120px] shrink-0 flex items-center">
-            {isDead ? (
-              <Badge variant="default" className="text-xs h-5 px-1.5 bg-negative text-primary-foreground">Мёртв</Badge>
-            ) : isStabilized ? (
-              <Badge variant="default" className="text-xs h-5 px-1.5 bg-positive text-primary-foreground">Стабилизирован</Badge>
-            ) : null}
-          </div>
-        </div>
-        {!isEditing && (
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={reset} 
-            className={`h-9 w-9 sm:h-7 sm:w-7 ${deathSaves.successes === 0 && deathSaves.failures === 0 ? 'invisible' : ''}`}
-            disabled={deathSaves.successes === 0 && deathSaves.failures === 0}
-            data-testid="button-reset-death-saves"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </Button>
-        )}
-      </div>
-
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <Check className="w-4 h-4 text-positive" />
-            <span className="text-xs font-medium">Успехи</span>
-          </div>
-          <div className="flex gap-2">
-            {[0, 1, 2].map((i) => {
-              const isActive = deathSaves.successes > i;
-              return (
-                <button
-                  key={i}
-                  onClick={() => toggleSuccess(i)}
-                  className={`w-10 h-10 sm:w-9 sm:h-9 rounded-lg border-2 transition-all flex items-center justify-center ${
-                    isActive
-                      ? 'bg-positive border-positive text-primary-foreground shadow-md'
-                      : 'border-positive/30 hover:border-positive hover:bg-positive-muted'
-                  } ${!isEditing ? 'active:scale-95' : 'opacity-50 cursor-not-allowed'}`}
-                  disabled={isEditing}
-                  data-testid={`button-death-success-${i}`}
-                >
-                  {isActive && <Check className="w-5 h-5" />}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <X className="w-4 h-4 text-negative" />
-            <span className="text-xs font-medium">Провалы</span>
-          </div>
-          <div className="flex gap-2">
-            {[0, 1, 2].map((i) => {
-              const isActive = deathSaves.failures > i;
-              return (
-                <button
-                  key={i}
-                  onClick={() => toggleFailure(i)}
-                  className={`w-10 h-10 sm:w-9 sm:h-9 rounded-lg border-2 transition-all flex items-center justify-center ${
-                    isActive
-                      ? 'bg-negative border-negative text-primary-foreground shadow-md'
-                      : 'border-negative/30 hover:border-negative hover:bg-negative-muted'
-                  } ${!isEditing ? 'active:scale-95' : 'opacity-50 cursor-not-allowed'}`}
-                  disabled={isEditing}
-                  data-testid={`button-death-failure-${i}`}
-                >
-                  {isActive && <X className="w-5 h-5" />}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </Card>
-  );
 }
 
 export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hideHp }: CombatStatsProps) {
@@ -356,10 +53,10 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
   const effectiveMaxHp = isLevel1
     ? calculatedMaxHp + (character.customMaxHpBonus || 0)
     : character.maxHp;
-  
+
   const equippedArmor = character.equipment.find(e => e.equipped && e.isArmor && e.armorType !== "shield");
   const hasShield = character.equipment.some(e => e.equipped && e.isArmor && e.armorType === "shield");
-  
+
   let armorData: ArmorData | null = null;
   if (equippedArmor && equippedArmor.armorBaseAC !== undefined) {
     armorData = {
@@ -370,7 +67,7 @@ export function CombatStats({ character, onChange, isEditing, hideDeathSaves, hi
       stealthDisadvantage: false
     };
   }
-  
+
   const calculatedAC = calculateAC(dexMod, armorData, hasShield, character.customACBonus || 0);
   const calculatedInitiative = dexMod + (character.customInitiativeBonus || 0);
   const effectiveDexBonus = armorData
