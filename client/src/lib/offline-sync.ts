@@ -7,6 +7,23 @@ import {
 } from "./offline-db";
 
 const CHARACTER_URL_RE = new RegExp(`^${CHARACTERS_LIST_URL}/([^/]+)$`);
+const CHARACTER_OPS_RE = new RegExp(`^${CHARACTERS_LIST_URL}/([^/]+)/ops$`);
+
+// Для versioned write-операций (PATCH /characters/:id или POST /characters/:id/ops)
+// возвращает characterId + канонический GET-URL (он же используется для rebase-check).
+function extractVersionedWrite(
+  change: PendingChange,
+): { characterId: string; characterUrl: string } | null {
+  if (change.method === "PATCH") {
+    const m = change.url.match(CHARACTER_URL_RE);
+    if (m) return { characterId: m[1], characterUrl: change.url };
+  }
+  if (change.method === "POST") {
+    const m = change.url.match(CHARACTER_OPS_RE);
+    if (m) return { characterId: m[1], characterUrl: `${CHARACTERS_LIST_URL}/${m[1]}` };
+  }
+  return null;
+}
 
 type ConflictDetail = {
   characterId: string;
@@ -14,7 +31,7 @@ type ConflictDetail = {
   attempted: unknown;
   current: unknown;
   currentUpdatedAt: string | undefined;
-  source: "rebase" | "patch";
+  source: "rebase" | "patch" | "ops";
   queuedChangeId?: PendingChange["id"];
 };
 
@@ -66,18 +83,17 @@ export async function syncPendingChanges(
   let conflicts = 0;
 
   for (const change of changes) {
-    const characterIdMatch = change.url.match(CHARACTER_URL_RE);
-    const isPatchCharacter = change.method === "PATCH" && !!characterIdMatch;
+    const versioned = extractVersionedWrite(change);
 
     // Rebase check: если мы знаем базовую версию, сверяемся с сервером ДО отправки.
     // Расхождение = молчаливая перезапись нежелательна; останавливаем replay и
     // отдаём UI-слою через event возможность показать конфликт (X-05).
-    if (isPatchCharacter && change.baseUpdatedAt) {
-      const serverUpdatedAt = await fetchServerUpdatedAt(change.url);
+    if (versioned && change.baseUpdatedAt) {
+      const serverUpdatedAt = await fetchServerUpdatedAt(versioned.characterUrl);
       if (serverUpdatedAt && serverUpdatedAt !== change.baseUpdatedAt) {
-        const current = await fetchServerCharacter(change.url);
+        const current = await fetchServerCharacter(versioned.characterUrl);
         emitConflict({
-          characterId: characterIdMatch![1],
+          characterId: versioned.characterId,
           url: change.url,
           attempted: change.body,
           current,
@@ -93,7 +109,7 @@ export async function syncPendingChanges(
     try {
       const headers: Record<string, string> = {};
       if (change.body) headers["Content-Type"] = "application/json";
-      if (isPatchCharacter && change.baseUpdatedAt) {
+      if (versioned && change.baseUpdatedAt) {
         headers["If-Match"] = change.baseUpdatedAt;
       }
 
@@ -104,18 +120,18 @@ export async function syncPendingChanges(
         credentials: "include",
       });
 
-      if (res.status === 409 && isPatchCharacter) {
-        // Race между rebase-check и самим PATCH'ем — редко, но возможно.
+      if (res.status === 409 && versioned) {
+        // Race между rebase-check и самой мутацией — редко, но возможно.
         const body = await res
           .json()
           .catch(() => ({}) as { currentCharacter?: unknown; currentUpdatedAt?: string });
         emitConflict({
-          characterId: characterIdMatch![1],
+          characterId: versioned.characterId,
           url: change.url,
           attempted: change.body,
           current: body.currentCharacter,
           currentUpdatedAt: body.currentUpdatedAt,
-          source: "patch",
+          source: change.method === "POST" ? "ops" : "patch",
           queuedChangeId: change.id,
         });
         conflicts++;

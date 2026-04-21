@@ -5,11 +5,16 @@
  */
 import {
   CHARACTERS_LIST_URL,
+  characterOpsUrl,
   characterShareUrl,
   characterUrl,
   sharedCharacterUrl,
 } from "@shared/constants";
-import type { Character, InsertCharacter } from "@shared/schema";
+import type {
+  Character,
+  CollectionOp,
+  InsertCharacter,
+} from "@shared/schema";
 import { apiRequest, VersionConflictError } from "../queryClient";
 
 // Реэкспорт, чтобы обработчики мутаций могли отличить 409 от прочих ошибок,
@@ -35,6 +40,23 @@ export async function updateCharacter(
 
 export async function deleteCharacter(id: string): Promise<void> {
   await apiRequest("DELETE", characterUrl(id));
+}
+
+// Адресные операции над коллекциями (weapons / equipment / features /
+// spellcasting.spells). If-Match прокидывается автоматически из кеша через
+// apiRequest; 409 → VersionConflictError.
+export async function applyCharacterOps(
+  id: string,
+  ops: CollectionOp[],
+): Promise<Character | null> {
+  if (ops.length === 0) {
+    // Пустой батч не имеет смысла и не отправляется.
+    return null;
+  }
+  const res = await apiRequest("POST", characterOpsUrl(id), { ops });
+  const data = await res.json().catch(() => null);
+  if (data && typeof data === "object" && "queued" in data) return null;
+  return data as Character;
 }
 
 export async function enableShare(id: string): Promise<{ shareToken: string }> {

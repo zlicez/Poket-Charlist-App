@@ -8,7 +8,7 @@ export interface ConflictDetail {
   attempted: unknown;
   current: unknown;
   currentUpdatedAt: string | undefined;
-  source: "rebase" | "patch";
+  source: "rebase" | "patch" | "ops";
   queuedChangeId?: PendingChange["id"];
 }
 

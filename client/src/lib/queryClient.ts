@@ -21,6 +21,25 @@ async function throwIfResNotOk(res: Response) {
 }
 
 const CHARACTER_URL_RE = new RegExp(`^${CHARACTERS_LIST_URL}/([^/]+)$`);
+const CHARACTER_OPS_RE = new RegExp(`^${CHARACTERS_LIST_URL}/([^/]+)/ops$`);
+
+// Возвращает characterId, если URL + method образуют versioned write
+// (PATCH /characters/:id или POST /characters/:id/ops). Оба пути делят
+// один и тот же If-Match / 409 / rebase протокол.
+function extractVersionedWriteCharacterId(
+  method: string,
+  url: string,
+): string | null {
+  if (method === "PATCH") {
+    const m = url.match(CHARACTER_URL_RE);
+    if (m) return m[1];
+  }
+  if (method === "POST") {
+    const m = url.match(CHARACTER_OPS_RE);
+    if (m) return m[1];
+  }
+  return null;
+}
 
 // Ошибка версии: выбрасывается, когда сервер отвечает 409 на PATCH.
 // Мутация использует её в onError, чтобы отличить conflict от прочих сбоев.
@@ -50,16 +69,16 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const characterIdMatch = url.match(CHARACTER_URL_RE);
-  const isPatchCharacter = method === "PATCH" && !!characterIdMatch;
-  const baseUpdatedAt = isPatchCharacter
-    ? getCachedCharacterUpdatedAt(characterIdMatch![1])
+  const versionedCharacterId = extractVersionedWriteCharacterId(method, url);
+  const baseUpdatedAt = versionedCharacterId
+    ? getCachedCharacterUpdatedAt(versionedCharacterId)
     : undefined;
+  const deleteCharacterIdMatch = method === "DELETE" ? url.match(CHARACTER_URL_RE) : null;
 
   try {
     const headers: Record<string, string> = {};
     if (data) headers["Content-Type"] = "application/json";
-    if (isPatchCharacter && baseUpdatedAt) headers["If-Match"] = baseUpdatedAt;
+    if (versionedCharacterId && baseUpdatedAt) headers["If-Match"] = baseUpdatedAt;
 
     const res = await fetch(url, {
       method,
@@ -68,32 +87,34 @@ export async function apiRequest(
       credentials: "include",
     });
 
-    if (res.status === 409 && isPatchCharacter) {
+    if (res.status === 409 && versionedCharacterId) {
       const body = await res
         .clone()
         .json()
         .catch(() => ({}) as { currentCharacter?: unknown; currentUpdatedAt?: string });
-      const characterId = characterIdMatch![1];
       // Сервер возвращает актуальную запись — кладём в кеш и IndexedDB, чтобы
       // UI сразу показал правильное состояние.
       if (body.currentCharacter) {
-        queryClient.setQueryData(queryKeys.character(characterId), body.currentCharacter);
+        queryClient.setQueryData(
+          queryKeys.character(versionedCharacterId),
+          body.currentCharacter,
+        );
         cacheCharacter(body.currentCharacter).catch(() => {});
       }
       window.dispatchEvent(
         new CustomEvent(SYNC_EVENTS.conflict, {
           detail: {
-            characterId,
+            characterId: versionedCharacterId,
             url,
             attempted: data,
             current: body.currentCharacter,
             currentUpdatedAt: body.currentUpdatedAt,
-            source: "patch",
+            source: method === "POST" ? "ops" : "patch",
           },
         }),
       );
       throw new VersionConflictError(
-        characterId,
+        versionedCharacterId,
         body.currentCharacter,
         body.currentUpdatedAt,
       );
@@ -101,7 +122,7 @@ export async function apiRequest(
 
     await throwIfResNotOk(res);
 
-    if (isPatchCharacter) {
+    if (versionedCharacterId) {
       try {
         const clone = res.clone();
         const updated = await clone.json();
@@ -111,8 +132,8 @@ export async function apiRequest(
       } catch {}
     }
 
-    if (method === "DELETE" && characterIdMatch) {
-      removeCachedCharacter(characterIdMatch[1]).catch(() => {});
+    if (deleteCharacterIdMatch) {
+      removeCachedCharacter(deleteCharacterIdMatch[1]).catch(() => {});
     }
 
     return res;
@@ -129,8 +150,8 @@ export async function apiRequest(
         timestamp: Date.now(),
       });
 
-      if (method === "DELETE" && characterIdMatch) {
-        removeCachedCharacter(characterIdMatch[1]).catch(() => {});
+      if (deleteCharacterIdMatch) {
+        removeCachedCharacter(deleteCharacterIdMatch[1]).catch(() => {});
       }
 
       return new Response(JSON.stringify({ queued: true }), {
