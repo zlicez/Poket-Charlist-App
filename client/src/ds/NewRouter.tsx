@@ -8,9 +8,12 @@
 import { Route, Switch } from "wouter";
 import { lazy, Suspense } from "react";
 
+import { CharacterLandingRedirect } from "./pages/CharacterScreen";
+
 const TokensPreview = lazy(() => import("./pages/TokensPreview"));
 const PrimitivesPreview = lazy(() => import("./pages/PrimitivesPreview"));
 const HeroPreview = lazy(() => import("./pages/HeroPreview"));
+const CharacterScreen = lazy(() => import("./pages/CharacterScreen"));
 
 function Loading() {
   return (
@@ -43,7 +46,17 @@ function DevIndex() {
           </a>{" "}
           — Phase C hero components
         </li>
+        <li>
+          <a href="/" className="text-ocean hover:underline">
+            /
+          </a>{" "}
+          — список персонажей, затем /character/:id/combat (Phase D)
+        </li>
       </ul>
+      <div className="mt-6 text-[13px] text-ink-500">
+        Tip: открой <code>/character/:id/combat</code> для новой ДС-раскладки
+        (placeholder-контент до Phase E).
+      </div>
     </div>
   );
 }
@@ -55,6 +68,9 @@ export function NewRouter() {
         <Route path="/ds-tokens" component={TokensPreview} />
         <Route path="/ds-primitives" component={PrimitivesPreview} />
         <Route path="/ds-hero" component={HeroPreview} />
+        {/* Character screen routes (Phase D) */}
+        <Route path="/character/:id" component={CharacterLandingRedirect} />
+        <Route path="/character/:id/:tab" component={CharacterScreen} />
         <Route component={DevIndex} />
       </Switch>
     </Suspense>
