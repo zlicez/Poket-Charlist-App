@@ -1,3 +1,7 @@
+// Scroll-spy для desktop-сайдбара существующего sheet-layout'а. В новой
+// 4-табной IA (combat/sheet/spells/bag) этот подход заменяется явным
+// переключением табов — хук уйдёт целиком, когда экран пересобирается
+// под VITE_NEW_DS. До этого момента не рефакторим.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMediaQuery } from "@/hooks/use-media-query";
 
