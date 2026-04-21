@@ -52,6 +52,7 @@ import { ShortRestScreen } from "./sheets/ShortRestScreen";
 import { AttackToast, type AttackToastData } from "./sheets/AttackToast";
 import { DeathSavesPanel } from "./DeathSavesPanel";
 import { LevelUpBadge } from "./LevelUpBadge";
+import { LevelUpWizard } from "../wizards/LevelUpWizard";
 
 // Pure-module helper — линтер не флагает Math.random() в render, если
 // вызов живёт за пределами компонента.
@@ -69,6 +70,7 @@ export function CombatTab({ characterId }: { characterId: string }) {
   const [tempOpen, setTempOpen] = useState(false);
   const [shortRestOpen, setShortRestOpen] = useState(false);
   const [longRestOpen, setLongRestOpen] = useState(false);
+  const [levelUpOpen, setLevelUpOpen] = useState(false);
   const [attackToast, setAttackToast] = useState<AttackToastData | null>(null);
 
   const racialBonuses = useMemo(
@@ -197,7 +199,7 @@ export function CombatTab({ characterId }: { characterId: string }) {
       <LevelUpBadge
         xp={character.experience}
         currentLevel={totalLevel}
-        onOpenWizard={() => alert("Phase F: level-up wizard")}
+        onOpenWizard={() => setLevelUpOpen(true)}
       />
 
       {/* Death saves (auto at HP=0) */}
@@ -388,6 +390,11 @@ export function CombatTab({ characterId }: { characterId: string }) {
       <ShortRestScreen
         open={shortRestOpen}
         onOpenChange={setShortRestOpen}
+        character={character}
+      />
+      <LevelUpWizard
+        open={levelUpOpen}
+        onOpenChange={setLevelUpOpen}
         character={character}
       />
     </div>

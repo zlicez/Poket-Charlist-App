@@ -13,6 +13,7 @@ import { CharacterLandingRedirect } from "./pages/CharacterScreen";
 const TokensPreview = lazy(() => import("./pages/TokensPreview"));
 const PrimitivesPreview = lazy(() => import("./pages/PrimitivesPreview"));
 const HeroPreview = lazy(() => import("./pages/HeroPreview"));
+const WizardsPreview = lazy(() => import("./pages/WizardsPreview"));
 const CharacterScreen = lazy(() => import("./pages/CharacterScreen"));
 
 function Loading() {
@@ -47,6 +48,12 @@ function DevIndex() {
           — Phase C hero components
         </li>
         <li>
+          <a href="/ds-wizards" className="text-ocean hover:underline">
+            /ds-wizards
+          </a>{" "}
+          — Phase F wizards (LevelUp, RacePicker). Добавь ?id=… для данных
+        </li>
+        <li>
           <a href="/" className="text-ocean hover:underline">
             /
           </a>{" "}
@@ -68,6 +75,7 @@ export function NewRouter() {
         <Route path="/ds-tokens" component={TokensPreview} />
         <Route path="/ds-primitives" component={PrimitivesPreview} />
         <Route path="/ds-hero" component={HeroPreview} />
+        <Route path="/ds-wizards" component={WizardsPreview} />
         {/* Character screen routes (Phase D) */}
         <Route path="/character/:id" component={CharacterLandingRedirect} />
         <Route path="/character/:id/:tab" component={CharacterScreen} />
