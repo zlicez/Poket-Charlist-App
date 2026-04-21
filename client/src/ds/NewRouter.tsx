@@ -9,6 +9,7 @@ import { Route, Switch } from "wouter";
 import { lazy, Suspense } from "react";
 
 const TokensPreview = lazy(() => import("./pages/TokensPreview"));
+const PrimitivesPreview = lazy(() => import("./pages/PrimitivesPreview"));
 
 function Loading() {
   return (
@@ -18,15 +19,35 @@ function Loading() {
   );
 }
 
+function DevIndex() {
+  return (
+    <div className="min-h-screen bg-paper text-ink-900 font-ds-sans p-10">
+      <h1 className="font-ds-serif text-4xl font-medium mb-6">DS dev index</h1>
+      <ul className="space-y-2 text-ink-700">
+        <li>
+          <a href="/ds-tokens" className="text-ocean hover:underline">
+            /ds-tokens
+          </a>{" "}
+          — Phase A swatches
+        </li>
+        <li>
+          <a href="/ds-primitives" className="text-ocean hover:underline">
+            /ds-primitives
+          </a>{" "}
+          — Phase B atoms
+        </li>
+      </ul>
+    </div>
+  );
+}
+
 export function NewRouter() {
   return (
     <Suspense fallback={<Loading />}>
       <Switch>
         <Route path="/ds-tokens" component={TokensPreview} />
-        <Route>
-          {/* Fallback — временно редирект на /ds-tokens, пока нет экранов. */}
-          <TokensPreview />
-        </Route>
+        <Route path="/ds-primitives" component={PrimitivesPreview} />
+        <Route component={DevIndex} />
       </Switch>
     </Suspense>
   );
