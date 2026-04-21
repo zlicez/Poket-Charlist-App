@@ -100,6 +100,9 @@ interface CharacterHeaderProps {
   // Discrete-дорожка (Risk 3). Если передан — тогл идёт через own useMutation
   // с optimistic setQueryData. Иначе fallback на onChange (debounce).
   onToggleInspiration?: (next: boolean) => void;
+  // Discrete-дорожка для завершения short/long rest — мгновенный PATCH вместо
+  // 500ms debounce в рантайме диалога. Fallback: onChange.
+  onCommitRest?: (updates: Partial<Character>) => void;
 }
 
 export function CharacterHeader({
@@ -108,6 +111,7 @@ export function CharacterHeader({
   isEditing,
   onFinishEditing,
   onToggleInspiration,
+  onCommitRest,
 }: CharacterHeaderProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [shortRestOpen, setShortRestOpen] = useState(false);
@@ -487,13 +491,13 @@ export function CharacterHeader({
         conMod={conMod}
         open={shortRestOpen}
         onOpenChange={setShortRestOpen}
-        onApply={onChange}
+        onApply={onCommitRest ?? onChange}
       />
       <LongRestDialog
         character={character}
         open={longRestOpen}
         onOpenChange={setLongRestOpen}
-        onApply={onChange}
+        onApply={onCommitRest ?? onChange}
       />
 
       <div className="mt-3">

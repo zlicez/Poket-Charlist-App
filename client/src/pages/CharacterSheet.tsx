@@ -32,16 +32,20 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useDesktopSectionNavigation } from "@/hooks/useDesktopSectionNavigation";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { CharacterProvider, useCharacter } from "@/context/CharacterContext";
+import { useCharacterState } from "@/hooks/character/useCharacterState";
 import { usePdfExportToast } from "@/hooks/usePdfExportToast";
 import { useApplyDamage } from "@/hooks/character/useApplyDamage";
 import { useApplyHeal } from "@/hooks/character/useApplyHeal";
+import { useCommitRest } from "@/hooks/character/useCommitRest";
 import { useEquipmentOps } from "@/hooks/character/useEquipmentOps";
 import { useRemoveFeature } from "@/hooks/character/useRemoveFeature";
+import { useRemoveSpell } from "@/hooks/character/useRemoveSpell";
 import { useRemoveWeapon } from "@/hooks/character/useRemoveWeapon";
 import { useSetDeathSaves } from "@/hooks/character/useSetDeathSaves";
 import { useSetInspiration } from "@/hooks/character/useSetInspiration";
+import { useSetSpellSlots } from "@/hooks/character/useSetSpellSlots";
 import { useUpsertFeature } from "@/hooks/character/useUpsertFeature";
+import { useUpsertSpell } from "@/hooks/character/useUpsertSpell";
 import { useUpsertWeapon } from "@/hooks/character/useUpsertWeapon";
 import {
   ABILITY_NAMES,
@@ -112,15 +116,10 @@ export default function CharacterSheet() {
   const { id } = useParams<{ id: string }>();
   if (!id) return null;
 
-  return (
-    <CharacterProvider id={id}>
-      <CharacterSheetContent />
-    </CharacterProvider>
-  );
+  return <CharacterSheetContent characterId={id} />;
 }
 
-function CharacterSheetContent() {
-  const { id: characterId } = useParams<{ id: string }>();
+function CharacterSheetContent({ characterId }: { characterId: string }) {
   const {
     character,
     isLoading,
@@ -135,19 +134,22 @@ function CharacterSheetContent() {
     handleToggleShare,
     handleCopyShareLink,
     copied,
-  } = useCharacter();
-  // Discrete-дорожка для Play-mode HP-тапов (±1 в HpTracker). id берём из URL —
-  // он всегда определён к моменту рендера CharacterSheetContent (см. внешний
-  // CharacterSheet с early return при отсутствии id).
-  const applyDamage = useApplyDamage(characterId!);
-  const applyHeal = useApplyHeal(characterId!);
-  const setInspiration = useSetInspiration(characterId!);
-  const setDeathSaves = useSetDeathSaves(characterId!);
-  const upsertWeapon = useUpsertWeapon(characterId!);
-  const removeWeapon = useRemoveWeapon(characterId!);
-  const upsertFeature = useUpsertFeature(characterId!);
-  const removeFeature = useRemoveFeature(characterId!);
-  const equipmentOps = useEquipmentOps(characterId!);
+  } = useCharacterState(characterId);
+  // Discrete-дорожка (Risk 3): каждое scalar/collection-действие — свой
+  // useMutation, не проходит через дебаунс debounced handleChange.
+  const applyDamage = useApplyDamage(characterId);
+  const applyHeal = useApplyHeal(characterId);
+  const setInspiration = useSetInspiration(characterId);
+  const setDeathSaves = useSetDeathSaves(characterId);
+  const commitRest = useCommitRest(characterId);
+  const upsertWeapon = useUpsertWeapon(characterId);
+  const removeWeapon = useRemoveWeapon(characterId);
+  const upsertFeature = useUpsertFeature(characterId);
+  const removeFeature = useRemoveFeature(characterId);
+  const upsertSpell = useUpsertSpell(characterId);
+  const removeSpell = useRemoveSpell(characterId);
+  const setSpellSlots = useSetSpellSlots(characterId);
+  const equipmentOps = useEquipmentOps(characterId);
 
   const [, setLocation] = useLocation();
   const { theme, toggleTheme } = useTheme();
@@ -528,6 +530,7 @@ function CharacterSheetContent() {
                   isEditing={isEditing}
                   onFinishEditing={saveChanges}
                   onToggleInspiration={setInspiration.mutate}
+                  onCommitRest={commitRest.mutate}
                 />
               </div>
               <div className="space-y-3">
@@ -766,6 +769,9 @@ function CharacterSheetContent() {
               onToggleLock={() =>
                 handleChange({ spellSlotsLocked: !character.spellSlotsLocked })
               }
+              onUpsertSpell={upsertSpell.mutate}
+              onRemoveSpell={removeSpell.mutate}
+              onSetSpellSlots={setSpellSlots.mutate}
             />
           </section>
         );

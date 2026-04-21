@@ -78,6 +78,15 @@ interface SpellsSectionProps {
   isEditing: boolean;
   isLocked?: boolean;
   onToggleLock?: () => void;
+  // Discrete-дорожка (Risk 3). Если переданы — заклинания апдейтятся через
+  // keyed ops (upsertItem/removeItem), а слоты — отдельным PATCH без debounce.
+  // Fallback на onChange нужен для read-only /shared/:token view.
+  onUpsertSpell?: (input: { id: string; patch: Partial<Spell> }) => void;
+  onRemoveSpell?: (spellId: string) => void;
+  onSetSpellSlots?: (input: {
+    spellSlots?: Spellcasting["spellSlots"];
+    pactMagic?: Spellcasting["pactMagic"];
+  }) => void;
 }
 
 export function SpellsSection({
@@ -86,6 +95,9 @@ export function SpellsSection({
   isEditing,
   isLocked = false,
   onToggleLock,
+  onUpsertSpell,
+  onRemoveSpell,
+  onSetSpellSlots,
 }: SpellsSectionProps) {
   const resolvedClassState = resolveClassState(character);
   const charClasses = getCharacterClasses(character);
@@ -169,17 +181,24 @@ export function SpellsSection({
   const handleSlotChange = (levelIndex: number, max: number, used: number) => {
     const newSlots = [...spellcasting.spellSlots];
     newSlots[levelIndex] = { max, used: Math.min(used, max) };
-    updateSpellcasting({ spellSlots: newSlots });
+    if (onSetSpellSlots && !isEditing) {
+      onSetSpellSlots({ spellSlots: newSlots });
+    } else {
+      updateSpellcasting({ spellSlots: newSlots });
+    }
   };
 
   const handlePactMagicChange = (max: number, used: number) => {
-    updateSpellcasting({
-      pactMagic: {
-        ...spellcasting.pactMagic,
-        max,
-        used: Math.min(used, max),
-      },
-    });
+    const nextPactMagic = {
+      ...spellcasting.pactMagic,
+      max,
+      used: Math.min(used, max),
+    };
+    if (onSetSpellSlots && !isEditing) {
+      onSetSpellSlots({ pactMagic: nextPactMagic });
+    } else {
+      updateSpellcasting({ pactMagic: nextPactMagic });
+    }
   };
 
   const syncSpellSlotsToCalculated = () => {
@@ -224,34 +243,50 @@ export function SpellsSection({
   }, [casterSignature]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAddSpell = (spellData: Omit<Spell, "id">) => {
-    const newSpell: Spell = {
-      ...spellData,
-      id: generateId(),
-    };
-    updateSpellcasting({ spells: [...spellcasting.spells, newSpell] });
+    const id = generateId();
+    const newSpell: Spell = { ...spellData, id };
+    if (onUpsertSpell) {
+      onUpsertSpell({ id, patch: newSpell });
+    } else {
+      updateSpellcasting({ spells: [...spellcasting.spells, newSpell] });
+    }
     setOpenLevels((prev) => ({ ...prev, [newSpell.level]: true }));
   };
 
   const handleRemoveSpell = (spellId: string) => {
-    updateSpellcasting({
-      spells: spellcasting.spells.filter((s) => s.id !== spellId),
-    });
+    if (onRemoveSpell) {
+      onRemoveSpell(spellId);
+    } else {
+      updateSpellcasting({
+        spells: spellcasting.spells.filter((s) => s.id !== spellId),
+      });
+    }
   };
 
   const handleTogglePrepared = (spellId: string) => {
-    updateSpellcasting({
-      spells: spellcasting.spells.map((s) =>
-        s.id === spellId ? { ...s, prepared: !s.prepared } : s,
-      ),
-    });
+    const target = spellcasting.spells.find((s) => s.id === spellId);
+    if (!target) return;
+    if (onUpsertSpell) {
+      onUpsertSpell({ id: spellId, patch: { prepared: !target.prepared } });
+    } else {
+      updateSpellcasting({
+        spells: spellcasting.spells.map((s) =>
+          s.id === spellId ? { ...s, prepared: !s.prepared } : s,
+        ),
+      });
+    }
   };
 
   const handleUpdateSpell = (updated: Spell) => {
-    updateSpellcasting({
-      spells: spellcasting.spells.map((s) =>
-        s.id === updated.id ? updated : s,
-      ),
-    });
+    if (onUpsertSpell) {
+      onUpsertSpell({ id: updated.id, patch: updated });
+    } else {
+      updateSpellcasting({
+        spells: spellcasting.spells.map((s) =>
+          s.id === updated.id ? updated : s,
+        ),
+      });
+    }
   };
 
   const toggleLevel = (level: number) => {
