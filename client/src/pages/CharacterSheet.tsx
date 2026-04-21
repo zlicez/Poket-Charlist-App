@@ -35,6 +35,8 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { CharacterProvider, useCharacter } from "@/context/CharacterContext";
 import { useApplyDamage } from "@/hooks/character/useApplyDamage";
 import { useApplyHeal } from "@/hooks/character/useApplyHeal";
+import { useRemoveWeapon } from "@/hooks/character/useRemoveWeapon";
+import { useUpsertWeapon } from "@/hooks/character/useUpsertWeapon";
 import {
   ABILITY_NAMES,
   ABILITY_LABELS,
@@ -132,6 +134,8 @@ function CharacterSheetContent() {
   // CharacterSheet с early return при отсутствии id).
   const applyDamage = useApplyDamage(characterId!);
   const applyHeal = useApplyHeal(characterId!);
+  const upsertWeapon = useUpsertWeapon(characterId!);
+  const removeWeapon = useRemoveWeapon(characterId!);
 
   const [, setLocation] = useLocation();
   const { theme, toggleTheme } = useTheme();
@@ -339,18 +343,16 @@ function CharacterSheetContent() {
   };
 
   const handleWeaponGripChange = (weaponId: string, gripMode: WeaponGripMode) => {
-    if (!character) return;
-    handleChange({
-      weapons: character.weapons.map((weapon) =>
-        weapon.id === weaponId ? { ...weapon, gripMode } : weapon,
-      ),
-    });
+    // Discrete-дорожка: keyed op на одно поле `gripMode`.
+    upsertWeapon.mutate({ id: weaponId, patch: { gripMode } });
   };
 
   const handleInventoryWeaponGripChange = (
     weaponId: string,
     gripMode: WeaponGripMode,
   ) => {
+    // Equipment пока живёт на старой дорожке (full-array) — отдельная миграция
+    // в следующем коммите 4.3 (equipment discrete-hooks).
     if (!character) return;
     handleChange({
       equipment: character.equipment.map((item) =>
@@ -686,6 +688,10 @@ function CharacterSheetContent() {
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] gap-3 sm:gap-4">
               <WeaponsList
                 weapons={character.weapons}
+                onUpsertWeapon={(weapon) =>
+                  upsertWeapon.mutate({ id: weapon.id, patch: weapon })
+                }
+                onRemoveWeapon={(id) => removeWeapon.mutate(id)}
                 onChange={(weapons) => handleChange({ weapons })}
                 onAddInventoryWeapon={(weapon) =>
                   handleChange({

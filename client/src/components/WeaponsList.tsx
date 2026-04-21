@@ -51,6 +51,10 @@ import {
 
 interface WeaponsListProps {
   weapons: Weapon[];
+  // Discrete-дорожка (keyed ops, Risk 1 инфраструктура). Если заданы, add/edit/
+  // remove идут через них; иначе — fallback на `onChange` (full-array PATCH).
+  onUpsertWeapon?: (weapon: Weapon) => void;
+  onRemoveWeapon?: (id: string) => void;
   onChange: (weapons: Weapon[]) => void;
   onAddInventoryWeapon?: (weapon: Omit<Equipment, "id">) => void;
   onRollAttack: (weapon: Weapon, totalAttackBonus: number, isProficient: boolean) => void;
@@ -144,6 +148,8 @@ function AddWeaponDialog({
 
 export function WeaponsList({
   weapons,
+  onUpsertWeapon,
+  onRemoveWeapon,
   onChange,
   onAddInventoryWeapon,
   onRollAttack,
@@ -200,17 +206,23 @@ export function WeaponsList({
       return;
     }
 
-    onChange([
-      ...weapons,
-      {
-        ...createWeaponFromForm(name, weapon),
-        id: generateId(),
-      },
-    ]);
+    const newWeapon: Weapon = {
+      ...createWeaponFromForm(name, weapon),
+      id: generateId(),
+    };
+    if (onUpsertWeapon) {
+      onUpsertWeapon(newWeapon);
+    } else {
+      onChange([...weapons, newWeapon]);
+    }
   };
 
   const removeWeapon = (id: string) => {
-    onChange(weapons.filter((weapon) => weapon.id !== id));
+    if (onRemoveWeapon) {
+      onRemoveWeapon(id);
+    } else {
+      onChange(weapons.filter((weapon) => weapon.id !== id));
+    }
   };
 
   const renderWeaponCard = (weapon: ListedWeapon) => {
