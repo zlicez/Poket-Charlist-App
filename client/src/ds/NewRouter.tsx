@@ -10,6 +10,7 @@ import { lazy, Suspense } from "react";
 
 const TokensPreview = lazy(() => import("./pages/TokensPreview"));
 const PrimitivesPreview = lazy(() => import("./pages/PrimitivesPreview"));
+const HeroPreview = lazy(() => import("./pages/HeroPreview"));
 
 function Loading() {
   return (
@@ -36,6 +37,12 @@ function DevIndex() {
           </a>{" "}
           — Phase B atoms
         </li>
+        <li>
+          <a href="/ds-hero" className="text-ocean hover:underline">
+            /ds-hero
+          </a>{" "}
+          — Phase C hero components
+        </li>
       </ul>
     </div>
   );
@@ -47,6 +54,7 @@ export function NewRouter() {
       <Switch>
         <Route path="/ds-tokens" component={TokensPreview} />
         <Route path="/ds-primitives" component={PrimitivesPreview} />
+        <Route path="/ds-hero" component={HeroPreview} />
         <Route component={DevIndex} />
       </Switch>
     </Suspense>
