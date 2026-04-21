@@ -9,26 +9,38 @@ import type { DeathSaves } from "@shared/schema";
 export function DeathSavesTracker({
   deathSaves,
   onChange,
-  isEditing
+  onSetDeathSaves,
+  isEditing,
 }: {
   deathSaves: DeathSaves;
   onChange: (deathSaves: DeathSaves) => void;
+  // Discrete-дорожка (Risk 3). Если передан — все клики идут через него
+  // (own useMutation + undo toast). Иначе fallback на onChange (debounced).
+  onSetDeathSaves?: (deathSaves: DeathSaves) => void;
   isEditing: boolean;
 }) {
+  const commit = (next: DeathSaves) => {
+    if (onSetDeathSaves) {
+      onSetDeathSaves(next);
+    } else {
+      onChange(next);
+    }
+  };
+
   const toggleSuccess = (index: number) => {
     if (isEditing) return;
     const newSuccesses = deathSaves.successes >= index + 1 ? index : index + 1;
-    onChange({ ...deathSaves, successes: newSuccesses });
+    commit({ ...deathSaves, successes: newSuccesses });
   };
 
   const toggleFailure = (index: number) => {
     if (isEditing) return;
     const newFailures = deathSaves.failures >= index + 1 ? index : index + 1;
-    onChange({ ...deathSaves, failures: newFailures });
+    commit({ ...deathSaves, failures: newFailures });
   };
 
   const reset = () => {
-    onChange({ successes: 0, failures: 0 });
+    commit({ successes: 0, failures: 0 });
   };
 
   const isStabilized = deathSaves.successes >= 3;

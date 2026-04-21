@@ -97,6 +97,9 @@ interface CharacterHeaderProps {
   onChange: (updates: Partial<Character>) => void;
   isEditing: boolean;
   onFinishEditing?: () => Promise<void> | void;
+  // Discrete-дорожка (Risk 3). Если передан — тогл идёт через own useMutation
+  // с optimistic setQueryData. Иначе fallback на onChange (debounce).
+  onToggleInspiration?: (next: boolean) => void;
 }
 
 export function CharacterHeader({
@@ -104,6 +107,7 @@ export function CharacterHeader({
   onChange,
   isEditing,
   onFinishEditing,
+  onToggleInspiration,
 }: CharacterHeaderProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [shortRestOpen, setShortRestOpen] = useState(false);
@@ -429,7 +433,14 @@ export function CharacterHeader({
 
       <div className="mt-3 flex items-center justify-between gap-2">
         <button
-          onClick={() => onChange({ inspiration: !character.inspiration })}
+          onClick={() => {
+            const next = !character.inspiration;
+            if (onToggleInspiration) {
+              onToggleInspiration(next);
+            } else {
+              onChange({ inspiration: next });
+            }
+          }}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all text-xs font-medium select-none ${
             character.inspiration
               ? "bg-accent/20 border-accent/60 text-accent"
