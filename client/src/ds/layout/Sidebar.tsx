@@ -3,7 +3,8 @@ import { useMemo } from "react";
 
 import { cn } from "@/lib/utils";
 import { typeClass } from "@/ds/tokens";
-import { Button, StatusPill } from "@/ds/primitives";
+import { Button } from "@/ds/primitives";
+import { StatusPillLive } from "@/ds/screens/edge/StatusPillLive";
 import { PlayEditPill } from "./PlayEditPill";
 import { usePlayMode } from "@/ds/hooks/usePlayMode";
 import { useScrollSpy } from "@/ds/hooks/useScrollSpy";
@@ -34,8 +35,6 @@ export interface SidebarProps {
   scrollRootRef?: React.RefObject<HTMLElement>;
   onShare?: () => void;
   onExport?: () => void;
-  status?: React.ComponentProps<typeof StatusPill>["state"];
-  pendingCount?: number;
   className?: string;
 }
 
@@ -48,8 +47,6 @@ export function Sidebar({
   scrollRootRef,
   onShare,
   onExport,
-  status = "saved",
-  pendingCount,
   className,
 }: SidebarProps) {
   const { mode, setMode } = usePlayMode(characterId);
@@ -94,7 +91,7 @@ export function Sidebar({
 
       <div className="flex items-center justify-between gap-2 pb-3">
         <PlayEditPill value={mode} onChange={setMode} size="sm" />
-        <StatusPill state={status} pendingCount={pendingCount} />
+        <StatusPillLive />
       </div>
 
       <nav className="flex flex-col gap-0.5" aria-label="Разделы">

@@ -3,7 +3,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { typeClass } from "@/ds/tokens";
-import { StatusPill } from "@/ds/primitives";
+import { StatusPillLive } from "@/ds/screens/edge/StatusPillLive";
 import { BottomTabs } from "./BottomTabs";
 import { PlayEditPill } from "./PlayEditPill";
 import { usePlayMode } from "@/ds/hooks/usePlayMode";
@@ -24,9 +24,6 @@ export interface MobileShellProps {
   subtitle?: string;
   avatar?: React.ReactNode;
   showSpellsTab?: boolean;
-  /** Status pill state (saved/saving/offline + pendingCount). */
-  status?: React.ComponentProps<typeof StatusPill>["state"];
-  pendingCount?: number;
   children: React.ReactNode;
 }
 
@@ -36,8 +33,6 @@ export function MobileShell({
   subtitle,
   avatar,
   showSpellsTab = true,
-  status = "saved",
-  pendingCount,
   children,
 }: MobileShellProps) {
   const { mode, setMode } = usePlayMode(characterId);
@@ -72,7 +67,7 @@ export function MobileShell({
           )}
         </div>
         <div className="flex items-center gap-2">
-          <StatusPill state={status} pendingCount={pendingCount} />
+          <StatusPillLive />
           <PlayEditPill value={mode} onChange={setMode} size="sm" />
         </div>
       </header>

@@ -25,8 +25,6 @@ export interface DesktopShellProps {
   right: React.ReactNode;
   onShare?: () => void;
   onExport?: () => void;
-  status?: React.ComponentProps<typeof Sidebar>["status"];
-  pendingCount?: number;
   className?: string;
 }
 
@@ -41,8 +39,6 @@ export function DesktopShell({
   right,
   onShare,
   onExport,
-  status,
-  pendingCount,
   className,
 }: DesktopShellProps) {
   const scrollRootRef = useRef<HTMLDivElement | null>(null);
@@ -66,8 +62,6 @@ export function DesktopShell({
           scrollRootRef={scrollRootRef}
           onShare={onShare}
           onExport={onExport}
-          status={status}
-          pendingCount={pendingCount}
         />
         <div className="grid gap-4" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
           <div className="space-y-3 min-w-0">{left}</div>

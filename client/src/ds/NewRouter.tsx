@@ -9,6 +9,7 @@ import { Route, Switch } from "wouter";
 import { lazy, Suspense } from "react";
 
 import { CharacterLandingRedirect } from "./pages/CharacterScreen";
+import { SyncConflictSheet } from "./screens/edge/SyncConflictSheet";
 
 const TokensPreview = lazy(() => import("./pages/TokensPreview"));
 const PrimitivesPreview = lazy(() => import("./pages/PrimitivesPreview"));
@@ -81,6 +82,12 @@ export function NewRouter() {
         <Route path="/character/:id/:tab" component={CharacterScreen} />
         <Route component={DevIndex} />
       </Switch>
+      {/*
+        Global sync:conflict listener (Phase G). SyncConflictSheet рендерит
+        себя только когда useOfflineQueue().hasConflict === true, иначе null.
+        Живёт в корне DS-дерева, перекрывает любой экран.
+      */}
+      <SyncConflictSheet />
     </Suspense>
   );
 }
