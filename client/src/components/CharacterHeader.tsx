@@ -66,7 +66,7 @@ import {
   Filter,
   Eraser,
 } from "lucide-react";
-import { AvatarPickerModal, AvatarViewModal } from "@/components/AvatarPickerModal";
+import { AvatarPickerModal, AvatarViewModal } from "@/components/avatar";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { NumericInput } from "@/components/ui/numeric-input";
 import { cn } from "@/lib/utils";

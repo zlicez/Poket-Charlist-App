@@ -53,8 +53,6 @@ function readFileAsDataURL(file: File): Promise<string> {
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 
-// ── AvatarPickerModal ─────────────────────────────────────────────────────────
-
 interface AvatarPickerModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -275,39 +273,6 @@ export function AvatarPickerModal({
             {isSaving ? "Сохранение..." : "Сохранить"}
           </Button>
         </ResponsiveDialogFooter>
-      </ResponsiveDialogContent>
-    </ResponsiveDialog>
-  );
-}
-
-// ── AvatarViewModal ───────────────────────────────────────────────────────────
-
-interface AvatarViewModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  avatarSrc: string;
-  characterName: string;
-}
-
-export function AvatarViewModal({
-  open,
-  onOpenChange,
-  avatarSrc,
-  characterName,
-}: AvatarViewModalProps) {
-  return (
-    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
-      <ResponsiveDialogContent className="sm:max-w-sm">
-        <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle>{characterName}</ResponsiveDialogTitle>
-        </ResponsiveDialogHeader>
-        <div className="flex justify-center py-2">
-          <img
-            src={avatarSrc}
-            alt={characterName}
-            className="w-full max-w-[320px] rounded-2xl object-cover shadow-lg"
-          />
-        </div>
       </ResponsiveDialogContent>
     </ResponsiveDialog>
   );
