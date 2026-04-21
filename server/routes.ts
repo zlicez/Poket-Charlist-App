@@ -3,6 +3,12 @@ import { createServer, type Server } from "http";
 import { rateLimit } from "express-rate-limit";
 import { storage } from "./storage";
 import { insertCharacterSchema, publicCharacterSchema, characterSchema } from "@shared/schema";
+import {
+  CHARACTER_PATH,
+  CHARACTER_SHARE_PATH,
+  CHARACTERS_LIST_PATH,
+  SHARED_CHARACTER_PATH,
+} from "@shared/constants";
 import { z } from "zod";
 
 // Authenticated routes: key by userId so each account gets 120 req/min
@@ -41,7 +47,7 @@ export async function registerRoutes(
   registerAuthRoutes(app);
   
   // All character routes require authentication
-  app.get("/api/characters", apiLimiter, isAuthenticated, async (req: any, res) => {
+  app.get(CHARACTERS_LIST_PATH, apiLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const characters = await storage.getCharacters(userId);
@@ -52,7 +58,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/characters/:id", apiLimiter, isAuthenticated, async (req: any, res) => {
+  app.get(CHARACTER_PATH, apiLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const character = await storage.getCharacter(req.params.id, userId);
@@ -66,7 +72,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/characters", apiLimiter, isAuthenticated, async (req: any, res) => {
+  app.post(CHARACTERS_LIST_PATH, apiLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const validatedData = insertCharacterSchema.parse(req.body);
@@ -81,7 +87,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/characters/:id", apiLimiter, isAuthenticated, async (req: any, res) => {
+  app.patch(CHARACTER_PATH, apiLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const validated = characterSchema.partial().parse(req.body);
@@ -121,7 +127,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/characters/:id", apiLimiter, isAuthenticated, async (req: any, res) => {
+  app.delete(CHARACTER_PATH, apiLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const deleted = await storage.deleteCharacter(req.params.id, userId);
@@ -135,7 +141,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/characters/:id/share", apiLimiter, isAuthenticated, async (req: any, res) => {
+  app.get(CHARACTER_SHARE_PATH, apiLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const info = await storage.getShareInfo(req.params.id, userId);
@@ -149,7 +155,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/characters/:id/share", apiLimiter, isAuthenticated, async (req: any, res) => {
+  app.post(CHARACTER_SHARE_PATH, apiLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const result = await storage.enableSharing(req.params.id, userId);
@@ -163,7 +169,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/characters/:id/share", apiLimiter, isAuthenticated, async (req: any, res) => {
+  app.delete(CHARACTER_SHARE_PATH, apiLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const disabled = await storage.disableSharing(req.params.id, userId);
@@ -177,7 +183,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/shared/:token", sharedLimiter, async (req, res) => {
+  app.get(SHARED_CHARACTER_PATH, sharedLimiter, async (req, res) => {
     try {
       const character = await storage.getCharacterByShareToken(req.params.token as string);
       if (!character) {

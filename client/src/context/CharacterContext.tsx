@@ -5,6 +5,11 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { type Character } from "@shared/schema";
+import {
+  characterShareUrl,
+  characterUrl,
+  queryKeys,
+} from "@shared/constants";
 
 // Client-side deepMerge: applies all source keys including undefined
 // (differs from server version which skips undefined values)
@@ -84,18 +89,18 @@ export function CharacterProvider({
   }, [isAuthenticated, isAuthLoading, toast, setLocation]);
 
   const { data: character, isLoading, error } = useQuery<Character>({
-    queryKey: ["/api/characters", id],
+    queryKey: queryKeys.character(id),
     enabled: !!id && isAuthenticated,
   });
 
   const updateMutation = useMutation({
     mutationFn: async (updates: Partial<Character>) =>
-      apiRequest("PATCH", `/api/characters/${id}`, updates),
+      apiRequest("PATCH", characterUrl(id), updates),
     onMutate: async (updates: Partial<Character>) => {
-      await queryClient.cancelQueries({ queryKey: ["/api/characters", id] });
-      const previous = queryClient.getQueryData<Character>(["/api/characters", id]);
+      await queryClient.cancelQueries({ queryKey: queryKeys.character(id) });
+      const previous = queryClient.getQueryData<Character>(queryKeys.character(id));
       if (previous) {
-        queryClient.setQueryData(["/api/characters", id], deepMerge(previous, updates));
+        queryClient.setQueryData(queryKeys.character(id), deepMerge(previous, updates));
       }
       return { previous };
     },
@@ -103,13 +108,13 @@ export function CharacterProvider({
       try {
         const updated: Character = await res.json();
         if (updated?.id) {
-          queryClient.setQueryData(["/api/characters", id], updated);
+          queryClient.setQueryData(queryKeys.character(id), updated);
         }
       } catch {}
     },
     onError: (_err, _updates, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(["/api/characters", id], context.previous);
+        queryClient.setQueryData(queryKeys.character(id), context.previous);
       }
       toast({
         title: "Ошибка",
@@ -119,25 +124,25 @@ export function CharacterProvider({
     },
     onSettled: () => {
       isSavingRef.current = false;
-      queryClient.invalidateQueries({ queryKey: ["/api/characters", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/characters"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.character(id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.charactersList() });
     },
   });
 
   const shareQuery = useQuery<ShareData>({
-    queryKey: ["/api/characters", id, "share"],
+    queryKey: queryKeys.characterShare(id),
     enabled: !!id && isAuthenticated,
   });
 
   const enableShareMutation = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/characters/${id}/share`),
+    mutationFn: () => apiRequest("POST", characterShareUrl(id)),
     onSuccess: async (res) => {
       const data = await res.json();
-      queryClient.setQueryData(["/api/characters", id, "share"], {
+      queryClient.setQueryData(queryKeys.characterShare(id), {
         shareToken: data.shareToken,
         isShared: true,
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/characters"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.charactersList() });
     },
     onError: () => {
       toast({ title: "Ошибка", description: "Не удалось включить общий доступ", variant: "destructive" });
@@ -145,13 +150,13 @@ export function CharacterProvider({
   });
 
   const disableShareMutation = useMutation({
-    mutationFn: () => apiRequest("DELETE", `/api/characters/${id}/share`),
+    mutationFn: () => apiRequest("DELETE", characterShareUrl(id)),
     onSuccess: () => {
-      queryClient.setQueryData(["/api/characters", id, "share"], {
+      queryClient.setQueryData(queryKeys.characterShare(id), {
         shareToken: null,
         isShared: false,
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/characters"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.charactersList() });
     },
     onError: () => {
       toast({ title: "Ошибка", description: "Не удалось отключить общий доступ", variant: "destructive" });
@@ -215,7 +220,7 @@ export function CharacterProvider({
             character,
             deepMerge(pendingChangesRef.current, updates),
           );
-          queryClient.setQueryData(["/api/characters", id], optimistic);
+          queryClient.setQueryData(queryKeys.character(id), optimistic);
         }
         pendingChangesRef.current = deepMerge(pendingChangesRef.current, updates);
         scheduleSave();
@@ -228,7 +233,7 @@ export function CharacterProvider({
     if (Object.keys(localChanges).length > 0) {
       if (character) {
         queryClient.setQueryData(
-          ["/api/characters", id],
+          queryKeys.character(id),
           deepMerge(character, localChanges),
         );
       }

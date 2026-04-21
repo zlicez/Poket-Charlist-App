@@ -4,6 +4,7 @@ import { useOnlineStatus } from "@/hooks/use-online-status";
 import { syncPendingChanges } from "@/lib/offline-sync";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
+import { queryKeys } from "@shared/constants";
 
 export function ConnectionStatus() {
   const { isOnline, pendingCount, isSyncing, setIsSyncing, refreshPendingCount } = useOnlineStatus();
@@ -20,7 +21,7 @@ export function ConnectionStatus() {
       );
       if (result.synced > 0) {
         toast({ title: `Синхронизировано: ${result.synced}` });
-        queryClient.invalidateQueries({ queryKey: ["/api/characters"] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.charactersList() });
       }
       if (result.failed > 0) {
         toast({

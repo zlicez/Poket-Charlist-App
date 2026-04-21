@@ -17,6 +17,7 @@ import { RichTextContent } from "@/components/RichTextContent";
 import { SpellsSection } from "@/components/SpellsSection";
 import { ProficienciesSection } from "@/components/ProficienciesSection";
 import { useTheme } from "@/components/ThemeProvider";
+import { queryKeys } from "@shared/constants";
 import {
   ABILITY_NAMES,
   calculateModifier,
@@ -53,7 +54,7 @@ export default function SharedCharacterSheet() {
     isLoading,
     error,
   } = useQuery<Character>({
-    queryKey: ["/api/shared", token],
+    queryKey: queryKeys.sharedCharacter(token),
     enabled: !!token,
   });
 

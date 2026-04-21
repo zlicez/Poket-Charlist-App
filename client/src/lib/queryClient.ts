@@ -1,5 +1,10 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import {
+  CHARACTERS_LIST_URL,
+  SYNC_EVENTS,
+  queryKeys,
+} from "@shared/constants";
+import {
   cacheCharacters,
   cacheCharacter,
   getCachedCharacters,
@@ -15,7 +20,7 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-const CHARACTER_URL_RE = /^\/api\/characters\/([^/]+)$/;
+const CHARACTER_URL_RE = new RegExp(`^${CHARACTERS_LIST_URL}/([^/]+)$`);
 
 // Ошибка версии: выбрасывается, когда сервер отвечает 409 на PATCH.
 // Мутация использует её в onError, чтобы отличить conflict от прочих сбоев.
@@ -34,10 +39,9 @@ export class VersionConflictError extends Error {
 // на queryClient (он объявлен в этом же файле ниже — чтобы избежать TDZ-цикла,
 // читаем через геттер после инициализации).
 function getCachedCharacterUpdatedAt(id: string): string | undefined {
-  const cached = queryClient.getQueryData<{ updatedAt?: string }>([
-    "/api/characters",
-    id,
-  ]);
+  const cached = queryClient.getQueryData<{ updatedAt?: string }>(
+    queryKeys.character(id),
+  );
   return cached?.updatedAt;
 }
 
@@ -73,11 +77,11 @@ export async function apiRequest(
       // Сервер возвращает актуальную запись — кладём в кеш и IndexedDB, чтобы
       // UI сразу показал правильное состояние.
       if (body.currentCharacter) {
-        queryClient.setQueryData(["/api/characters", characterId], body.currentCharacter);
+        queryClient.setQueryData(queryKeys.character(characterId), body.currentCharacter);
         cacheCharacter(body.currentCharacter).catch(() => {});
       }
       window.dispatchEvent(
-        new CustomEvent("sync:conflict", {
+        new CustomEvent(SYNC_EVENTS.conflict, {
           detail: {
             characterId,
             url,
@@ -159,21 +163,21 @@ export function getQueryFn<T>(options: {
       await throwIfResNotOk(res);
       const data = await res.json();
 
-      if (url === "/api/characters" && Array.isArray(data)) {
+      if (url === CHARACTERS_LIST_URL && Array.isArray(data)) {
         cacheCharacters(data).catch(() => {});
-      } else if (url.match(/^\/api\/characters\/[^/]+$/) && data?.id) {
+      } else if (CHARACTER_URL_RE.test(url) && data?.id) {
         cacheCharacter(data).catch(() => {});
       }
 
       return data;
     } catch (err) {
       if (!navigator.onLine || (err instanceof TypeError && (err as TypeError).message.includes("fetch"))) {
-        if (url === "/api/characters") {
+        if (url === CHARACTERS_LIST_URL) {
           const cached = await getCachedCharacters();
           if (cached.length > 0) return cached as T;
         }
 
-        const charMatch = url.match(/^\/api\/characters\/([^/]+)$/);
+        const charMatch = url.match(CHARACTER_URL_RE);
         if (charMatch) {
           const cached = await getCachedCharacter(charMatch[1]);
           if (cached) return cached as T;

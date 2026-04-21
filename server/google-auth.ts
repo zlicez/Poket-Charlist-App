@@ -8,6 +8,7 @@ import { rateLimit } from "express-rate-limit";
 import { z } from "zod";
 import { db } from "./db";
 import { users, type AuthUser, type DbUser, type UpsertUser } from "@shared/models/auth";
+import { AUTH_PATHS } from "@shared/constants";
 import { hashPassword, normalizeEmail, verifyPassword } from "./password";
 
 type SessionUser = {
@@ -231,7 +232,7 @@ export async function setupAuth(app: Express): Promise<void> {
       {
         clientID: process.env.GOOGLE_CLIENT_ID!,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-        callbackURL: "/api/callback",
+        callbackURL: AUTH_PATHS.oauthCallback,
       },
       async (_accessToken, _refreshToken, profile, done) => {
         try {
@@ -254,16 +255,16 @@ export const isAuthenticated: RequestHandler = (req, res, next) => {
 };
 
 export function registerAuthRoutes(app: Express): void {
-  app.get("/api/login", passport.authenticate("google", {
+  app.get(AUTH_PATHS.oauthLogin, passport.authenticate("google", {
     scope: ["openid", "email", "profile"],
   }));
 
-  app.get("/api/callback", passport.authenticate("google", {
+  app.get(AUTH_PATHS.oauthCallback, passport.authenticate("google", {
     failureRedirect: "/",
     successRedirect: "/",
   }));
 
-  app.post("/api/logout", (req: Request, res) => {
+  app.post(AUTH_PATHS.logout, (req: Request, res) => {
     req.logout((error) => {
       if (error) {
         console.error("Logout error:", error);
@@ -281,7 +282,7 @@ export function registerAuthRoutes(app: Express): void {
     });
   });
 
-  app.post("/api/auth/register", authLimiter, async (req: Request, res) => {
+  app.post(AUTH_PATHS.register, authLimiter, async (req: Request, res) => {
     try {
       const input = registerSchema.parse(req.body);
       const email = normalizeEmail(input.email);
@@ -314,7 +315,7 @@ export function registerAuthRoutes(app: Express): void {
     }
   });
 
-  app.post("/api/auth/login", authLimiter, async (req: Request, res) => {
+  app.post(AUTH_PATHS.login, authLimiter, async (req: Request, res) => {
     try {
       const input = loginSchema.parse(req.body);
       const email = normalizeEmail(input.email);
@@ -341,7 +342,7 @@ export function registerAuthRoutes(app: Express): void {
     }
   });
 
-  app.post("/api/auth/password", authLimiter, isAuthenticated, async (req: Request, res) => {
+  app.post(AUTH_PATHS.password, authLimiter, isAuthenticated, async (req: Request, res) => {
     try {
       const input = passwordSchema.parse(req.body);
       const currentUser = req.user as SessionUser;
@@ -371,7 +372,7 @@ export function registerAuthRoutes(app: Express): void {
     }
   });
 
-  app.get("/api/auth/user", isAuthenticated, async (req: Request, res) => {
+  app.get(AUTH_PATHS.user, isAuthenticated, async (req: Request, res) => {
     try {
       const currentUser = req.user as SessionUser;
       const user = await getUserById(currentUser.claims.sub);

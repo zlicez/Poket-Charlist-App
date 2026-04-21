@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { SYNC_EVENTS } from "@shared/constants";
 import { getPendingChanges, type PendingChange } from "@/lib/offline-db";
 
 export interface ConflictDetail {
@@ -58,13 +59,13 @@ export function useOfflineQueue(): UseOfflineQueueReturn {
       refresh();
     };
 
-    window.addEventListener("sync:conflict", handleConflict);
-    window.addEventListener("sync:start", handleStart);
-    window.addEventListener("sync:end", handleEnd);
+    window.addEventListener(SYNC_EVENTS.conflict, handleConflict);
+    window.addEventListener(SYNC_EVENTS.start, handleStart);
+    window.addEventListener(SYNC_EVENTS.end, handleEnd);
     return () => {
-      window.removeEventListener("sync:conflict", handleConflict);
-      window.removeEventListener("sync:start", handleStart);
-      window.removeEventListener("sync:end", handleEnd);
+      window.removeEventListener(SYNC_EVENTS.conflict, handleConflict);
+      window.removeEventListener(SYNC_EVENTS.start, handleStart);
+      window.removeEventListener(SYNC_EVENTS.end, handleEnd);
     };
   }, [refresh]);
 

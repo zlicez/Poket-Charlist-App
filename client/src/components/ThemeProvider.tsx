@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { LS_KEYS } from "@shared/constants";
 
 type Theme = "dark" | "light";
 
@@ -13,7 +14,7 @@ const ThemeProviderContext = createContext<ThemeProviderContextType | undefined>
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("dnd-theme") as Theme;
+      const stored = localStorage.getItem(LS_KEYS.theme) as Theme;
       if (stored) return stored;
       return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     }
@@ -24,7 +25,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const root = document.documentElement;
     root.classList.remove("light", "dark");
     root.classList.add(theme);
-    localStorage.setItem("dnd-theme", theme);
+    localStorage.setItem(LS_KEYS.theme, theme);
   }, [theme]);
 
   const toggleTheme = () => {

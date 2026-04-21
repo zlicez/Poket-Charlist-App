@@ -1,3 +1,4 @@
+import { CHARACTERS_LIST_URL, SYNC_EVENTS } from "@shared/constants";
 import {
   getPendingChanges,
   clearPendingChanges,
@@ -5,7 +6,7 @@ import {
   type PendingChange,
 } from "./offline-db";
 
-const CHARACTER_URL_RE = /^\/api\/characters\/([^/]+)$/;
+const CHARACTER_URL_RE = new RegExp(`^${CHARACTERS_LIST_URL}/([^/]+)$`);
 
 type ConflictDetail = {
   characterId: string;
@@ -19,11 +20,11 @@ type ConflictDetail = {
 
 function emitConflict(detail: ConflictDetail): void {
   if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent("sync:conflict", { detail }));
+    window.dispatchEvent(new CustomEvent(SYNC_EVENTS.conflict, { detail }));
   }
 }
 
-function emit(name: "sync:start" | "sync:end"): void {
+function emit(name: typeof SYNC_EVENTS.start | typeof SYNC_EVENTS.end): void {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent(name));
   }
@@ -59,7 +60,7 @@ export async function syncPendingChanges(
   if (changes.length === 0) return { synced: 0, failed: 0, conflicts: 0 };
 
   onSyncStart?.();
-  emit("sync:start");
+  emit(SYNC_EVENTS.start);
   let synced = 0;
   let failed = 0;
   let conflicts = 0;
@@ -139,6 +140,6 @@ export async function syncPendingChanges(
   }
 
   onSyncEnd?.();
-  emit("sync:end");
+  emit(SYNC_EVENTS.end);
   return { synced, failed, conflicts };
 }

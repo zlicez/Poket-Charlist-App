@@ -6,6 +6,7 @@ import session from "express-session";
 import memorystore from "memorystore";
 import type { Express, RequestHandler } from "express";
 import type { User } from "@shared/models/auth";
+import { AUTH_PATHS } from "@shared/constants";
 
 const LOCAL_USER_ID = "local-dev-user";
 
@@ -33,13 +34,13 @@ export async function setupAuth(app: Express): Promise<void> {
     })
   );
 
-  // Auto-login: visiting /api/login sets session and redirects home
-  app.get("/api/login", (req: any, res) => {
+  // Auto-login: visiting AUTH_PATHS.oauthLogin sets session and redirects home
+  app.get(AUTH_PATHS.oauthLogin, (req: any, res) => {
     req.session.userId = LOCAL_USER_ID;
     res.redirect("/");
   });
 
-  app.post("/api/logout", (req: any, res) => {
+  app.post(AUTH_PATHS.logout, (req: any, res) => {
     if (!req.session) {
       return res.json({ ok: true });
     }
@@ -47,7 +48,7 @@ export async function setupAuth(app: Express): Promise<void> {
     req.session.destroy(() => res.json({ ok: true }));
   });
 
-  app.get("/api/callback", (_req, res) => res.redirect("/"));
+  app.get(AUTH_PATHS.oauthCallback, (_req, res) => res.redirect("/"));
 }
 
 export const isAuthenticated: RequestHandler = (req: any, res, next) => {
@@ -57,19 +58,19 @@ export const isAuthenticated: RequestHandler = (req: any, res, next) => {
 };
 
 export function registerAuthRoutes(app: Express): void {
-  app.get("/api/auth/user", isAuthenticated, (_req, res) => {
+  app.get(AUTH_PATHS.user, isAuthenticated, (_req, res) => {
     res.json(LOCAL_USER);
   });
 
-  app.post("/api/auth/login", (_req, res) => {
+  app.post(AUTH_PATHS.login, (_req, res) => {
     res.json(LOCAL_USER);
   });
 
-  app.post("/api/auth/register", (_req, res) => {
+  app.post(AUTH_PATHS.register, (_req, res) => {
     res.status(201).json(LOCAL_USER);
   });
 
-  app.post("/api/auth/password", (_req, res) => {
+  app.post(AUTH_PATHS.password, (_req, res) => {
     res.json(LOCAL_USER);
   });
 }

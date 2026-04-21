@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
+import { AUTH_PATHS } from "@shared/constants";
 import {
   Dices,
   LoaderCircle,
@@ -46,7 +47,7 @@ export function AuthScreen({ theme, toggleTheme }: AuthScreenProps) {
   const isBusy = isLoggingIn || isRegistering;
 
   const handleGoogleLogin = () => {
-    window.location.href = "/api/login";
+    window.location.href = AUTH_PATHS.oauthLogin;
   };
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {

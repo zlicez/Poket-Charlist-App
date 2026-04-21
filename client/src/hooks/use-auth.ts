@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { User } from "@shared/models/auth";
+import { AUTH_PATHS, queryKeys } from "@shared/constants";
 import { clearAllCachedCharacters, clearPendingChanges } from "@/lib/offline-db";
 
 type LoginInput = {
@@ -19,7 +20,7 @@ type PasswordInput = {
 };
 
 async function fetchUser(): Promise<User | null> {
-  const response = await fetch("/api/auth/user", {
+  const response = await fetch(AUTH_PATHS.user, {
     credentials: "include",
   });
 
@@ -57,35 +58,35 @@ async function submitAuthRequest(url: string, body: unknown): Promise<User> {
 export function useAuth() {
   const queryClient = useQueryClient();
   const { data: user, isLoading } = useQuery<User | null>({
-    queryKey: ["/api/auth/user"],
+    queryKey: queryKeys.authUser(),
     queryFn: fetchUser,
     retry: false,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   const loginMutation = useMutation({
-    mutationFn: (input: LoginInput) => submitAuthRequest("/api/auth/login", input),
+    mutationFn: (input: LoginInput) => submitAuthRequest(AUTH_PATHS.login, input),
     onSuccess: (nextUser) => {
-      queryClient.setQueryData(["/api/auth/user"], nextUser);
+      queryClient.setQueryData(queryKeys.authUser(), nextUser);
     },
   });
 
   const registerMutation = useMutation({
-    mutationFn: (input: RegisterInput) => submitAuthRequest("/api/auth/register", input),
+    mutationFn: (input: RegisterInput) => submitAuthRequest(AUTH_PATHS.register, input),
     onSuccess: (nextUser) => {
-      queryClient.setQueryData(["/api/auth/user"], nextUser);
+      queryClient.setQueryData(queryKeys.authUser(), nextUser);
     },
   });
 
   const passwordMutation = useMutation({
-    mutationFn: (input: PasswordInput) => submitAuthRequest("/api/auth/password", input),
+    mutationFn: (input: PasswordInput) => submitAuthRequest(AUTH_PATHS.password, input),
     onSuccess: (nextUser) => {
-      queryClient.setQueryData(["/api/auth/user"], nextUser);
+      queryClient.setQueryData(queryKeys.authUser(), nextUser);
     },
   });
 
   const logout = async () => {
-    await fetch("/api/logout", { method: "POST", credentials: "include" }).catch(() => {});
+    await fetch(AUTH_PATHS.logout, { method: "POST", credentials: "include" }).catch(() => {});
     queryClient.clear();
     await clearAllCachedCharacters().catch(() => {});
     await clearPendingChanges().catch(() => {});
