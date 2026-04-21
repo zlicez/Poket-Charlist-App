@@ -1,8 +1,8 @@
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { NumericInput } from "@/components/ui/numeric-input";
 import { Badge } from "@/components/ui/badge";
-import { HelpTooltip, TooltipBody } from "@/components/ui/help-tooltip";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
+import { SkillRow } from "@/components/abilities/SkillRow";
 import {
   calculateModifier,
   formatModifier,
@@ -13,7 +13,6 @@ import {
   type AbilityName,
   type SkillProficiency,
 } from "@shared/schema";
-import { Star } from "lucide-react";
 import {
   ABILITY_TOOLTIPS_EXTENDED,
   ABILITY_MODIFIER_FORMULA,
@@ -87,88 +86,20 @@ export function AbilityWithSkills({
     }
   };
 
-  // ── Shared skill rows renderer ────────────────────────────────────────────
   const renderSkills = (compact: boolean) =>
-    relatedSkills.map((skill) => {
-      const proficiency = skills[skill.name] || { proficient: false, expertise: false };
-      let skillBonus = modifier;
-      if (proficiency.expertise) {
-        skillBonus += profBonus * 2;
-      } else if (proficiency.proficient) {
-        skillBonus += profBonus;
-      }
-
-      return (
-        <div
-          key={skill.name}
-          className={`
-            flex items-center gap-2 px-2 rounded
-            ${compact ? 'py-1 min-h-[36px]' : 'py-1.5 min-h-[40px] sm:min-h-[26px]'}
-            ${!isEditing ? 'cursor-pointer active:bg-ability-proficient-bg' : ''}
-            ${proficiency.proficient ? 'bg-ability-proficient-bg' : ''}
-          `}
-          onClick={() => !isEditing && onRollSkill(skill.name)}
-          data-testid={`skill-${skill.name.toLowerCase().replace(/\s/g, '-')}`}
-        >
-          <button
-            type="button"
-            className={`
-              flex items-center justify-center rounded-full shrink-0
-              ${compact ? 'w-4 h-4' : 'w-9 h-9 sm:w-5 sm:h-5'}
-              ${isEditing ? 'cursor-pointer hover-elevate' : 'pointer-events-none'}
-              ${proficiency.proficient ? 'bg-accent/30' : 'bg-muted border border-border'}
-            `}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleSkillProficiencyClick(skill.name, proficiency);
-            }}
-            data-testid={`checkbox-skill-${skill.name.toLowerCase().replace(/\s/g, '-')}`}
-          >
-            {proficiency.expertise ? (
-              <Star className="w-2.5 h-2.5 text-accent fill-current" />
-            ) : proficiency.proficient ? (
-              <div className={`rounded-full bg-accent ${compact ? 'w-1.5 h-1.5' : 'w-2.5 h-2.5 sm:w-2 sm:h-2'}`} />
-            ) : null}
-          </button>
-
-          <span className={`
-            flex-1 min-w-0 truncate uppercase tracking-wide
-            ${compact ? 'text-[11px]' : 'text-xs sm:text-sm'}
-            ${proficiency.proficient ? 'font-medium text-foreground' : 'text-muted-foreground'}
-          `}>
-            {skill.name}
-          </span>
-
-          {'description' in skill && (
-            <span onClick={(e) => e.stopPropagation()} className="shrink-0">
-              <HelpTooltip
-                content={
-                  <div className="space-y-1">
-                    <p className="font-medium text-sm">{skill.name}</p>
-                    <p className="text-xs text-muted-foreground">{(skill as any).description}</p>
-                    {proficiency.proficient && (
-                      <p className="text-xs text-accent">
-                        {proficiency.expertise ? 'Мастерство' : 'Профессия'}: +{proficiency.expertise ? profBonus * 2 : profBonus} включено
-                      </p>
-                    )}
-                  </div>
-                }
-                iconSize="xs"
-                side="right"
-              />
-            </span>
-          )}
-
-          <span className={`
-            font-bold font-mono tabular-nums
-            ${compact ? 'text-xs' : 'text-xs sm:text-sm'}
-            ${skillBonus >= 0 ? 'text-positive' : 'text-negative'}
-          `}>
-            {formatModifier(skillBonus)}
-          </span>
-        </div>
-      );
-    });
+    relatedSkills.map((skill) => (
+      <SkillRow
+        key={skill.name}
+        skill={skill}
+        proficiency={skills[skill.name] || { proficient: false, expertise: false }}
+        modifier={modifier}
+        profBonus={profBonus}
+        isEditing={isEditing}
+        compact={compact}
+        onProficiencyClick={handleSkillProficiencyClick}
+        onRollSkill={onRollSkill}
+      />
+    ));
 
   return (
     <Card className="stat-card flex flex-col h-full">
