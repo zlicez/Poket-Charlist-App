@@ -33,6 +33,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useDesktopSectionNavigation } from "@/hooks/useDesktopSectionNavigation";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { CharacterProvider, useCharacter } from "@/context/CharacterContext";
+import { usePdfExportToast } from "@/hooks/usePdfExportToast";
 import { useApplyDamage } from "@/hooks/character/useApplyDamage";
 import { useApplyHeal } from "@/hooks/character/useApplyHeal";
 import { useEquipmentOps } from "@/hooks/character/useEquipmentOps";
@@ -155,12 +156,7 @@ function CharacterSheetContent() {
   const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("section-combat");
 
-  const [pdfToast, setPdfToast] = useState<{
-    title: string;
-    msg: string;
-    progress: number;
-  } | null>(null);
-  const pdfIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { pdfToast, exportPdf } = usePdfExportToast();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const resolvedClassState =
     !isLoading && character ? resolveClassState(character) : null;
@@ -180,44 +176,7 @@ function CharacterSheetContent() {
 
   const handleExportPdf = async () => {
     if (!character) return;
-
-    const FUNNY_MESSAGES = [
-      "Точим гусиное перо...",
-      "Будим скрайба...",
-      "Торгуемся с драконом за бумагу...",
-      "Считаем кости хитов...",
-      "Спрашиваем разрешения у Мастера...",
-      "Пересчитываем золото в кошельке...",
-      "Застёгиваем доспех персонажа...",
-      "Переводим с эльфийского...",
-      "Проверяем мировоззрение...",
-      "Намазываем чернилами свиток...",
-      "Сворачиваем пергамент...",
-      "Шепчем заклинание архивации...",
-    ];
-
-    let progress = 5;
-    let msgIndex = Math.floor(Math.random() * FUNNY_MESSAGES.length);
-
-    setPdfToast({ title: "Создаём PDF...", msg: FUNNY_MESSAGES[msgIndex], progress });
-
-    pdfIntervalRef.current = setInterval(() => {
-      progress = Math.min(progress + Math.random() * 18 + 7, 85);
-      msgIndex = (msgIndex + 1) % FUNNY_MESSAGES.length;
-      setPdfToast({ title: "Создаём PDF...", msg: FUNNY_MESSAGES[msgIndex], progress });
-    }, 350);
-
-    try {
-      const { exportCharacterToPDF } = await import("@/lib/pdf-export");
-      await exportCharacterToPDF(character);
-      if (pdfIntervalRef.current) clearInterval(pdfIntervalRef.current);
-      setPdfToast({ title: "PDF готов!", msg: "Файл сохранён на устройство", progress: 100 });
-      setTimeout(() => setPdfToast(null), 2500);
-    } catch {
-      if (pdfIntervalRef.current) clearInterval(pdfIntervalRef.current);
-      setPdfToast({ title: "Ошибка", msg: "Не удалось создать PDF", progress: 100 });
-      setTimeout(() => setPdfToast(null), 3000);
-    }
+    await exportPdf(character);
   };
 
   const handleExportJson = () => {
