@@ -11,8 +11,10 @@ import CharactersList from "@/pages/CharactersList";
 import CharacterSheet from "@/pages/CharacterSheet";
 import SharedCharacterSheet from "@/pages/SharedCharacterSheet";
 import NotFound from "@/pages/not-found";
+import { FEATURE_FLAGS } from "@/lib/featureFlags";
+import { NewRouter } from "@/ds/NewRouter";
 
-function Router() {
+function LegacyRouter() {
   return (
     <Switch>
       <Route path="/" component={CharactersList} />
@@ -44,7 +46,7 @@ function App() {
           <Toaster />
           <UndoToastHost />
           <ConnectionStatus />
-          <Router />
+          {FEATURE_FLAGS.newDesignSystem ? <NewRouter /> : <LegacyRouter />}
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

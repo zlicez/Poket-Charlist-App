@@ -1,0 +1,68 @@
+/**
+ * Pocket Charlist — новая дизайн-система. Light-токены.
+ * Источник: .claude/design_handoff_pocket_charlist_redesign/audit/styles.css :root.
+ *
+ * Namespace:
+ * - Цвета (--ink-*, --paper-*, --ruby-*, ...) — не конфликтуют со старыми
+ *   переменными (те живут в HSL и имеют свои имена типа --background).
+ * - Шрифты (--ds-font-*) — с префиксом ds-, потому что --font-sans и др.
+ *   уже заняты legacy-деревом (Inter/Lora/JetBrains Mono).
+ * - Радиусы (--r-*) и тени (--shadow-1..3) — handoff-специфичные имена,
+ *   не пересекаются с существующими tailwind-radii или --shadow-sm/md/lg.
+ *
+ * Dark-токены — отдельным слоем, когда дизайнер пришлёт dark.css.
+ */
+:root {
+  /* ─── Ink (neutrals, warm) ──────────────────────────────────────────── */
+  --ink-900: #1a1512;
+  --ink-800: #2a221d;
+  --ink-700: #3d332c;
+  --ink-600: #5a4c42;
+  --ink-500: #7a6a5d;
+  --ink-400: #a8998b;
+  --ink-300: #c9bdb0;
+  --ink-200: #e4dbcf;
+  --ink-100: #f1e9dd;
+
+  /* ─── Paper (surfaces) ──────────────────────────────────────────────── */
+  --paper: #f7f0e3;
+  --paper-2: #fbf6ec;
+  --paper-card: #ffffff;
+
+  /* ─── Semantic accents ──────────────────────────────────────────────── */
+  --ruby: #b13a3a;
+  --ruby-soft: #e9c7c7;
+  --ruby-bg: #f8e9e9;
+
+  --gold: #b88020;
+  --gold-soft: #eadcb8;
+  --gold-bg: #f6edd6;
+
+  --sage: #5a7a52;
+  --sage-soft: #cddcc4;
+  --sage-bg: #e8efe2;
+
+  --ocean: #345a7a;
+  --ocean-soft: #bdd0dc;
+  --ocean-bg: #e3ecf2;
+
+  --violet: #6b4b7a;
+  --violet-bg: #ece3f0;
+
+  /* ─── Radii ─────────────────────────────────────────────────────────── */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 20px;
+
+  /* ─── Shadows ───────────────────────────────────────────────────────── */
+  --shadow-1: 0 1px 2px rgba(26, 21, 18, 0.06), 0 1px 1px rgba(26, 21, 18, 0.04);
+  --shadow-2: 0 2px 6px rgba(26, 21, 18, 0.08), 0 1px 2px rgba(26, 21, 18, 0.05);
+  --shadow-3: 0 12px 32px -8px rgba(26, 21, 18, 0.18), 0 4px 10px rgba(26, 21, 18, 0.08);
+
+  /* ─── Fonts (DS namespace, префикс ds-) ────────────────────────────── */
+  --ds-font-sans: "Inter Tight", "Inter", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  --ds-font-serif: "Fraunces", "Iowan Old Style", "Palatino", Georgia, serif;
+  --ds-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}

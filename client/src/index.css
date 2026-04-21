@@ -1,3 +1,8 @@
+/* Design-system (new) tokens — light layer. Живут в своём namespace и не
+   конфликтуют с legacy-переменными. Подключаются до @tailwind, чтобы
+   tailwind-config мог читать их через var(--ink-900) и т.п. */
+@import "./ds/tokens/tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

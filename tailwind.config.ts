@@ -100,6 +100,47 @@ export default {
           score: "hsl(var(--color-ability-score))",
           "proficient-bg": "hsl(var(--color-ability-proficient-bg))",
         },
+        /* ─── DS (new design system) — namespaced color tokens ─────────── */
+        ink: {
+          100: "var(--ink-100)",
+          200: "var(--ink-200)",
+          300: "var(--ink-300)",
+          400: "var(--ink-400)",
+          500: "var(--ink-500)",
+          600: "var(--ink-600)",
+          700: "var(--ink-700)",
+          800: "var(--ink-800)",
+          900: "var(--ink-900)",
+        },
+        paper: {
+          DEFAULT: "var(--paper)",
+          2: "var(--paper-2)",
+          card: "var(--paper-card)",
+        },
+        ruby: {
+          DEFAULT: "var(--ruby)",
+          soft: "var(--ruby-soft)",
+          bg: "var(--ruby-bg)",
+        },
+        gold: {
+          DEFAULT: "var(--gold)",
+          soft: "var(--gold-soft)",
+          bg: "var(--gold-bg)",
+        },
+        sage: {
+          DEFAULT: "var(--sage)",
+          soft: "var(--sage-soft)",
+          bg: "var(--sage-bg)",
+        },
+        ocean: {
+          DEFAULT: "var(--ocean)",
+          soft: "var(--ocean-soft)",
+          bg: "var(--ocean-bg)",
+        },
+        violet: {
+          DEFAULT: "var(--violet)",
+          bg: "var(--violet-bg)",
+        },
       },
       fontSize: {
         xs: ["0.75rem", { lineHeight: "1rem" }],
@@ -113,6 +154,25 @@ export default {
         sans: ["var(--font-sans)"],
         serif: ["var(--font-serif)"],
         mono: ["var(--font-mono)"],
+        /* DS fonts — new design system (префикс ds- во избежание конфликта). */
+        "ds-sans": ["var(--ds-font-sans)"],
+        "ds-serif": ["var(--ds-font-serif)"],
+        "ds-mono": ["var(--ds-font-mono)"],
+      },
+      borderRadius: {
+        /* legacy tokens уже определены выше в extend.borderRadius — не трогаем.
+           DS-токены — отдельные имена, читаются из CSS-vars. */
+        "ds-sm": "var(--r-sm)",
+        "ds-md": "var(--r-md)",
+        "ds-lg": "var(--r-lg)",
+        "ds-xl": "var(--r-xl)",
+      },
+      boxShadow: {
+        /* DS elevation tokens. Legacy --shadow-sm/md/lg не пересекаются,
+           но чтобы было проще отличать — использую ds-1/2/3. */
+        "ds-1": "var(--shadow-1)",
+        "ds-2": "var(--shadow-2)",
+        "ds-3": "var(--shadow-3)",
       },
       keyframes: {
         "accordion-down": {
