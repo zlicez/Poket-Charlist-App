@@ -22,6 +22,10 @@ const PrimitivesPreview = lazy(() => import("./pages/PrimitivesPreview"));
 const HeroPreview = lazy(() => import("./pages/HeroPreview"));
 const WizardsPreview = lazy(() => import("./pages/WizardsPreview"));
 const AuthPreview = lazy(() => import("./pages/AuthPreview"));
+const ListPreview = lazy(() => import("./pages/ListPreview"));
+const CharactersListPage = lazy(
+  () => import("./pages/CharactersListPage"),
+);
 const CharacterScreen = lazy(() => import("./pages/CharacterScreen"));
 
 function Loading() {
@@ -68,10 +72,16 @@ function DevIndex() {
           — Phase H1 auth preview (A-01..A-05, без реального гейта)
         </li>
         <li>
+          <a href="/ds-list" className="text-ocean hover:underline">
+            /ds-list
+          </a>{" "}
+          — Phase H2 list preview (L-01..L-05 состояния)
+        </li>
+        <li>
           <a href="/" className="text-ocean hover:underline">
             /
           </a>{" "}
-          — список персонажей, затем /character/:id/combat (Phase D)
+          — список персонажей (Phase H2), затем /character/:id/combat
         </li>
       </ul>
       <div className="mt-6 text-[13px] text-ink-500">
@@ -93,14 +103,19 @@ function GatedRoutes() {
   const { isAuthenticated, isLoading } = useAuth();
   const [location] = useLocation();
 
-  // Превью-страница должна работать без логина — её цель показать компоненты.
+  // Превью-страницы доступны без логина — цель показать компоненты.
   if (location === "/ds-auth") {
     return (
-      <>
-        <Switch>
-          <Route path="/ds-auth" component={AuthPreview} />
-        </Switch>
-      </>
+      <Switch>
+        <Route path="/ds-auth" component={AuthPreview} />
+      </Switch>
+    );
+  }
+  if (location === "/ds-list") {
+    return (
+      <Switch>
+        <Route path="/ds-list" component={ListPreview} />
+      </Switch>
     );
   }
 
@@ -108,18 +123,17 @@ function GatedRoutes() {
   if (!isAuthenticated) return <AuthScreen />;
 
   return (
-    <>
-      <Switch>
-        <Route path="/ds-tokens" component={TokensPreview} />
-        <Route path="/ds-primitives" component={PrimitivesPreview} />
-        <Route path="/ds-hero" component={HeroPreview} />
-        <Route path="/ds-wizards" component={WizardsPreview} />
-        {/* Character screen routes (Phase D) */}
-        <Route path="/character/:id" component={CharacterLandingRedirect} />
-        <Route path="/character/:id/:tab" component={CharacterScreen} />
-        <Route component={DevIndex} />
-      </Switch>
-    </>
+    <Switch>
+      <Route path="/" component={CharactersListPage} />
+      <Route path="/ds-tokens" component={TokensPreview} />
+      <Route path="/ds-primitives" component={PrimitivesPreview} />
+      <Route path="/ds-hero" component={HeroPreview} />
+      <Route path="/ds-wizards" component={WizardsPreview} />
+      {/* Character screen routes (Phase D) */}
+      <Route path="/character/:id" component={CharacterLandingRedirect} />
+      <Route path="/character/:id/:tab" component={CharacterScreen} />
+      <Route component={DevIndex} />
+    </Switch>
   );
 }
 
