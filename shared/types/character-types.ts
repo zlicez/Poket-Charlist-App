@@ -171,6 +171,50 @@ export const spellSchema = z.object({
 
 export type Spell = z.infer<typeof spellSchema>;
 
+// ─── Keyed collection operations ───────────────────────────────────────────
+//
+// Альтернатива full-array PATCH'ам для коллекций с нестабильным интерлив'ингом
+// (weapons / equipment / features / prepared spells). Каждая операция адресует
+// элемент по стабильному id; сервер применяет батч атомарно под If-Match guard'ом.
+// Мотивация — feedback_mutation_architecture.md и feedback_versioning_and_conflict.md.
+
+export const COLLECTION_NAMES = ["weapons", "equipment", "features", "spells"] as const;
+export type CollectionName = (typeof COLLECTION_NAMES)[number];
+
+export const upsertItemOpSchema = z.object({
+  op: z.literal("upsertItem"),
+  collection: z.enum(COLLECTION_NAMES),
+  id: z.string().min(1),
+  // Для нового элемента patch должен содержать поля, достаточные для прохождения
+  // валидации соответствующей item-схемы; для существующего — частичные поля.
+  patch: z.record(z.string(), z.unknown()),
+});
+
+export const removeItemOpSchema = z.object({
+  op: z.literal("removeItem"),
+  collection: z.enum(COLLECTION_NAMES),
+  id: z.string().min(1),
+});
+
+export const reorderItemsOpSchema = z.object({
+  op: z.literal("reorderItems"),
+  collection: z.enum(COLLECTION_NAMES),
+  orderedIds: z.array(z.string().min(1)),
+});
+
+export const collectionOpSchema = z.discriminatedUnion("op", [
+  upsertItemOpSchema,
+  removeItemOpSchema,
+  reorderItemsOpSchema,
+]);
+
+export type CollectionOp = z.infer<typeof collectionOpSchema>;
+
+export const applyCharacterOpsSchema = z.object({
+  ops: z.array(collectionOpSchema).min(1).max(100),
+});
+export type ApplyCharacterOpsPayload = z.infer<typeof applyCharacterOpsSchema>;
+
 export const spellSlotSchema = z.object({
   max: z.number().min(0).default(0),
   used: z.number().min(0).default(0),

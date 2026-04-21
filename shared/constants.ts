@@ -21,6 +21,9 @@ export const characterUrl = (id: string): string =>
 export const characterShareUrl = (id: string): string =>
   `${characterUrl(id)}/share`;
 
+export const characterOpsUrl = (id: string): string =>
+  `${characterUrl(id)}/ops`;
+
 export const sharedCharacterUrl = (token: string): string =>
   `/api/shared/${token}`;
 
@@ -28,6 +31,7 @@ export const sharedCharacterUrl = (token: string): string =>
 export const CHARACTERS_LIST_PATH = CHARACTERS_LIST_URL;
 export const CHARACTER_PATH = `${CHARACTERS_LIST_URL}/:id`;
 export const CHARACTER_SHARE_PATH = `${CHARACTER_PATH}/share`;
+export const CHARACTER_OPS_PATH = `${CHARACTER_PATH}/ops`;
 export const SHARED_CHARACTER_PATH = `/api/shared/:token`;
 
 // ─── Auth API ───────────────────────────────────────────────────────────────

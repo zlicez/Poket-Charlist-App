@@ -2,8 +2,14 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { rateLimit } from "express-rate-limit";
 import { storage } from "./storage";
-import { insertCharacterSchema, publicCharacterSchema, characterSchema } from "@shared/schema";
 import {
+  applyCharacterOpsSchema,
+  characterSchema,
+  insertCharacterSchema,
+  publicCharacterSchema,
+} from "@shared/schema";
+import {
+  CHARACTER_OPS_PATH,
   CHARACTER_PATH,
   CHARACTER_SHARE_PATH,
   CHARACTERS_LIST_PATH,
@@ -124,6 +130,47 @@ export async function registerRoutes(
       }
       console.error("Error updating character:", error);
       res.status(500).json({ error: "Failed to update character" });
+    }
+  });
+
+  // Keyed-ops endpoint: адресация коллекций через стабильные id вместо
+  // full-array replace. Требует If-Match (в отличие от PATCH, где заголовок
+  // временно опционален на период миграции клиента).
+  app.post(CHARACTER_OPS_PATH, apiLimiter, isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const ifMatchHeader = req.get("If-Match");
+      if (typeof ifMatchHeader !== "string" || ifMatchHeader.length === 0) {
+        return res.status(428).json({ error: "If-Match header is required" });
+      }
+      const expectedUpdatedAt = ifMatchHeader.replace(/^"|"$/g, "");
+      const { ops } = applyCharacterOpsSchema.parse(req.body);
+      const result = await storage.applyCollectionOps(
+        req.params.id,
+        userId,
+        ops,
+        expectedUpdatedAt,
+      );
+      if (result.status === "notfound") {
+        return res.status(404).json({ error: "Character not found" });
+      }
+      if (result.status === "conflict") {
+        return res.status(409).json({
+          error: "Version mismatch",
+          currentUpdatedAt: result.current.updatedAt,
+          currentCharacter: result.current,
+        });
+      }
+      if (result.status === "invalid") {
+        return res.status(400).json({ error: "Invalid ops", reason: result.reason });
+      }
+      res.json(result.character);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid ops payload", details: error.errors });
+      }
+      console.error("Error applying character ops:", error);
+      res.status(500).json({ error: "Failed to apply ops" });
     }
   });
 
