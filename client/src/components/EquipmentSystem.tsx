@@ -69,7 +69,13 @@ import {
   BASE_MISC,
   createEquipmentFromBase
 } from "@shared/schema";
-import type { Equipment, EquipmentCategory, BaseEquipmentItem, Money } from "@shared/schema";
+import type {
+  BaseEquipmentItem,
+  CollectionOp,
+  Equipment,
+  EquipmentCategory,
+  Money,
+} from "@shared/schema";
 import { MoneyBlock } from "./MoneyBlock";
 import { WeaponFormFields } from "@/components/WeaponFormFields";
 import {
@@ -84,6 +90,10 @@ import {
 
 interface EquipmentSystemProps {
   equipment: Equipment[];
+  // Discrete-дорожка для equipment: батч keyed ops за один PATCH. Если задан,
+  // add/remove/edit/reorder/toggleEquipped идут через него атомарно; иначе
+  // fallback на `onChange` (full-array replace).
+  onApplyOps?: (ops: CollectionOp[]) => void;
   onChange: (equipment: Equipment[]) => void;
   isEditing: boolean;
   isLocked?: boolean;
@@ -931,6 +941,7 @@ type TabValue = EquipmentCategory | "all";
 
 export function EquipmentSystem({
   equipment,
+  onApplyOps,
   onChange,
   isEditing,
   isLocked = false,
@@ -939,6 +950,13 @@ export function EquipmentSystem({
   money,
   onMoneyChange,
 }: EquipmentSystemProps) {
+  // Хелпер, маршрутизирующий любое изменение коллекции: если родитель дал
+  // onApplyOps — идём через keyed ops (атомарный batch); иначе собираем
+  // итоговый массив и шлём через onChange (full-array fallback).
+  const applyOrFallback = (ops: CollectionOp[], fallback: () => Equipment[]) => {
+    if (onApplyOps) onApplyOps(ops);
+    else onChange(fallback());
+  };
   const [activeTab, setActiveTab] = useState<TabValue>("all");
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<Equipment | null>(null);
@@ -962,13 +980,17 @@ export function EquipmentSystem({
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
+
     if (over && active.id !== over.id) {
       const oldIndex = equipment.findIndex((item) => item.id === active.id);
       const newIndex = equipment.findIndex((item) => item.id === over.id);
-      
+
       if (oldIndex !== -1 && newIndex !== -1) {
-        onChange(arrayMove(equipment, oldIndex, newIndex));
+        const reordered = arrayMove(equipment, oldIndex, newIndex);
+        applyOrFallback(
+          [{ op: "reorderItems", collection: "equipment", orderedIds: reordered.map((e) => e.id) }],
+          () => reordered,
+        );
       }
     }
   };
@@ -1008,15 +1030,26 @@ export function EquipmentSystem({
   );
 
   const addEquipment = (item: Omit<Equipment, "id">) => {
-    onChange([...equipment, { ...item, id: generateId() }]);
+    const newId = generateId();
+    const newItem: Equipment = { ...item, id: newId };
+    applyOrFallback(
+      [{ op: "upsertItem", collection: "equipment", id: newId, patch: newItem as unknown as Record<string, unknown> }],
+      () => [...equipment, newItem],
+    );
   };
 
   const removeEquipment = (id: string) => {
-    onChange(equipment.filter((e) => e.id !== id));
+    applyOrFallback(
+      [{ op: "removeItem", collection: "equipment", id }],
+      () => equipment.filter((e) => e.id !== id),
+    );
   };
 
   const updateEquipmentItem = (updated: Equipment) => {
-    onChange(equipment.map((e) => e.id === updated.id ? updated : e));
+    applyOrFallback(
+      [{ op: "upsertItem", collection: "equipment", id: updated.id, patch: updated as unknown as Record<string, unknown> }],
+      () => equipment.map((e) => (e.id === updated.id ? updated : e)),
+    );
   };
 
   const requestDelete = (id: string) => setDeleteTarget(id);
@@ -1026,37 +1059,62 @@ export function EquipmentSystem({
   };
 
   const toggleEquipped = (id: string) => {
-    const toggledItem = equipment.find(e => e.id === id);
+    const toggledItem = equipment.find((e) => e.id === id);
     if (!toggledItem) return;
-    
+
     const isEquipping = !toggledItem.equipped;
-    
-    if (toggledItem.isArmor) {
-      const isNonShieldArmor = toggledItem.armorType !== "shield";
-      onChange(equipment.map((e) => {
-        if (e.id === id) {
-          return { ...e, equipped: isEquipping };
+    const ops: CollectionOp[] = [
+      { op: "upsertItem", collection: "equipment", id, patch: { equipped: isEquipping } },
+    ];
+
+    // Надевание не-щитного доспеха снимает все другие не-щитные доспехи —
+    // одним атомарным батчем, чтобы не было промежуточного состояния «оба надеты».
+    if (isEquipping && toggledItem.isArmor && toggledItem.armorType !== "shield") {
+      for (const other of equipment) {
+        if (other.id === id) continue;
+        if (other.isArmor && other.armorType !== "shield" && other.equipped) {
+          ops.push({
+            op: "upsertItem",
+            collection: "equipment",
+            id: other.id,
+            patch: { equipped: false },
+          });
         }
-        if (isEquipping && isNonShieldArmor && e.isArmor && e.armorType !== "shield" && e.id !== id) {
+      }
+    }
+
+    applyOrFallback(ops, () =>
+      equipment.map((e) => {
+        if (e.id === id) return { ...e, equipped: isEquipping };
+        if (
+          isEquipping &&
+          toggledItem.isArmor &&
+          toggledItem.armorType !== "shield" &&
+          e.isArmor &&
+          e.armorType !== "shield"
+        ) {
           return { ...e, equipped: false };
         }
         return e;
-      }));
-    } else {
-      onChange(equipment.map((e) => 
-        e.id === id ? { ...e, equipped: isEquipping } : e
-      ));
-    }
+      }),
+    );
   };
 
   const updateQuantity = (id: string, delta: number) => {
-    onChange(equipment.map((e) => {
-      if (e.id === id) {
-        const newQty = Math.max(0, e.quantity + delta);
-        return newQty === 0 ? null : { ...e, quantity: newQty };
-      }
-      return e;
-    }).filter(Boolean) as Equipment[]);
+    const item = equipment.find((e) => e.id === id);
+    if (!item) return;
+    const newQty = Math.max(0, item.quantity + delta);
+    if (newQty === 0) {
+      applyOrFallback(
+        [{ op: "removeItem", collection: "equipment", id }],
+        () => equipment.filter((e) => e.id !== id),
+      );
+    } else {
+      applyOrFallback(
+        [{ op: "upsertItem", collection: "equipment", id, patch: { quantity: newQty } }],
+        () => equipment.map((e) => (e.id === id ? { ...e, quantity: newQty } : e)),
+      );
+    }
   };
 
   const equippedItems = equipment.filter(e => e.equipped);

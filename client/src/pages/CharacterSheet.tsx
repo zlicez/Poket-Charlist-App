@@ -35,7 +35,10 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { CharacterProvider, useCharacter } from "@/context/CharacterContext";
 import { useApplyDamage } from "@/hooks/character/useApplyDamage";
 import { useApplyHeal } from "@/hooks/character/useApplyHeal";
+import { useEquipmentOps } from "@/hooks/character/useEquipmentOps";
+import { useRemoveFeature } from "@/hooks/character/useRemoveFeature";
 import { useRemoveWeapon } from "@/hooks/character/useRemoveWeapon";
+import { useUpsertFeature } from "@/hooks/character/useUpsertFeature";
 import { useUpsertWeapon } from "@/hooks/character/useUpsertWeapon";
 import {
   ABILITY_NAMES,
@@ -136,6 +139,9 @@ function CharacterSheetContent() {
   const applyHeal = useApplyHeal(characterId!);
   const upsertWeapon = useUpsertWeapon(characterId!);
   const removeWeapon = useRemoveWeapon(characterId!);
+  const upsertFeature = useUpsertFeature(characterId!);
+  const removeFeature = useRemoveFeature(characterId!);
+  const equipmentOps = useEquipmentOps(characterId!);
 
   const [, setLocation] = useLocation();
   const { theme, toggleTheme } = useTheme();
@@ -351,14 +357,10 @@ function CharacterSheetContent() {
     weaponId: string,
     gripMode: WeaponGripMode,
   ) => {
-    // Equipment пока живёт на старой дорожке (full-array) — отдельная миграция
-    // в следующем коммите 4.3 (equipment discrete-hooks).
-    if (!character) return;
-    handleChange({
-      equipment: character.equipment.map((item) =>
-        item.id === weaponId ? { ...item, gripMode } : item,
-      ),
-    });
+    // Equipment keyed op: patch одного поля на одном элементе, без перезаписи массива.
+    equipmentOps.mutate([
+      { op: "upsertItem", collection: "equipment", id: weaponId, patch: { gripMode } },
+    ]);
   };
 
   const sectionNavItems = [
@@ -726,6 +728,10 @@ function CharacterSheetContent() {
               />
               <FeaturesList
                 features={character.features}
+                onUpsertFeature={(feature) =>
+                  upsertFeature.mutate({ id: feature.id, patch: feature })
+                }
+                onRemoveFeature={(id) => removeFeature.mutate(id)}
                 onChange={(features) => handleChange({ features })}
                 isEditing={isEditing}
                 isLocked={character.featuresLocked ?? false}
@@ -747,6 +753,7 @@ function CharacterSheetContent() {
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)] gap-3 sm:gap-4 items-start">
               <EquipmentSystem
                 equipment={character.equipment}
+                onApplyOps={(ops) => equipmentOps.mutate(ops)}
                 onChange={(equipment) => handleChange({ equipment })}
                 isEditing={isEditing}
                 isLocked={character.equipmentLocked ?? false}

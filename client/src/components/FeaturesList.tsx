@@ -39,6 +39,10 @@ import type { Feature } from "@shared/schema";
 
 interface FeaturesListProps {
   features: Feature[];
+  // Discrete-дорожка (keyed ops). Если заданы — add/edit/remove идут через них;
+  // иначе fallback на `onChange` (полная запись массива).
+  onUpsertFeature?: (feature: Feature) => void;
+  onRemoveFeature?: (id: string) => void;
   onChange: (features: Feature[]) => void;
   isEditing: boolean;
   isLocked?: boolean;
@@ -294,6 +298,8 @@ function FeatureItem({
 
 export function FeaturesList({
   features,
+  onUpsertFeature,
+  onRemoveFeature,
   onChange,
   isEditing,
   isLocked = false,
@@ -302,15 +308,28 @@ export function FeaturesList({
   const canModify = isEditing || !isLocked;
 
   const addFeature = (feature: Omit<Feature, "id">) => {
-    onChange([...features, { ...feature, id: generateId() }]);
+    const newFeature: Feature = { ...feature, id: generateId() };
+    if (onUpsertFeature) {
+      onUpsertFeature(newFeature);
+    } else {
+      onChange([...features, newFeature]);
+    }
   };
 
   const removeFeature = (id: string) => {
-    onChange(features.filter((feature) => feature.id !== id));
+    if (onRemoveFeature) {
+      onRemoveFeature(id);
+    } else {
+      onChange(features.filter((feature) => feature.id !== id));
+    }
   };
 
   const updateFeature = (updated: Feature) => {
-    onChange(features.map((f) => (f.id === updated.id ? updated : f)));
+    if (onUpsertFeature) {
+      onUpsertFeature(updated);
+    } else {
+      onChange(features.map((f) => (f.id === updated.id ? updated : f)));
+    }
   };
 
   return (
