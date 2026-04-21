@@ -288,6 +288,22 @@ export const classHitDicePoolSchema = z.object({
 
 export type ClassHitDicePool = z.infer<typeof classHitDicePoolSchema>;
 
+// ─── UI state (блок 2+: persist режима и темы внутри персонажа) ─────────────
+//
+// Раньше `mode: 'play'|'edit'` жил только в LocalStorage (LS_KEYS.characterUi)
+// и Zustand-сторе. В блоке 2 новая дизайн-система «прибивает» этот режим к
+// самому персонажу — переключение сохраняется между устройствами. Поле
+// additive: старые клиенты, не знающие про ui_state, PATCH'ы не ломают —
+// сервер `deepMerge` просто оставит его как было.
+export const PLAY_MODES = ["play", "edit"] as const;
+export type PlayMode = (typeof PLAY_MODES)[number];
+
+export const uiStateSchema = z.object({
+  mode: z.enum(PLAY_MODES).optional(),
+  theme: z.string().optional(),
+});
+export type UiState = z.infer<typeof uiStateSchema>;
+
 export const classResourceStateSchema = z.object({
   selectionId: z.string(),
   resourceId: z.string(),
@@ -373,9 +389,19 @@ export const characterSchema = z.object({
   weaponsLocked: z.boolean().default(false),
   featuresLocked: z.boolean().default(false),
   spellSlotsLocked: z.boolean().default(false),
+  // Per-character UI preferences (persisted across devices). Optional для
+  // backward compat — старые записи без этого поля читаются без ошибок.
+  ui_state: uiStateSchema.optional(),
 });
 
 export type Character = z.infer<typeof characterSchema>;
+
+// Семантический алиас: «CharacterData» = типизированное содержимое JSONB-колонки
+// `characters.data`. Сейчас полностью совпадает с `Character` (поля `id`,
+// `userId`, `updatedAt` — пришедшие из DB-строки — спредятся в top-level, см.
+// `server/storage.rowToCharacter`). Используется в block 2 как явное имя
+// корневого типа пользовательского payload'а, чтобы не путать с DbCharacter.
+export type CharacterData = Character;
 
 export const insertCharacterSchema = characterSchema.omit({ id: true });
 export type InsertCharacter = z.infer<typeof insertCharacterSchema>;

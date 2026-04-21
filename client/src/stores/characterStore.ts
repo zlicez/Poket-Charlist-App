@@ -18,8 +18,9 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
 import { LS_KEYS } from "@shared/constants";
+import type { PlayMode } from "@shared/schema";
 
-export type PlayMode = "play" | "edit";
+export type { PlayMode };
 
 /**
  * Запись в undo-stack'е. `undoFn` — обратная мутация (damage → heal той же
