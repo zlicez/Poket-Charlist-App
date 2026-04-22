@@ -3,7 +3,7 @@
  * цвета/radii/shadow/шрифты отрендерились корректно, токены и Tailwind-
  * extend правильно связаны через CSS-переменные.
  *
- * Доступна по пути /ds-tokens при VITE_NEW_DS=true (см. NewRouter).
+ * Доступна по пути /ds-tokens (см. NewRouter).
  */
 import {
   INK_STEPS,

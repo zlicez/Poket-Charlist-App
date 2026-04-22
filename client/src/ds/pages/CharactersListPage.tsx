@@ -30,13 +30,12 @@ import {
 import { queryKeys } from "@shared/constants";
 
 /**
- * Phase H2 — DS-реализация списка персонажей. Заменяет legacy CharactersList
- * под `VITE_NEW_DS=true`.
+ * DS-реализация списка персонажей (Phase H2, единственный после Phase J).
  *
- * Поведение одинаково с legacy: create / import / delete / open. Разница
- * только в UI (DS токены, BottomSheet-основанные confirm'ы, swipe-to-reveal).
+ * Поведение: create / import / delete / open. UI — DS токены,
+ * BottomSheet-confirm'ы, swipe-to-reveal на карточках.
  *
- * Авторизация уже отсечена на уровне NewRouter (AuthGate + AuthScreen), сюда
+ * Авторизация отсечена на уровне NewRouter (AuthGate + AuthScreen), сюда
  * попадает только залогиненный пользователь.
  */
 

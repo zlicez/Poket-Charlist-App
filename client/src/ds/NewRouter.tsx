@@ -1,9 +1,8 @@
 /**
- * Entry-point новой ДС. Подключается в App.tsx под FEATURE_FLAGS.newDesignSystem.
- * Пока — scaffold с dev-страницами preview. Настоящие экраны появятся с Phase D+.
- *
- * Legacy-дерево (см. App.tsx: <Router/> из wouter) отдельно — два параллельных
- * роутера не активны одновременно, ветвление только на entry-point уровне.
+ * Entry-point дизайн-системы. Единственный wouter-роутер приложения после
+ * Phase J — legacy-дерево удалено. Включает auth-гейт, реальные экраны
+ * (CharactersListPage, CharacterScreen, SharedReadOnlyScreen) и /ds-*
+ * dev-превью.
  */
 import { Route, Switch, useLocation } from "wouter";
 import { lazy, Suspense } from "react";

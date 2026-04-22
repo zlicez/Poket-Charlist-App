@@ -1,12 +1,9 @@
 /**
  * IntersectionObserver-based scroll-spy. Для DesktopShell sidebar.
  *
- * Вместо legacy useDesktopSectionNavigation с window-scroll магией —
- * чистый IO: элементы регистрируются по id, observer в scroll-root
- * отчётливо сообщает, кто сейчас «наибольше виден».
- *
- * rootMargin/threshold подобраны так, что активная секция — та, чей
- * top пересекает верхние 40% контейнера.
+ * Элементы регистрируются по id; observer в scroll-root отчётливо сообщает,
+ * кто «наибольше виден». rootMargin/threshold подобраны так, что активная
+ * секция — та, чей top пересекает верхние 40% контейнера.
  */
 import { useEffect, useRef, useState } from "react";
 

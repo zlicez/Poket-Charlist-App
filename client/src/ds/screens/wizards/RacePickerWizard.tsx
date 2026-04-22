@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { BottomSheet } from "@/ds/hero";
 import { Button, Chip, InputField, Tag } from "@/ds/primitives";
 import { typeClass } from "@/ds/tokens";
-import { useCommitRest } from "@/hooks/character/useCommitRest";
+import { useDiscreteCharacterUpdate } from "@/hooks/character/useDiscreteCharacterUpdate";
 import {
   ABILITY_LABELS,
   RACE_DATA,
@@ -40,7 +40,7 @@ export function RacePickerWizard({
   onOpenChange: (open: boolean) => void;
   character: Character;
 }) {
-  const commit = useCommitRest(character.id);
+  const commit = useDiscreteCharacterUpdate(character.id);
   const [step, setStep] = useState<1 | 2>(1);
   const [search, setSearch] = useState("");
   const [pickedRaceKey, setPickedRaceKey] = useState<string | null>(null);

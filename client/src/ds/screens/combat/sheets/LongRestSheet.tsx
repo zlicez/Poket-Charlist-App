@@ -3,7 +3,7 @@ import { Moon } from "lucide-react";
 import { BottomSheet } from "@/ds/hero";
 import { Button } from "@/ds/primitives";
 import { typeClass } from "@/ds/tokens";
-import { useCommitRest } from "@/hooks/character/useCommitRest";
+import { useDiscreteCharacterUpdate } from "@/hooks/character/useDiscreteCharacterUpdate";
 import { useHapticFeedback } from "@/ds/hooks/useHapticFeedback";
 import {
   getCharacterClasses,
@@ -31,7 +31,7 @@ export function LongRestSheet({
   onOpenChange: (open: boolean) => void;
   character: Character;
 }) {
-  const commitRest = useCommitRest(character.id);
+  const commitRest = useDiscreteCharacterUpdate(character.id);
   const haptic = useHapticFeedback();
 
   const totalLevel = getTotalLevel(getCharacterClasses(character));

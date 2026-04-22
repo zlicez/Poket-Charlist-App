@@ -5,7 +5,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils";
 import { Button, Die, Tag } from "@/ds/primitives";
 import { typeClass } from "@/ds/tokens";
-import { useCommitRest } from "@/hooks/character/useCommitRest";
+import { useDiscreteCharacterUpdate } from "@/hooks/character/useDiscreteCharacterUpdate";
 import {
   getClassDefinitionById,
   getClassDefinitionByName,
@@ -40,10 +40,7 @@ import {
  *
  * Step 3: Review
  *   Сводка: +Level, +HP, +Feature count. Одна кнопка «Применить» →
- *   single PATCH через useCommitRest (generic discrete PATCH).
- *
- * Reuse: useCommitRest (повторно используем как generic discrete PATCH hook;
- * в Phase J можно переименовать в useDiscreteCharacterUpdate).
+ *   single PATCH через useDiscreteCharacterUpdate.
  */
 
 export function LevelUpWizard({
@@ -55,7 +52,7 @@ export function LevelUpWizard({
   onOpenChange: (open: boolean) => void;
   character: Character;
 }) {
-  const commit = useCommitRest(character.id);
+  const commit = useDiscreteCharacterUpdate(character.id);
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   const [hpChoice, setHpChoice] = useState<HpChoice>("average");

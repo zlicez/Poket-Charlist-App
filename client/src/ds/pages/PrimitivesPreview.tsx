@@ -1,6 +1,6 @@
 /**
  * Dev-страница: демо всех DS-primitives. Точка верификации Phase B.
- * Доступна по /ds-primitives при VITE_NEW_DS=true.
+ * Доступна по /ds-primitives.
  */
 import { useState } from "react";
 

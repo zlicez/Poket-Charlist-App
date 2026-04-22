@@ -14,7 +14,7 @@
 import { useMemo } from "react";
 
 import { usePlayMode } from "@/ds/hooks/usePlayMode";
-import { useCommitRest } from "@/hooks/character/useCommitRest";
+import { useDiscreteCharacterUpdate } from "@/hooks/character/useDiscreteCharacterUpdate";
 import { useHapticFeedback } from "@/ds/hooks/useHapticFeedback";
 import type { Command } from "@/ds/hooks/useCommandPalette";
 import {
@@ -46,7 +46,7 @@ export function useCharacterCommands({
   openExport,
 }: CharacterCommandsArgs): Command[] {
   const { mode, setMode } = usePlayMode(id);
-  const commitRest = useCommitRest(id);
+  const commitRest = useDiscreteCharacterUpdate(id);
   const haptic = useHapticFeedback();
 
   return useMemo<Command[]>(() => {

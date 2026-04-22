@@ -5,7 +5,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Button, Die } from "@/ds/primitives";
 import { cn } from "@/lib/utils";
 import { typeClass } from "@/ds/tokens";
-import { useCommitRest } from "@/hooks/character/useCommitRest";
+import { useDiscreteCharacterUpdate } from "@/hooks/character/useDiscreteCharacterUpdate";
 import {
   calculateModifier,
   getCharacterClasses,
@@ -22,7 +22,7 @@ import {
  * Flow:
  *   1. Показать доступные HD (diceRemaining / totalDice).
  *   2. По кнопке «Бросить d{die} + CON» — анимация бросок + append в лог.
- *   3. «Завершить отдых» → useCommitRest с currentHp + hitDiceRemaining.
+ *   3. «Завершить отдых» → useDiscreteCharacterUpdate с currentHp + hitDiceRemaining.
  */
 
 interface RollEntry {
@@ -40,7 +40,7 @@ export function ShortRestScreen({
   onOpenChange: (open: boolean) => void;
   character: Character;
 }) {
-  const commitRest = useCommitRest(character.id);
+  const commitRest = useDiscreteCharacterUpdate(character.id);
   const [rolls, setRolls] = useState<RollEntry[]>([]);
   const [rolling, setRolling] = useState(false);
   const [animVal, setAnimVal] = useState<number | null>(null);

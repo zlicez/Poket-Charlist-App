@@ -1,6 +1,6 @@
 /**
  * Dev-страница: AbilityTile + HPWidget + ListRow + BottomSheet (Phase C).
- * Доступна по /ds-hero при VITE_NEW_DS=true.
+ * Доступна по /ds-hero.
  */
 import { useState } from "react";
 import { Sword, Swords } from "lucide-react";
