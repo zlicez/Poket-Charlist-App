@@ -4,6 +4,7 @@ import { BottomSheet } from "@/ds/hero";
 import { Button } from "@/ds/primitives";
 import { typeClass } from "@/ds/tokens";
 import { useApplyDamage } from "@/hooks/character/useApplyDamage";
+import { useHapticFeedback } from "@/ds/hooks/useHapticFeedback";
 
 /**
  * B-02 — Damage bottom-sheet. Handoff 03-screens.jsx CombatDamage.
@@ -23,13 +24,17 @@ export function DamageSheet({
 }) {
   const [value, setValue] = useState<number>(0);
   const applyDamage = useApplyDamage(characterId);
+  const haptic = useHapticFeedback();
 
   useEffect(() => {
     if (open) setValue(0);
   }, [open]);
 
   const apply = () => {
-    if (value > 0) applyDamage.mutate(value);
+    if (value > 0) {
+      applyDamage.mutate(value);
+      haptic("bump");
+    }
     onOpenChange(false);
   };
 

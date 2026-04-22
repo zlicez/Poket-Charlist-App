@@ -27,6 +27,7 @@ const WizardsPreview = lazy(() => import("./pages/WizardsPreview"));
 const AuthPreview = lazy(() => import("./pages/AuthPreview"));
 const ListPreview = lazy(() => import("./pages/ListPreview"));
 const EdgePreview = lazy(() => import("./pages/EdgePreview"));
+const PolishPreview = lazy(() => import("./pages/PolishPreview"));
 const CharactersListPage = lazy(
   () => import("./pages/CharactersListPage"),
 );
@@ -91,6 +92,12 @@ function DevIndex() {
           — Phase H3 edge preview (X-01..X-08 sheets + error screens)
         </li>
         <li>
+          <a href="/ds-polish" className="text-ocean hover:underline">
+            /ds-polish
+          </a>{" "}
+          — Phase I polish preview (⌘K palette + haptic triggers)
+        </li>
+        <li>
           <a href="/" className="text-ocean hover:underline">
             /
           </a>{" "}
@@ -135,6 +142,13 @@ function GatedRoutes() {
     return (
       <Switch>
         <Route path="/ds-edge" component={EdgePreview} />
+      </Switch>
+    );
+  }
+  if (location === "/ds-polish") {
+    return (
+      <Switch>
+        <Route path="/ds-polish" component={PolishPreview} />
       </Switch>
     );
   }

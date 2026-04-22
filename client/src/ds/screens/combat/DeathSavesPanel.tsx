@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Button, Tag } from "@/ds/primitives";
 import { typeClass } from "@/ds/tokens";
 import { useSetDeathSaves } from "@/hooks/character/useSetDeathSaves";
+import { useHapticFeedback } from "@/ds/hooks/useHapticFeedback";
 import type { DeathSaves } from "@shared/schema";
 
 /**
@@ -32,6 +33,7 @@ export function DeathSavesPanel({
   onRevive?: () => void;
 }) {
   const setDeathSaves = useSetDeathSaves(characterId);
+  const haptic = useHapticFeedback();
 
   const isStable = deathSaves.successes >= 3;
   const isDead = deathSaves.failures >= 3;
@@ -43,6 +45,7 @@ export function DeathSavesPanel({
     if (roll === 20) {
       // Natural 20 → stabilize и revive (handoff §13.2: «reset when HP ≥1»).
       setDeathSaves.mutate({ successes: 0, failures: 0 });
+      haptic("success");
       onRevive?.();
       return;
     }
@@ -51,6 +54,7 @@ export function DeathSavesPanel({
         ...deathSaves,
         failures: Math.min(3, deathSaves.failures + 2),
       });
+      haptic("warn");
       return;
     }
     if (roll >= 10) {
@@ -58,11 +62,13 @@ export function DeathSavesPanel({
         ...deathSaves,
         successes: Math.min(3, deathSaves.successes + 1),
       });
+      haptic("tick");
     } else {
       setDeathSaves.mutate({
         ...deathSaves,
         failures: Math.min(3, deathSaves.failures + 1),
       });
+      haptic("warn");
     }
   };
 

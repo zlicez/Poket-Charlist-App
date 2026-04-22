@@ -4,6 +4,7 @@ import { BottomSheet } from "@/ds/hero";
 import { Button } from "@/ds/primitives";
 import { typeClass } from "@/ds/tokens";
 import { useApplyHeal } from "@/hooks/character/useApplyHeal";
+import { useHapticFeedback } from "@/ds/hooks/useHapticFeedback";
 
 /**
  * B-02' — Heal bottom-sheet. Зеркало DamageSheet в sage-палитре.
@@ -20,13 +21,17 @@ export function HealSheet({
 }) {
   const [value, setValue] = useState<number>(0);
   const applyHeal = useApplyHeal(characterId);
+  const haptic = useHapticFeedback();
 
   useEffect(() => {
     if (open) setValue(0);
   }, [open]);
 
   const apply = () => {
-    if (value > 0) applyHeal.mutate(value);
+    if (value > 0) {
+      applyHeal.mutate(value);
+      haptic("bump");
+    }
     onOpenChange(false);
   };
 

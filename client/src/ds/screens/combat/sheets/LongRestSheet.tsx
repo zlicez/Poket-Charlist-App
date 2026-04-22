@@ -4,6 +4,7 @@ import { BottomSheet } from "@/ds/hero";
 import { Button } from "@/ds/primitives";
 import { typeClass } from "@/ds/tokens";
 import { useCommitRest } from "@/hooks/character/useCommitRest";
+import { useHapticFeedback } from "@/ds/hooks/useHapticFeedback";
 import {
   getCharacterClasses,
   getTotalLevel,
@@ -31,6 +32,7 @@ export function LongRestSheet({
   character: Character;
 }) {
   const commitRest = useCommitRest(character.id);
+  const haptic = useHapticFeedback();
 
   const totalLevel = getTotalLevel(getCharacterClasses(character));
   const hdGain = Math.min(
@@ -56,6 +58,7 @@ export function LongRestSheet({
       patch.spellcasting = next;
     }
     commitRest.mutate(patch);
+    haptic("success");
     onOpenChange(false);
   };
 

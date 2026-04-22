@@ -1,10 +1,10 @@
 import { Redirect, useLocation, useParams } from "wouter";
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { cn } from "@/lib/utils";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useCharacterState } from "@/hooks/character/useCharacterState";
-import { resolveClassState } from "@shared/schema";
+import { resolveClassState, type Character } from "@shared/schema";
 
 import { DesktopShell, MobileShell, type TabId } from "@/ds/layout";
 import { typeClass } from "@/ds/tokens";
@@ -19,6 +19,9 @@ import {
   ServerErrorScreen,
   SharePanelSheet,
 } from "@/ds/screens/edge";
+import { CommandPalette } from "@/ds/screens/polish";
+import { useCmdKListener } from "@/ds/hooks/useCommandPalette";
+import { useCharacterCommands } from "@/ds/hooks/useCharacterCommands";
 
 /**
  * CharacterScreen — верхний orchestrator экрана персонажа.
@@ -88,6 +91,23 @@ function CharacterScreenBody({
   const [shareOpen, setShareOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const openPalette = useCallback(() => setPaletteOpen(true), []);
+  useCmdKListener(openPalette);
+
+  // Все hooks должны быть вызваны в одинаковом порядке — поэтому
+  // useCharacterCommands живёт здесь, до early returns. Внутри хук
+  // проверяет character и возвращает [] пока нет данных.
+  const classState = character ? resolveClassState(character) : null;
+  const hasSpellcasting = Boolean(classState?.spellcasting.hasSpellcasting);
+  const commands = useCharacterCommands({
+    id,
+    character,
+    hasSpellcasting,
+    setLocation,
+    openShare: () => setShareOpen(true),
+    openExport: () => setExportOpen(true),
+  });
 
   if (error) {
     const status = parseStatusFromError(error);
@@ -124,9 +144,6 @@ function CharacterScreenBody({
     );
   }
 
-  const classState = resolveClassState(character);
-  const hasSpellcasting = Boolean(classState.spellcasting.hasSpellcasting);
-
   const charLevel = character.classes?.reduce((sum, c) => sum + c.level, 0) ?? character.level;
   const primaryClass = character.classes?.[0]?.name ?? character.class;
   const subtitle = `${primaryClass} ${charLevel}`;
@@ -134,6 +151,11 @@ function CharacterScreenBody({
 
   const sheets = (
     <>
+      <CommandPalette
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        commands={commands}
+      />
       <SharePanelSheet
         open={shareOpen}
         onOpenChange={setShareOpen}
